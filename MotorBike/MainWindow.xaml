@@ -15,6 +15,7 @@
         <DataTemplate DataType="{x:Type vm:UsersViewModel}"><views:UsersView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:UnitsViewModel}"><views:UnitsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ItemCategoriesViewModel}"><views:ItemCategoriesView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ItemsViewModel}"><views:ItemsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:StoresViewModel}"><views:StoresView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CarBrandsViewModel}"><views:CarBrandsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CarModelsViewModel}"><views:CarModelsView/></DataTemplate>
@@ -22,6 +23,7 @@
         <DataTemplate DataType="{x:Type vm:CashViewModel}"><views:CashView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:OmlaViewModel}"><views:OmlaView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ExpGroupsViewModel}"><views:ExpGroupsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:ExpensesViewModel}"><views:ExpensesView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CitiesViewModel}"><views:CitiesView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CustomersViewModel}"><views:CustomersView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:SuppliersViewModel}"><views:SuppliersView/></DataTemplate>

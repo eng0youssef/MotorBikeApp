@@ -33,12 +33,14 @@ public class Repository<T> : IRepository<T> where T : class
         [typeof(Models.Customer)]      = new("Customers",      "Cus_ID",   "CusId"),
         [typeof(Models.ExpGroup)]      = new("Exp_Group",      "Group_ID", "GroupId"),
         [typeof(Models.ItemCategory)]  = new("Item_Category",  "Cat_ID",   "CatId"),
+        [typeof(Models.Item)]          = new("Items",          "Item_ID",  "ItemId"),
         [typeof(Models.Omla)]          = new("Omla",           "Omla_ID",  "OmlaId"),
         [typeof(Models.Store)]         = new("Stores",         "Store_ID", "StoreId"),
         [typeof(Models.Supplier)]      = new("Suppliers",      "Supp_ID",  "SuppId"),
         [typeof(Models.Unit)]          = new("Units",          "Unit_ID",  "UnitId"),
         [typeof(Models.User)]          = new("Users",          "User_ID",  "UserId"),
         [typeof(Models.UserSub)]       = new("User_Sub",       "IDSub",    "Idsub"),
+        [typeof(Models.Expense)]       = new("Expenses",       "Exp_ID",   "ExpId"),
     };
 
     #endregion

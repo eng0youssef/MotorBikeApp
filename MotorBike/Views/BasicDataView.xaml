@@ -177,6 +177,14 @@
                         <TextBlock Text="مجموعات الأصناف" Style="{StaticResource TitleTextStyle}"/>
                     </StackPanel>
                 </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Items" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#F0FDF4">
+                            <TextBlock Text="🛍️" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="الأصناف" Style="{StaticResource TitleTextStyle}"/>
+                    </StackPanel>
+                </Button>
                 <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Stores" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
                     <StackPanel VerticalAlignment="Center">
                         <Border Style="{StaticResource IconBorderStyle}" Background="#F0FDF4">
@@ -247,6 +255,14 @@
                             <TextBlock Text="📋" Style="{StaticResource IconTextStyle}"/>
                         </Border>
                         <TextBlock Text="مجموعات المصروفات" Style="{StaticResource TitleTextStyle}"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Expenses" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FEF2F2">
+                            <TextBlock Text="🧾" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="المصروفات" Style="{StaticResource TitleTextStyle}"/>
                     </StackPanel>
                 </Button>
             </WrapPanel>

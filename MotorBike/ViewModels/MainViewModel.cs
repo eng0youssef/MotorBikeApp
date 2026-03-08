@@ -25,6 +25,7 @@ public partial class MainViewModel : ObservableObject
             "Users"          => (services.GetRequiredService<UsersViewModel>(),          "المستخدمين"),
             "Units"          => (services.GetRequiredService<UnitsViewModel>(),          "وحدات الأصناف"),
             "ItemCategories" => (services.GetRequiredService<ItemCategoriesViewModel>(), "مجموعات الأصناف"),
+            "Items"          => (services.GetRequiredService<ItemsViewModel>(),          "الأصناف"),
             "Stores"         => (services.GetRequiredService<StoresViewModel>(),         "المخازن"),
             "CarBrands"      => (services.GetRequiredService<CarBrandsViewModel>(),      "ماركات الموتوسيكلات"),
             "CarModels"      => (services.GetRequiredService<CarModelsViewModel>(),      "موديلات الماركة"),
@@ -32,6 +33,7 @@ public partial class MainViewModel : ObservableObject
             "Cash"           => (services.GetRequiredService<CashViewModel>(),           "الخزائن"),
             "Omla"           => (services.GetRequiredService<OmlaViewModel>(),           "العملات"),
             "ExpGroups"      => (services.GetRequiredService<ExpGroupsViewModel>(),      "مجموعات المصروفات"),
+            "Expenses"       => (services.GetRequiredService<ExpensesViewModel>(),       "المصروفات"),
             "Cities"         => (services.GetRequiredService<CitiesViewModel>(),         "المدن"),
             "BasicData"      => (services.GetRequiredService<BasicDataViewModel>(),      "البيانات الأساسية"),
             _ => (null!, "الرئيسية")

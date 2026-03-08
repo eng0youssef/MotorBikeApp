@@ -46,12 +46,14 @@ public partial class App : Application
         services.AddTransient<SuppliersViewModel>();
         services.AddTransient<ExpGroupsViewModel>();
         services.AddTransient<ItemCategoriesViewModel>();
+        services.AddTransient<ItemsViewModel>();
         services.AddTransient<OmlaViewModel>();
         services.AddTransient<StoresViewModel>();
         services.AddTransient<UnitsViewModel>();
         services.AddTransient<UsersViewModel>();
         services.AddTransient<BasicDataViewModel>();
         services.AddTransient<MainViewModel>();
+        services.AddTransient<ExpensesViewModel>();
 
         // MainWindow and LoginWindow
         services.AddTransient<MainWindow>();
