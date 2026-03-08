@@ -42,6 +42,8 @@ public partial class App : Application
         services.AddTransient<CitiesViewModel>();
         services.AddTransient<ColorsViewModel>();
         services.AddTransient<CompanyViewModel>();
+        services.AddTransient<CustomersViewModel>();
+        services.AddTransient<SuppliersViewModel>();
         services.AddTransient<ExpGroupsViewModel>();
         services.AddTransient<ItemCategoriesViewModel>();
         services.AddTransient<OmlaViewModel>();

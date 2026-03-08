@@ -23,6 +23,8 @@
         <DataTemplate DataType="{x:Type vm:OmlaViewModel}"><views:OmlaView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ExpGroupsViewModel}"><views:ExpGroupsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CitiesViewModel}"><views:CitiesView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CustomersViewModel}"><views:CustomersView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SuppliersViewModel}"><views:SuppliersView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:BasicDataViewModel}"><views:BasicDataView/></DataTemplate>
     </Window.Resources>
 

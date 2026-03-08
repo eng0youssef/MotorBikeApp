@@ -137,6 +137,22 @@
                         <TextBlock Text="المدن" Style="{StaticResource TitleTextStyle}"/>
                     </StackPanel>
                 </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Customers" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FDF2F8">
+                            <TextBlock Text="👥" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="العملاء" Style="{StaticResource TitleTextStyle}"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Suppliers" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FEF3C7">
+                            <TextBlock Text="🚚" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="الموردين" Style="{StaticResource TitleTextStyle}"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
 
             <!-- المخازن والأصناف -->

@@ -20,6 +20,8 @@ public partial class MainViewModel : ObservableObject
         (CurrentViewModel, CurrentPageTitle) = page switch
         {
             "Company"        => ((ObservableObject)services.GetRequiredService<CompanyViewModel>(),        "بيانات الشركة"),
+            "Customers"      => (services.GetRequiredService<CustomersViewModel>(),      "العملاء"),
+            "Suppliers"      => (services.GetRequiredService<SuppliersViewModel>(),      "الموردين"),
             "Users"          => (services.GetRequiredService<UsersViewModel>(),          "المستخدمين"),
             "Units"          => (services.GetRequiredService<UnitsViewModel>(),          "وحدات الأصناف"),
             "ItemCategories" => (services.GetRequiredService<ItemCategoriesViewModel>(), "مجموعات الأصناف"),
