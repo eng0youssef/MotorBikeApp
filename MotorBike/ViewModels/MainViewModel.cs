@@ -31,6 +31,7 @@ public partial class MainViewModel : ObservableObject
             "Omla"           => (services.GetRequiredService<OmlaViewModel>(),           "العملات"),
             "ExpGroups"      => (services.GetRequiredService<ExpGroupsViewModel>(),      "مجموعات المصروفات"),
             "Cities"         => (services.GetRequiredService<CitiesViewModel>(),         "المدن"),
+            "BasicData"      => (services.GetRequiredService<BasicDataViewModel>(),      "البيانات الأساسية"),
             _ => (null!, "الرئيسية")
         };
     }

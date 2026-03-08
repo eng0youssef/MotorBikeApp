@@ -1,0 +1,137 @@
+<UserControl x:Class="MotorBike.Views.BasicDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1000"
+             FlowDirection="RightToLeft">
+    <UserControl.Resources>
+        <!-- A button style for the cards -->
+        <Style x:Key="CardButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="30">
+            <!-- بيانات عامة -->
+            <TextBlock Text="بيانات عامة" FontSize="20" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
+            <WrapPanel Margin="0,0,0,30">
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Company" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🏢" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="بيانات الشركة" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Users" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="👤" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="المستخدمين" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Cities" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🌆" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="المدن" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+
+            <!-- المخازن والأصناف -->
+            <TextBlock Text="المخازن والأصناف" FontSize="20" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
+            <WrapPanel Margin="0,0,0,30">
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Units" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="📏" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="وحدات الأصناف" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="ItemCategories" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="📂" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="مجموعات الأصناف" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Stores" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🏪" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="المخازن" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+
+            <!-- بيانات المركبات -->
+            <TextBlock Text="بيانات المركبات" FontSize="20" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
+            <WrapPanel Margin="0,0,0,30">
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CarBrands" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🏭" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="ماركات الموتوسيكلات" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CarModels" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🏍️" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="موديلات الماركة" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Colors" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="🎨" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="الألوان" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+
+            <!-- البيانات المالية -->
+            <TextBlock Text="البيانات المالية" FontSize="20" FontWeight="Bold" Foreground="#475569" Margin="0,0,0,10"/>
+            <WrapPanel Margin="0,0,0,30">
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Cash" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="💰" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="الخزائن" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Omla" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="💱" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="العملات" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="ExpGroups" Style="{StaticResource CardButtonStyle}" Width="200" Height="150" Margin="10,10,20,10">
+                    <StackPanel>
+                        <TextBlock Text="📋" FontSize="42" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                        <TextBlock Text="مجموعات المصروفات" FontSize="16" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
