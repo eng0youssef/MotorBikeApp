@@ -51,12 +51,14 @@ public partial class App : Application
         services.AddTransient<BasicDataViewModel>();
         services.AddTransient<MainViewModel>();
 
-        // MainWindow
+        // MainWindow and LoginWindow
         services.AddTransient<MainWindow>();
+        services.AddTransient<MotorBike.ViewModels.LoginViewModel>();
+        services.AddTransient<MotorBike.Views.LoginWindow>();
 
         Services = services.BuildServiceProvider();
 
-        var mainWindow = Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+        var loginWindow = Services.GetRequiredService<MotorBike.Views.LoginWindow>();
+        loginWindow.Show();
     }
 }

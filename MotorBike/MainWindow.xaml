@@ -33,15 +33,22 @@
         </Grid.ColumnDefinitions>
 
         <!-- القائمة الجانبية -->
-        <Border Grid.Column="0" Background="#1E293B">
+        <Border Grid.Column="0" Background="#0F172A">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="12" Direction="360" ShadowDepth="4"/>
+            </Border.Effect>
             <DockPanel>
-                <Border DockPanel.Dock="Top" Padding="16" Background="#0F172A">
+                <Border DockPanel.Dock="Top" Padding="16" Background="#0B1120">
                     <StackPanel>
-                        <TextBlock Text="🏍️" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBlock Text="موتوربايك" FontSize="18" FontWeight="Bold"
+                        <TextBlock Text="🏍️" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#3B82F6" BlurRadius="10" Opacity="0.5" ShadowDepth="0"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock Text="موتوربايك" FontSize="20" FontWeight="Bold"
                                    Foreground="White" HorizontalAlignment="Center"/>
-                        <TextBlock Text="نظام إدارة الوكالة" FontSize="11"
-                                   Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                        <TextBlock Text="نظام إدارة الوكالة" FontSize="12"
+                                   Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -55,12 +62,17 @@
         </Border>
 
         <!-- المحتوى الرئيسي -->
-        <DockPanel Grid.Column="1" Background="#F1F5F9">
-            <Border DockPanel.Dock="Top" Background="White" Padding="20,12"
-                    BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                <TextBlock Text="{Binding CurrentPageTitle}" FontSize="20" FontWeight="SemiBold" Foreground="#1E293B"/>
-            </Border>
-            <ContentControl Content="{Binding CurrentViewModel}" Margin="16"/>
-        </DockPanel>
+        <Border Grid.Column="1" Background="#F8FAFC" ClipToBounds="True">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="White" Padding="24,16"
+                        BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#0F172A" Opacity="0.03" BlurRadius="6" ShadowDepth="2" Direction="270"/>
+                    </Border.Effect>
+                    <TextBlock Text="{Binding CurrentPageTitle}" FontSize="22" FontWeight="Bold" Foreground="#1E293B"/>
+                </Border>
+                <ContentControl Content="{Binding CurrentViewModel}" Margin="24"/>
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

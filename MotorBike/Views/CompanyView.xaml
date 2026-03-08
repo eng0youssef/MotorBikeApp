@@ -12,133 +12,139 @@
         <conv:ByteArrayToImageConverter x:Key="ByteToImageConverter" />
     </UserControl.Resources>
 
-    <Border Background="White" CornerRadius="8" Padding="24"
-            BorderBrush="#E2E8F0" BorderThickness="1">
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel MaxWidth="600">
+    <Grid Background="Transparent">
+        <Border Background="White" CornerRadius="12" Margin="16"
+                BorderBrush="#E2E8F0" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
+            </Border.Effect>
 
-            <Grid Margin="0,0,0,20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="بيانات الشركة" FontSize="18" FontWeight="Bold"
-                           Foreground="#1E293B" VerticalAlignment="Center"/>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Border Width="120" Height="120" CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" Background="#F8FAFC" Margin="0,0,12,0" ClipToBounds="True">
-                        <Image Source="{Binding Company.Logo, Converter={StaticResource ByteToImageConverter}}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="32">
+                <StackPanel MaxWidth="700" HorizontalAlignment="Center">
+
+                    <!-- Header -->
+                    <Grid Margin="0,0,0,32">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="بيانات الشركة" FontSize="24" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                            <TextBlock Text="يرجى إدخال تفاصيل ومعلومات الشركة هنا" FontSize="14" Foreground="#64748B"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Border Width="100" Height="100" CornerRadius="50" BorderBrush="#E2E8F0" BorderThickness="1" Background="#F8FAFC" Margin="0,0,16,0" ClipToBounds="True">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="4" ShadowDepth="2"/>
+                                </Border.Effect>
+                                <Image Source="{Binding Company.Logo, Converter={StaticResource ByteToImageConverter}}" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Button Content="📷 اختيار شعار" Command="{Binding SelectLogoCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Padding="16,10"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Form Controls with improved spacing -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Row 0: Name -->
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <TextBlock Text="اسم الشركة (عربي)" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.NameAr, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <TextBlock Text="اسم الشركة (إنجليزي)" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.NameEn, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FlowDirection="LeftToRight"/>
+                        </StackPanel>
+
+                        <!-- Row 2: Address -->
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Text="العنوان (عربي)" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.AdressAr, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Text="العنوان (إنجليزي)" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.AdressEn, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FlowDirection="LeftToRight"/>
+                        </StackPanel>
+
+                        <!-- Row 4: Phone & Whatsapp -->
+                        <StackPanel Grid.Row="4" Grid.Column="0">
+                            <TextBlock Text="التليفون" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Tel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="4" Grid.Column="2">
+                            <TextBlock Text="واتساب" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Whatsapp, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+
+                        <!-- Row 6: FB & Web -->
+                        <StackPanel Grid.Row="6" Grid.Column="0">
+                            <TextBlock Text="فيسبوك" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Facebook, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="6" Grid.Column="2">
+                            <TextBlock Text="الموقع الإلكتروني" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Website, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FlowDirection="LeftToRight"/>
+                        </StackPanel>
+
+                        <!-- Row 8: Tax -->
+                        <StackPanel Grid.Row="8" Grid.Column="0">
+                            <TextBlock Text="السجل التجاري" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Segl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="8" Grid.Column="2">
+                            <TextBlock Text="الرقم الضريبي" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.Dariba, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Separator Margin="0,32,0,24" Background="#E2E8F0"/>
+
+                    <!-- Currencies -->
+                    <Grid Margin="0,0,0,32">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="العملة الرئيسية" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.CurMain, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="العملة الفرعية" Style="{StaticResource FormLabel}"/>
+                            <TextBox Text="{Binding Company.CurSub, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Actions -->
+                    <Border Background="#F8FAFC" CornerRadius="8" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="💾 حفظ البيانات" Style="{StaticResource PrimaryButton}"
+                                    Command="{Binding SaveCommand}" Padding="32,12" FontSize="14"/>
+                            <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#10B981" FontWeight="SemiBold"
+                                       VerticalAlignment="Center" Margin="16,0,0,0"/>
+                        </StackPanel>
                     </Border>
-                    <Button Content="📷 اختيار شعار" Command="{Binding SelectLogoCommand}" Style="{StaticResource SecondaryButton}" VerticalAlignment="Center" Padding="12,8"/>
+
                 </StackPanel>
-            </Grid>
-
-            <!-- الاسم عربي -->
-            <TextBlock Text="اسم الشركة (عربي)" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Company.NameAr, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBox}" Margin="0,0,0,12"/>
-
-            <!-- الاسم انجليزي -->
-            <TextBlock Text="اسم الشركة (إنجليزي)" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Company.NameEn, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBox}" Margin="0,0,0,12"
-                     FlowDirection="LeftToRight"/>
-
-            <!-- العنوان عربي -->
-            <TextBlock Text="العنوان (عربي)" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Company.AdressAr, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBox}" Margin="0,0,0,12"/>
-
-            <!-- العنوان انجليزي -->
-            <TextBlock Text="العنوان (إنجليزي)" Style="{StaticResource FormLabel}"/>
-            <TextBox Text="{Binding Company.AdressEn, UpdateSourceTrigger=PropertyChanged}"
-                     Style="{StaticResource FormTextBox}" Margin="0,0,0,12"
-                     FlowDirection="LeftToRight"/>
-
-            <!-- صف مزدوج: تليفون + واتساب -->
-            <Grid Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="التليفون" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Tel, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="واتساب" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Whatsapp, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- صف مزدوج: فيسبوك + موقع الكتروني -->
-            <Grid Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="فيسبوك" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Facebook, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="الموقع الإلكتروني" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Website, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}" FlowDirection="LeftToRight"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- صف مزدوج: سجل تجاري + ضريبة -->
-            <Grid Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="السجل التجاري" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Segl, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="الرقم الضريبي" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.Dariba, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- صف مزدوج: عملة رئيسية + عملة فرعية -->
-            <Grid Margin="0,0,0,20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="12"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="العملة الرئيسية" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.CurMain, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="العملة الفرعية" Style="{StaticResource FormLabel}"/>
-                    <TextBox Text="{Binding Company.CurSub, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource FormTextBox}"/>
-                </StackPanel>
-            </Grid>
-
-            <!-- زر الحفظ -->
-            <Button Content="💾 حفظ البيانات" Style="{StaticResource PrimaryButton}"
-                    Command="{Binding SaveCommand}" HorizontalAlignment="Left" Padding="30,10"/>
-
-            <!-- رسالة الحالة -->
-            <TextBlock Text="{Binding StatusMessage}" FontSize="12" Foreground="#64748B"
-                       Margin="0,12,0,0"/>
-
-            </StackPanel>
-        </ScrollViewer>
-    </Border>
+            </ScrollViewer>
+        </Border>
+    </Grid>
 </UserControl>
