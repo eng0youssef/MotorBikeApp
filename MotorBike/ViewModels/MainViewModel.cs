@@ -35,6 +35,7 @@ public partial class MainViewModel : ObservableObject
             "ExpGroups"      => (services.GetRequiredService<ExpGroupsViewModel>(),      "مجموعات المصروفات"),
             "Expenses"       => (services.GetRequiredService<ExpensesViewModel>(),       "المصروفات"),
             "Cities"         => (services.GetRequiredService<CitiesViewModel>(),         "المدن"),
+            "Inspections"    => (services.GetRequiredService<InspectionsViewModel>(),    "الكشف"),
             "BasicData"      => (services.GetRequiredService<BasicDataViewModel>(),      "البيانات الأساسية"),
             _ => (null!, "الرئيسية")
         };
