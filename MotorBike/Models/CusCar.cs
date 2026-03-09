@@ -44,4 +44,6 @@ public partial class CusCar
     public virtual Color Color { get; set; } = null!;
 
     public virtual Customer Cus { get; set; } = null!;
+
+    public virtual CarModel Model { get; set; } = null!;
 }

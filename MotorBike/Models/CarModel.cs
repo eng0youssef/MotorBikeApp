@@ -32,4 +32,6 @@ public partial class CarModel
     public virtual CarBrand Brand { get; set; } = null!;
 
     public virtual ICollection<Inspection> Inspections { get; set; } = new List<Inspection>();
+
+    public virtual ICollection<CusCar> CusCars { get; set; } = new List<CusCar>();
 }
