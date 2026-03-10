@@ -27,6 +27,9 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     [ObservableProperty]
     private string _searchText = string.Empty;
 
+    [ObservableProperty]
+    private bool _isSearchPanelVisible;
+
     public InspectionsViewModel(
         IRepository<Inspection> repository,
         IRepository<CarModel> modelRepository,
@@ -63,12 +66,33 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
         FilterItems();
     }
 
+    [RelayCommand]
+    private void ShowSearchPanel()
+    {
+        IsSearchPanelVisible = true;
+        SearchText = string.Empty;
+        FilterItems();
+    }
+
+    [RelayCommand]
+    private void HideSearchPanel()
+    {
+        IsSearchPanelVisible = false;
+    }
+
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
         if (e.PropertyName == nameof(Items))
         {
             FilterItems();
+        }
+        else if (e.PropertyName == nameof(SelectedItem))
+        {
+            if (SelectedItem != null)
+            {
+                IsSearchPanelVisible = false;
+            }
         }
     }
 

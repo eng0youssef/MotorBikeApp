@@ -11,7 +11,7 @@ public partial class CusCar
 
     public int ModelId { get; set; }
 
-    public byte YearNo { get; set; }
+    public short YearNo { get; set; }
 
     public string ChassisNo { get; set; } = null!;
 
