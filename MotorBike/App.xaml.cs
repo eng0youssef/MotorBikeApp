@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +53,7 @@ public partial class App : Application
         services.AddTransient<UsersViewModel>();
         services.AddTransient<BasicDataViewModel>();
         services.AddTransient<InspectionsViewModel>();
+        services.AddTransient<BuysViewModel>();
         services.AddTransient<MainViewModel>();
         services.AddTransient<ExpensesViewModel>();
 

@@ -42,6 +42,8 @@ public class Repository<T> : IRepository<T> where T : class
         [typeof(Models.UserSub)]       = new("User_Sub",       "IDSub",    "Idsub"),
         [typeof(Models.Expense)]       = new("Expenses",       "Exp_ID",   "ExpId"),
         [typeof(Models.Inspection)]    = new("Inspection",     "Insp_ID",  "InspId"),
+        [typeof(Models.Buy)]           = new("Buy",            "Buy_ID",   "BuyId"),
+        [typeof(Models.BuySub)]        = new("Buy_Sub",        "ID",       "Id"),
     };
 
     #endregion

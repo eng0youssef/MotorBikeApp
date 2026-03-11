@@ -17,7 +17,7 @@ public partial class Buy
 
     public double DiscPer { get; set; }
 
-    public double AddMony { get; set; }
+    public double AddMoney { get; set; }
 
     public double Net { get; set; }
 
