@@ -3,7 +3,10 @@ using System.Collections.Generic;
 
 namespace MotorBike.Models;
 
-public partial class Supplier
+/// <summary>
+/// موردين الاستيراد — جدول Import_Suppliers
+/// </summary>
+public partial class ImportSupplier
 {
     public int SuppId { get; set; }
 
@@ -13,19 +16,23 @@ public partial class Supplier
 
     public string? Adress { get; set; }
 
-    public DateTime OpenDate { get; set; }
+    public string Country { get; set; } = null!;
 
     public double Debit { get; set; }
 
     public double Credit { get; set; }
 
-    public int CityId { get; set; }
+    public byte OmlaId { get; set; }
+
+    public decimal OmlaRate { get; set; }
+
+    public DateTime OpenDate { get; set; }
 
     public string? Notes { get; set; }
 
-    public double? Bal { get; set; }
-
     public bool Active { get; set; }
+
+    public double? Bal { get; set; }
 
     public int? AddUser { get; set; }
 
@@ -41,9 +48,7 @@ public partial class Supplier
 
     public byte[]? RowId { get; set; }
 
-    public virtual ICollection<Buy> Buys { get; set; } = new List<Buy>();
+    public virtual ICollection<ImportInvoice> ImportInvoices { get; set; } = new List<ImportInvoice>();
 
-    public virtual City City { get; set; } = null!;
-
-    public virtual ICollection<SuppPayment> SuppPayments { get; set; } = new List<SuppPayment>();
+    public virtual ICollection<ImportPayment> ImportPayments { get; set; } = new List<ImportPayment>();
 }

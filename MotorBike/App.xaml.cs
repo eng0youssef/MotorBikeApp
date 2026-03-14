@@ -34,6 +34,7 @@ public partial class App : Application
         // DataAccess
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
         services.AddTransient(typeof(IRepository<>), typeof(Repository<>));
+        services.AddTransient<CompositeKeyRepository>();
 
         // ViewModels
         services.AddTransient<CarBrandsViewModel>();

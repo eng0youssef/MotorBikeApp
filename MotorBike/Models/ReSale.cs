@@ -3,7 +3,10 @@ using System.Collections.Generic;
 
 namespace MotorBike.Models;
 
-public partial class Sale
+/// <summary>
+/// مرتجع المبيعات — جدول ReSales
+/// </summary>
+public partial class ReSale
 {
     public int SalesId { get; set; }
 
@@ -15,17 +18,24 @@ public partial class Sale
 
     public double Disc { get; set; }
 
+    /// <summary>Computed column</summary>
     public double DiscPer { get; set; }
 
     public double AddMony { get; set; }
 
+    /// <summary>Computed column</summary>
     public double Net { get; set; }
 
     public bool IsPer { get; set; }
 
+    /// <summary>Computed column</summary>
     public double NetPer { get; set; }
 
     public bool IsCash { get; set; }
+
+    public double Payed { get; set; }
+
+    public int? CashId { get; set; }
 
     public string? Notes { get; set; }
 
@@ -43,9 +53,9 @@ public partial class Sale
 
     public byte[]? RowId { get; set; }
 
+    public virtual ICollection<ReSalesSub> ReSalesSubs { get; set; } = new List<ReSalesSub>();
+
+    public virtual Cash? Cash { get; set; }
+
     public virtual Customer Cus { get; set; } = null!;
-
-    public virtual ICollection<SalesSub> SalesSubs { get; set; } = new List<SalesSub>();
-
-    public virtual ICollection<SalesPayment> SalesPayments { get; set; } = new List<SalesPayment>();
 }

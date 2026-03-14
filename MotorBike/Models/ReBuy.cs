@@ -1,0 +1,59 @@
+using System;
+using System.Collections.Generic;
+
+namespace MotorBike.Models;
+
+/// <summary>
+/// مرتجع المشتريات — جدول ReBuy
+/// </summary>
+public partial class ReBuy
+{
+    public int BuyId { get; set; }
+
+    public DateTime BuyDate { get; set; }
+
+    public int SuppId { get; set; }
+
+    public double Total { get; set; }
+
+    public double Disc { get; set; }
+
+    /// <summary>Computed column</summary>
+    public double DiscPer { get; set; }
+
+    public double AddMoney { get; set; }
+
+    /// <summary>Computed column</summary>
+    public double Net { get; set; }
+
+    public bool IsPer { get; set; }
+
+    /// <summary>Computed column</summary>
+    public double NetPer { get; set; }
+
+    public bool IsCash { get; set; }
+
+    public double Payed { get; set; }
+
+    public int? CashId { get; set; }
+
+    public string? Notes { get; set; }
+
+    public int? AddUser { get; set; }
+
+    public DateTime AddDate { get; set; }
+
+    public string AddPc { get; set; } = null!;
+
+    public int? EditUser { get; set; }
+
+    public DateTime? EditDate { get; set; }
+
+    public string? EditPc { get; set; }
+
+    public virtual ICollection<ReBuySub> ReBuySubs { get; set; } = new List<ReBuySub>();
+
+    public virtual Cash? Cash { get; set; }
+
+    public virtual Supplier Supp { get; set; } = null!;
+}
