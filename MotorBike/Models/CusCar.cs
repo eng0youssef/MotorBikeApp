@@ -1,27 +1,17 @@
 using System;
-using System.Collections.Generic;
 
 namespace MotorBike.Models;
 
+/// <summary>
+/// سيارات العملاء — جدول Cus_Cars
+/// The car detail fields (Model, Year, Chassis, etc.) moved to the Cars table.
+/// This table now links customers to cars.
+/// </summary>
 public partial class CusCar
 {
     public int CusId { get; set; }
 
     public int CarId { get; set; }
-
-    public int ModelId { get; set; }
-
-    public short YearNo { get; set; }
-
-    public string ChassisNo { get; set; } = null!;
-
-    public string MotorNo { get; set; } = null!;
-
-    public string PlateNo { get; set; } = null!;
-
-    public int Mileage { get; set; }
-
-    public int ColorId { get; set; }
 
     public string? Notes { get; set; }
 
@@ -41,9 +31,7 @@ public partial class CusCar
 
     public byte[]? RowId { get; set; }
 
-    public virtual Color Color { get; set; } = null!;
-
     public virtual Customer Cus { get; set; } = null!;
 
-    public virtual CarModel Model { get; set; } = null!;
+    public virtual Car Car { get; set; } = null!;
 }

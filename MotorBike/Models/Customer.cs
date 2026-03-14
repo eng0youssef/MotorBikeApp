@@ -3,6 +3,10 @@ using System.Collections.Generic;
 
 namespace MotorBike.Models;
 
+/// <summary>
+/// العملاء — جدول Customers
+/// OmlaId/OmlaRate removed from DB.
+/// </summary>
 public partial class Customer
 {
     public int CusId { get; set; }
@@ -15,19 +19,17 @@ public partial class Customer
 
     public int CityId { get; set; }
 
-    public DateTime OpenDate { get; set; }
-
     public double Debit { get; set; }
 
     public double Credit { get; set; }
 
-    public byte? OmlaId { get; set; }
+    public DateTime OpenDate { get; set; }
 
-    public decimal OmlaRate { get; set; }
-
-    public double? Bal { get; set; }
+    public string? Notes { get; set; }
 
     public bool Active { get; set; }
+
+    public double? Bal { get; set; }
 
     public int? AddUser { get; set; }
 
@@ -48,8 +50,6 @@ public partial class Customer
     public virtual ICollection<CusCar> CusCars { get; set; } = new List<CusCar>();
 
     public virtual ICollection<CusPayment> CusPayments { get; set; } = new List<CusPayment>();
-
-    public virtual Omla? Omla { get; set; }
 
     public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
 }

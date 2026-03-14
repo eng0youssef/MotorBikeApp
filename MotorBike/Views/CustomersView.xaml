@@ -116,11 +116,11 @@
                     <TextBlock Grid.Row="4" Grid.Column="6" Text="الرصيد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox x:Name="txtBal" Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.Bal, Mode=OneWay}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#1D4ED8" FontWeight="Bold"/>
 
-                    <!-- Row 6: Currency, Active -->
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cmbOmla" Grid.Row="6" Grid.Column="1" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding FormItem.OmlaId}" Padding="10,6" FontSize="14" SelectionChanged="cmbOmla_SelectionChanged"/>
+                    <!-- Row 6: Notes, Active -->
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                    <CheckBox Grid.Row="6" Grid.Column="4" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
+                    <CheckBox Grid.Row="6" Grid.Column="7" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
                 </Grid>
 
                 <DockPanel>

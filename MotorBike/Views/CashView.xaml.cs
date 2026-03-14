@@ -24,7 +24,7 @@ public partial class CashView : UserControl
     {
         if (DataContext is CashViewModel vm && sender is ComboBox combo && vm.FormItem is not null)
         {
-            vm.FormItem.CashType = (byte)combo.SelectedIndex;
+            vm.FormItem.TypeId = (byte)combo.SelectedIndex;
         }
     }
 

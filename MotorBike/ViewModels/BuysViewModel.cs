@@ -293,7 +293,6 @@ public partial class BuysViewModel : ObservableObject
         {
             BuyDate = DateTime.Now,
             SuppId = Suppliers.FirstOrDefault()?.SuppId ?? 0,
-            CashId = Cashes.FirstOrDefault()?.CashId,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
@@ -370,11 +369,7 @@ public partial class BuysViewModel : ObservableObject
             return;
         }
 
-        if (FormItem.Payed > 0 && FormItem.CashId == null)
-        {
-            StatusMessage = "⚠️ يجب اختيار الخزينة أو الحساب البنكي طالما أن هناك مبلغاً مدفوعاً.";
-            return;
-        }
+        // Payed/CashId validation removed — payments now handled via Buy_Payments table
 
         try
         {
@@ -392,8 +387,8 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1; // Fallback to 1 if no user is logged in
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Payed, CashId, Notes, AddDate, AddPc, AddUser) 
-                        VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Payed, @CashId, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                        INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, IsTax, VatTax, Tax, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                        VALUES (@BuyId, @BuyDate, @SuppId, @Total, @IsTax, @VatTax, @Tax, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
                 }
                 else
                 {
@@ -401,8 +396,8 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1; // Fallback to 1 if no user is logged in
                     await db.ExecuteAsync(@"
-                        UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, Disc=@Disc, AddMoney=@AddMoney, 
-                        IsPer=@IsPer, IsCash=@IsCash, Payed=@Payed, CashId=@CashId, Notes=@Notes, 
+                        UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax,
+                        Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
                         EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
                         WHERE Buy_ID = @BuyId", FormItem, tx);
                         
@@ -581,11 +576,8 @@ public partial class BuysViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
+        // Net is a computed column in DB; calculate locally for display
         FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
-        if (FormItem.IsCash)
-        {
-            FormItem.Payed = FormItem.Net;
-        }
         OnPropertyChanged(nameof(FormItem));
     }
     
@@ -602,6 +594,9 @@ public partial class BuysViewModel : ObservableObject
             BuyDate = source.BuyDate,
             SuppId = source.SuppId,
             Total = source.Total,
+            IsTax = source.IsTax,
+            VatTax = source.VatTax,
+            Tax = source.Tax,
             Disc = source.Disc,
             DiscPer = source.DiscPer,
             AddMoney = source.AddMoney,
@@ -609,8 +604,6 @@ public partial class BuysViewModel : ObservableObject
             IsPer = source.IsPer,
             NetPer = source.NetPer,
             IsCash = source.IsCash,
-            Payed = source.Payed,
-            CashId = source.CashId,
             Notes = source.Notes,
             AddUser = source.AddUser,
             AddDate = source.AddDate,

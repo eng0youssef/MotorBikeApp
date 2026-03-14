@@ -33,13 +33,4 @@ public partial class CustomersView : UserControl
             txtBal.Text = bal.ToString("0.##"); // Format to avoid overly long decimals
         }
     }
-
-    private void cmbOmla_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (DataContext is CustomersViewModel vm && vm.FormItem != null && cmbOmla.SelectedItem is MotorBike.Models.Omla selectedOmla)
-        {
-            vm.FormItem.OmlaId = selectedOmla.OmlaId;
-            vm.FormItem.OmlaRate = selectedOmla.OmlaRate;
-        }
-    }
 }

@@ -12,7 +12,7 @@ public partial class Cash
     /// <summary>
     /// Cash=0 | Bank=1 | Gary=2
     /// </summary>
-    public byte CashType { get; set; }
+    public byte TypeId { get; set; }
 
     public DateTime OpenDate { get; set; }
 

@@ -10,9 +10,9 @@ public partial class CusPayment
     public DateTime PayDate { get; set; }
 
     /// <summary>
-    /// ����� ����=0 | ����� ����=1 | ���=2 | �����=3
+    /// سداد عميل=0 | تحصيل عميل=1 | رد=2 | خصومات=3
     /// </summary>
-    public byte InType { get; set; }
+    public byte PayType { get; set; }
 
     public int CusId { get; set; }
 

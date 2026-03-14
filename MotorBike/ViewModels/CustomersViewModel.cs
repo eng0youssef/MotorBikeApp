@@ -9,21 +9,17 @@ namespace MotorBike.ViewModels;
 public partial class CustomersViewModel : LookupViewModelBase<Customer>
 {
     private readonly IRepository<City> _cityRepository;
-    private readonly IRepository<Omla> _omlaRepository;
 
     [ObservableProperty]
     private ObservableCollection<City> _cities = [];
 
-    [ObservableProperty]
-    private ObservableCollection<Omla> _omlas = [];
+
 
     public CustomersViewModel(
         IRepository<Customer> repository,
-        IRepository<City> cityRepository,
-        IRepository<Omla> omlaRepository) : base(repository)
+        IRepository<City> cityRepository) : base(repository)
     {
         _cityRepository = cityRepository;
-        _omlaRepository = omlaRepository;
     }
 
     [RelayCommand]
@@ -33,9 +29,6 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         {
             var citiesData = await _cityRepository.GetAllAsync();
             Cities = new ObservableCollection<City>(citiesData.Where(c => c.Active));
-
-            var omlasData = await _omlaRepository.GetAllAsync();
-            Omlas = new ObservableCollection<Omla>(omlasData.Where(o => o.Active));
         }
         catch (Exception ex)
         {
@@ -54,7 +47,6 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         entity.Credit = 0;
         entity.Debit = 0;
         entity.Bal = 0;
-        entity.OmlaRate = 1;
 
         if (Cities.Any())
         {

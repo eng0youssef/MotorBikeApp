@@ -109,12 +109,12 @@
                             <TextBlock Grid.Row="0" Grid.Column="6" Text="المورد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                             <ComboBox Grid.Row="0" Grid.Column="7" ItemsSource="{Binding Suppliers}" DisplayMemberPath="SuppName" SelectedValuePath="SuppId" SelectedValue="{Binding FormItem.SuppId, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type ComboBox}}" VerticalContentAlignment="Center" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
 
-                            <!-- Row 2: Cash, Payment Status, Notes -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="الخزينة/البنك" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Cashes}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormItem.CashId, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type ComboBox}}" VerticalContentAlignment="Center" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                            <!-- Row 2: Payment Status, Notes -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                             
-                            <TextBlock Grid.Row="2" Grid.Column="3" Text="طريقة السداد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ToggleButton Grid.Row="2" Grid.Column="4" IsChecked="{Binding FormItem.IsCash, UpdateSourceTrigger=PropertyChanged}" Cursor="Hand" Checked="IsCash_Changed" Unchecked="IsCash_Changed" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="32">
+                            <TextBlock Grid.Row="2" Grid.Column="6" Text="طريقة السداد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <ToggleButton Grid.Row="2" Grid.Column="7" IsChecked="{Binding FormItem.IsCash, UpdateSourceTrigger=PropertyChanged}" Cursor="Hand" Checked="IsCash_Changed" Unchecked="IsCash_Changed" VerticalAlignment="Center" HorizontalAlignment="Stretch" Height="32">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Border" CornerRadius="8" Background="#F1F5F9" BorderThickness="1" BorderBrush="#CBD5E1">
@@ -134,9 +134,6 @@
                                     </ControlTemplate>
                                 </ToggleButton.Template>
                             </ToggleButton>
-
-                            <TextBlock Grid.Row="2" Grid.Column="6" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                         </Grid>
 
                         <!-- Smart Search & Quick Add item -->
@@ -289,25 +286,7 @@
                                     <TextBlock Text="الإجمالي" Foreground="#64748B" FontSize="12"/>
                                     <TextBlock Text="{Binding FormItem.Net, StringFormat=\{0:N2\}}" FontSize="20" FontWeight="Bold" Foreground="#10B981"/>
                                 </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="المدفوع" Foreground="#64748B" FontSize="12"/>
-                                    <TextBox Text="{Binding FormItem.Payed, UpdateSourceTrigger=PropertyChanged}" Width="100">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBox}">
-                                                <Setter Property="Background" Value="White"/>
-                                                <Setter Property="BorderBrush" Value="#CBD5E1"/>
-                                                <Setter Property="Foreground" Value="#1E293B"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding FormItem.IsCash}" Value="True">
-                                                        <Setter Property="IsReadOnly" Value="True"/>
-                                                        <Setter Property="Background" Value="#F1F5F9"/>
-                                                        <Setter Property="Foreground" Value="#94A3B8"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
-                                </StackPanel>
+
                             </StackPanel>
                         </Border>
 
@@ -466,7 +445,6 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="الإجمالي" Binding="{Binding Net}" Width="150"/>
-                                <DataGridTextColumn Header="المدفوع" Binding="{Binding Payed}" Width="150"/>
                                 <DataGridTextColumn Header="الملاحظات" Binding="{Binding Notes}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
