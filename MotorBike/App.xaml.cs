@@ -55,8 +55,28 @@ public partial class App : Application
         services.AddTransient<BasicDataViewModel>();
         services.AddTransient<InspectionsViewModel>();
         services.AddTransient<BuysViewModel>();
+        services.AddTransient<CarsViewModel>();
+        services.AddTransient<SalesViewModel>();
+        services.AddTransient<BuyCarViewModel>();
+        services.AddTransient<SalesCarViewModel>();
+        services.AddTransient<ReBuyViewModel>();
+        services.AddTransient<ReSalesViewModel>();
+        services.AddTransient<ImportDataViewModel>();
+        services.AddTransient<ImportSuppliersViewModel>();
+        services.AddTransient<ImportExpensesViewModel>();
+        services.AddTransient<ImportInvoiceViewModel>();
+        services.AddTransient<ImportPaymentsViewModel>();
+        
+        services.AddTransient<PaymentsDataViewModel>();
+
+        services.AddTransient<CusPaymentsViewModel>();
+        services.AddTransient<SuppPaymentsViewModel>();
+        services.AddTransient<ExpPaymentsViewModel>();
+        services.AddTransient<CashTransfersViewModel>();
+
         services.AddTransient<MainViewModel>();
         services.AddTransient<ExpensesViewModel>();
+        services.AddTransient<OpenStockViewModel>();
 
         // MainWindow and LoginWindow
         services.AddTransient<MainWindow>();

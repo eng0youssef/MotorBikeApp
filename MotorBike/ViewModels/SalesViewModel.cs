@@ -10,38 +10,38 @@ using Dapper;
 
 namespace MotorBike.ViewModels;
 
-public partial class BuysViewModel : ObservableObject
+public partial class SalesViewModel : ObservableObject
 {
     private readonly IDbConnectionFactory _dbFactory;
-    private readonly IRepository<Buy> _buyRepository;
-    private readonly IRepository<Supplier> _supplierRepository;
+    private readonly IRepository<Sale> _saleRepository;
+    private readonly IRepository<Customer> _customerRepository;
     private readonly IRepository<Cash> _cashRepository;
     private readonly IRepository<Item> _itemRepository;
     private readonly IRepository<Store> _storeRepository;
     private readonly IRepository<Unit> _unitRepository;
 
-    [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
+    [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
     [ObservableProperty] private ObservableCollection<Item> _items = [];
     [ObservableProperty] private ObservableCollection<Store> _stores = [];
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
 
-    [ObservableProperty] private ObservableCollection<Buy> _invoices = [];
-    [ObservableProperty] private ObservableCollection<Buy> _filteredInvoices = [];
+    [ObservableProperty] private ObservableCollection<Sale> _invoices = [];
+    [ObservableProperty] private ObservableCollection<Sale> _filteredInvoices = [];
 
-    [ObservableProperty] private Buy _formItem = new();
-    [ObservableProperty] private ObservableCollection<BuySub> _formSubItems = [];
-    [ObservableProperty] private ObservableCollection<BuyPayment> _formPayments = [];
+    [ObservableProperty] private Sale _formItem = new();
+    [ObservableProperty] private ObservableCollection<SalesSub> _formSubItems = [];
+    [ObservableProperty] private ObservableCollection<SalesPayment> _formPayments = [];
 
-    [ObservableProperty] private BuySub _currentSubItem = new();
-    [ObservableProperty] private BuyPayment _currentPayment = new();
+    [ObservableProperty] private SalesSub _currentSubItem = new();
+    [ObservableProperty] private SalesPayment _currentPayment = new();
     
     [ObservableProperty] private string _itemSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Item> _filteredItemsList = [];
     [ObservableProperty] private bool _isItemSearchPopupOpen;
 
-    [ObservableProperty] private Buy? _selectedInvoice;
-    [ObservableProperty] private BuySub? _selectedSubItem;
+    [ObservableProperty] private Sale? _selectedInvoice;
+    [ObservableProperty] private SalesSub? _selectedSubItem;
     [ObservableProperty] private bool _isEditing;
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
@@ -160,18 +160,18 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
-    public BuysViewModel(
+    public SalesViewModel(
         IDbConnectionFactory dbFactory,
-        IRepository<Buy> buyRepository,
-        IRepository<Supplier> supplierRepository,
+        IRepository<Sale> saleRepository,
+        IRepository<Customer> customerRepository,
         IRepository<Cash> cashRepository,
         IRepository<Item> itemRepository,
         IRepository<Store> storeRepository,
         IRepository<Unit> unitRepository)
     {
         _dbFactory = dbFactory;
-        _buyRepository = buyRepository;
-        _supplierRepository = supplierRepository;
+        _saleRepository = saleRepository;
+        _customerRepository = customerRepository;
         _cashRepository = cashRepository;
         _itemRepository = itemRepository;
         _storeRepository = storeRepository;
@@ -183,8 +183,8 @@ public partial class BuysViewModel : ObservableObject
     {
         try
         {
-            var suppliers = await _supplierRepository.GetAllAsync();
-            Suppliers = new ObservableCollection<Supplier>(suppliers);
+            var customers = await _customerRepository.GetAllAsync();
+            Customers = new ObservableCollection<Customer>(customers);
 
             var cashes = await _cashRepository.GetAllAsync();
             Cashes = new ObservableCollection<Cash>(cashes);
@@ -208,8 +208,8 @@ public partial class BuysViewModel : ObservableObject
 
     private async Task LoadInvoicesAsync()
     {
-        var data = await _buyRepository.GetAllAsync();
-        Invoices = new ObservableCollection<Buy>(data);
+        var data = await _saleRepository.GetAllAsync();
+        Invoices = new ObservableCollection<Sale>(data);
         FilterInvoices();
     }
 
@@ -219,16 +219,16 @@ public partial class BuysViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(SearchText))
         {
-            FilteredInvoices = new ObservableCollection<Buy>(Invoices);
+            FilteredInvoices = new ObservableCollection<Sale>(Invoices);
         }
         else
         {
             var lowerSearch = SearchText.ToLower();
             var filtered = Invoices.Where(i =>
-                i.BuyId.ToString().Contains(lowerSearch) ||
-                (Suppliers.FirstOrDefault(s => s.SuppId == i.SuppId)?.SuppName?.ToLower().Contains(lowerSearch) == true)
+                i.SalesId.ToString().Contains(lowerSearch) ||
+                (Customers.FirstOrDefault(c => c.CusId == i.CusId)?.CusName?.ToLower().Contains(lowerSearch) == true)
             );
-            FilteredInvoices = new ObservableCollection<Buy>(filtered);
+            FilteredInvoices = new ObservableCollection<Sale>(filtered);
         }
     }
 
@@ -246,14 +246,11 @@ public partial class BuysViewModel : ObservableObject
         IsSearchPanelVisible = false;
     }
 
-    partial void OnSelectedInvoiceChanged(Buy? value)
+    partial void OnSelectedInvoiceChanged(Sale? value)
     {
         if (value is not null && !IsEditing)
         {
-            // Selected an invoice from search
             IsSearchPanelVisible = false;
-            
-            // Clone it to form
             FormItem = CloneInvoice(value);
             
             _isUpdatingDiscount = true;
@@ -269,21 +266,20 @@ public partial class BuysViewModel : ObservableObject
             }
             _isUpdatingDiscount = false;
 
-            // Load SubItems
-            LoadSubItemsAsync(value.BuyId).ConfigureAwait(false);
+            LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
         }
     }
 
-    private async Task LoadSubItemsAsync(int buyId)
+    private async Task LoadSubItemsAsync(int salesId)
     {
         try
         {
             using var db = _dbFactory.CreateConnection();
-            var subItems = await db.QueryAsync<BuySub>("SELECT * FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = buyId });
-            FormSubItems = new ObservableCollection<BuySub>(subItems);
+            var subItems = await db.QueryAsync<SalesSub>("SELECT * FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = salesId });
+            FormSubItems = new ObservableCollection<SalesSub>(subItems);
 
-            var payments = await db.QueryAsync<BuyPayment>("SELECT * FROM Buy_Payments WHERE BuyId = @BuyId", new { BuyId = buyId });
-            FormPayments = new ObservableCollection<BuyPayment>(payments);
+            var payments = await db.QueryAsync<SalesPayment>("SELECT * FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
+            FormPayments = new ObservableCollection<SalesPayment>(payments);
             CalculatePayedTotal();
 
             CalculateTotals();
@@ -297,20 +293,20 @@ public partial class BuysViewModel : ObservableObject
     [RelayCommand]
     public async Task AddNewAsync()
     {
-        var item = new Buy
+        var item = new Sale
         {
-            BuyDate = DateTime.Now,
-            SuppId = Suppliers.FirstOrDefault()?.SuppId ?? 0,
+            SalesDate = DateTime.Now,
+            CusId = Customers.FirstOrDefault()?.CusId ?? 0,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
         
-        item.BuyId = await _buyRepository.GetNextIdAsync();
+        item.SalesId = await _saleRepository.GetNextIdAsync();
 
         _isInsertMode = true;
         IsEditing = true;
         SelectedInvoice = null;
-        item.IsPer = true; // Default in DB is 1
+        item.IsPer = true;
         FormItem = item;
         
         _isUpdatingDiscount = true;
@@ -322,12 +318,12 @@ public partial class BuysViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         
-        CurrentSubItem = new BuySub { BuyId = item.BuyId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
+        CurrentSubItem = new SalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
 
-        CurrentPayment = new BuyPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new SalesPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         
         StatusMessage = "فاتورة جديدة — أدخل البيانات ثم اضغط حفظ";
     }
@@ -347,7 +343,7 @@ public partial class BuysViewModel : ObservableObject
     {
         _isInsertMode = false;
         IsEditing = false;
-        FormItem = new Buy();
+        FormItem = new Sale();
         
         _isUpdatingDiscount = true;
         DiscountPercentInput = 0;
@@ -357,8 +353,8 @@ public partial class BuysViewModel : ObservableObject
         FormSubItems.Clear();
         FormPayments.Clear();
         TotalPayed = 0;
-        CurrentSubItem = new BuySub();
-        CurrentPayment = new BuyPayment();
+        CurrentSubItem = new SalesSub();
+        CurrentPayment = new SalesPayment();
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
@@ -371,20 +367,17 @@ public partial class BuysViewModel : ObservableObject
     {
         if (FormItem is null) return;
 
-        // مراجعة المنطق (Validation Logic)
-        if (FormItem.SuppId <= 0)
+        if (FormItem.CusId <= 0)
         {
-            StatusMessage = "⚠️ يجب اختيار المورد لإتمام حفظ الفاتورة.";
+            StatusMessage = "⚠️ يجب اختيار العميل لإتمام حفظ الفاتورة.";
             return;
         }
 
         if (FormSubItems == null || !FormSubItems.Any())
         {
-            StatusMessage = "⚠️ لا يمكن حفظ فاتورة شراء بدون إضافة أصناف.";
+            StatusMessage = "⚠️ لا يمكن حفظ فاتورة بيع بدون إضافة أصناف.";
             return;
         }
-
-        // Payed/CashId validation removed — payments now handled via Buy_Payments table
 
         try
         {
@@ -400,47 +393,47 @@ public partial class BuysViewModel : ObservableObject
                 {
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
-                    FormItem.AddUser = AppSession.CurrentUserId ?? 1; // Fallback to 1 if no user is logged in
+                    FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, IsTax, VatTax, Tax, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                        VALUES (@BuyId, @BuyDate, @SuppId, @Total, @IsTax, @VatTax, @Tax, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                        INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                        VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
                 }
                 else
                 {
                     FormItem.EditPc = Environment.MachineName;
                     FormItem.EditDate = DateTime.Now;
-                    FormItem.EditUser = AppSession.CurrentUserId ?? 1; // Fallback to 1 if no user is logged in
+                    FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax,
-                        Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
+                        UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
+                        Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
                         EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
-                        WHERE Buy_ID = @BuyId", FormItem, tx);
+                        WHERE Sales_ID = @SalesId", FormItem, tx);
                         
                     // Delete old subItems and payments
-                    await db.ExecuteAsync("DELETE FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId }, tx);
-                    await db.ExecuteAsync("DELETE FROM Buy_Payments WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId }, tx);
+                    await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
+                    await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
                 }
 
-                int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM Buy_Sub", transaction: tx);
+                int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM Sales_Sub", transaction: tx);
 
                 foreach (var s in FormSubItems)
                 {
                     s.Id = ++maxSubId;
-                    s.BuyId = FormItem.BuyId;
+                    s.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy_Sub (ID, BuyId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
-                        VALUES (@Id, @BuyId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx);
+                        INSERT INTO Sales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
+                        VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx);
                 }
 
                 // Save payments
-                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Buy_Payments", transaction: tx);
+                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
                     p.PayId = ++maxPayId;
-                    p.BuyId = FormItem.BuyId;
+                    p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, BuyID) 
-                        VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @BuyId)", p, tx);
+                        INSERT INTO Sales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
+                        VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)", p, tx);
                 }
 
                 tx.Commit();
@@ -472,16 +465,16 @@ public partial class BuysViewModel : ObservableObject
             db.Open();
             using var tx = db.BeginTransaction();
             try {
-                await db.ExecuteAsync("DELETE FROM Buy_Payments WHERE BuyId = @BuyId", new { BuyId = SelectedInvoice.BuyId }, tx);
-                await db.ExecuteAsync("DELETE FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = SelectedInvoice.BuyId }, tx);
-                await db.ExecuteAsync("DELETE FROM Buy WHERE Buy_ID = @BuyId", new { BuyId = SelectedInvoice.BuyId }, tx);
+                await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
+                await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
+                await db.ExecuteAsync("DELETE FROM Sales WHERE Sales_ID = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;
-            FormItem = new Buy();
+            FormItem = new Sale();
             
             _isUpdatingDiscount = true;
             DiscountPercentInput = 0;
@@ -528,21 +521,21 @@ public partial class BuysViewModel : ObservableObject
     {
         if (item == null) return;
         
-        CurrentSubItem = new BuySub
+        CurrentSubItem = new SalesSub
         {
-            BuyId = FormItem.BuyId,
+            SalesId = FormItem.SalesId,
             StoreId = CurrentSubItem.StoreId,
             ItemId = item.ItemId,
             UnitId = item.UnitId,
-            Price = item.Price0,
+            Price = item.Price1 > 0 ? item.Price1 : item.Price0,
             Qty = 1,
             UnitQty = 1,
             QtyAll = 1,
-            Total = item.Price0 * 1
+            Total = (item.Price1 > 0 ? item.Price1 : item.Price0) * 1
         };
         
         _isUpdatingSubDiscount = true;
-        SubItemPrice = item.Price0;
+        SubItemPrice = CurrentSubItem.Price;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
         _isUpdatingSubDiscount = false;
@@ -560,7 +553,7 @@ public partial class BuysViewModel : ObservableObject
         
         FormSubItems.Add(CurrentSubItem);
         
-        CurrentSubItem = new BuySub { BuyId = FormItem.BuyId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
+        CurrentSubItem = new SalesSub { SalesId = FormItem.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         _isUpdatingSubDiscount = true;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
@@ -573,7 +566,7 @@ public partial class BuysViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void RemoveSubItem(BuySub sub)
+    private void RemoveSubItem(SalesSub sub)
     {
         if (sub != null && FormSubItems.Contains(sub))
         {
@@ -592,16 +585,16 @@ public partial class BuysViewModel : ObservableObject
         FormPayments.Add(CurrentPayment);
         CalculatePayedTotal();
 
-        CurrentPayment = new BuyPayment
+        CurrentPayment = new SalesPayment
         {
-            BuyId = FormItem.BuyId,
+            SalesId = FormItem.SalesId,
             PayDate = DateTime.Now,
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
 
     [RelayCommand]
-    private void RemovePayment(BuyPayment payment)
+    private void RemovePayment(SalesPayment payment)
     {
         if (payment != null && FormPayments.Contains(payment))
         {
@@ -639,8 +632,7 @@ public partial class BuysViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
-        // Net is a computed column in DB; calculate locally for display
-        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony;
         OnPropertyChanged(nameof(FormItem));
     }
     
@@ -649,20 +641,17 @@ public partial class BuysViewModel : ObservableObject
         if (!_isUpdatingDiscount) CalculateTotals();
     }
 
-    private Buy CloneInvoice(Buy source)
+    private Sale CloneInvoice(Sale source)
     {
-        return new Buy
+        return new Sale
         {
-            BuyId = source.BuyId,
-            BuyDate = source.BuyDate,
-            SuppId = source.SuppId,
+            SalesId = source.SalesId,
+            SalesDate = source.SalesDate,
+            CusId = source.CusId,
             Total = source.Total,
-            IsTax = source.IsTax,
-            VatTax = source.VatTax,
-            Tax = source.Tax,
             Disc = source.Disc,
             DiscPer = source.DiscPer,
-            AddMoney = source.AddMoney,
+            AddMony = source.AddMony,
             Net = source.Net,
             IsPer = source.IsPer,
             NetPer = source.NetPer,

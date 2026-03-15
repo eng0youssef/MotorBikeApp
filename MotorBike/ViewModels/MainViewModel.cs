@@ -38,6 +38,27 @@ public partial class MainViewModel : ObservableObject
             "Inspections"    => (services.GetRequiredService<InspectionsViewModel>(),    "الكشف"),
             "BasicData"      => (services.GetRequiredService<BasicDataViewModel>(),      "البيانات الأساسية"),
             "Buys"           => (services.GetRequiredService<BuysViewModel>(),           "فاتورة الشراء"),
+            "Cars"           => (services.GetRequiredService<CarsViewModel>(),           "الموتوسيكلات"),
+            "Sales"          => (services.GetRequiredService<SalesViewModel>(),          "فاتورة المبيعات"),
+            "BuyCar"         => (services.GetRequiredService<BuyCarViewModel>(),         "شراء موتوسيكل"),
+            "SalesCar"       => (services.GetRequiredService<SalesCarViewModel>(),       "بيع موتوسيكل"),
+            "ReBuy"          => (services.GetRequiredService<ReBuyViewModel>(),          "مرتجع المشتريات"),
+            "ReSales"        => (services.GetRequiredService<ReSalesViewModel>(),        "مرتجع المبيعات"),
+            "ImportData"     => (services.GetRequiredService<ImportDataViewModel>(),     "إدارة الاستيراد"),
+            "ImportSuppliers"=> (services.GetRequiredService<ImportSuppliersViewModel>(),"موردين الاستيراد"),
+            "ImportExpenses" => (services.GetRequiredService<ImportExpensesViewModel>(), "بنود مصروفات الاستيراد"),
+            "ImportInvoice"  => (services.GetRequiredService<ImportInvoiceViewModel>(),  "فاتورة الاستيراد"),
+            "ImportPayments" => (services.GetRequiredService<ImportPaymentsViewModel>(), "مدفوعات الاستيراد"),
+
+            "PaymentsData"   => (services.GetRequiredService<PaymentsDataViewModel>(),   "المدفوعات والتحويلات"),
+
+            "CusPayments"   => (services.GetRequiredService<CusPaymentsViewModel>(),   "سداد ومقبوضات العملاء"),
+            "SuppPayments"  => (services.GetRequiredService<SuppPaymentsViewModel>(),  "سداد ومقبوضات الموردين"),
+            "ExpPayments"   => (services.GetRequiredService<ExpPaymentsViewModel>(),   "صرف المصروفات"),
+            "CashTransfers" => (services.GetRequiredService<CashTransfersViewModel>(), "تحويلات الخزينة"),
+            
+            "OpenStock"     => (services.GetRequiredService<OpenStockViewModel>(),     "أرصدة أول المدة"),
+
             _ => (null!, "الرئيسية")
         };
     }

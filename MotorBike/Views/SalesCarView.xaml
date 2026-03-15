@@ -1,0 +1,268 @@
+<UserControl x:Class="MotorBike.Views.SalesCarView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:MotorBike.Converters"
+             mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             Loaded="OnLoaded" FlowDirection="RightToLeft">
+    <UserControl.Resources>
+        <conv:IdToNameConverter x:Key="IdToNameConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <Style x:Key="FormCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/><Setter Property="CornerRadius" Value="16"/><Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="Margin" Value="24"/><Setter Property="Padding" Value="32"/>
+        </Style>
+        <Style x:Key="FormContainerStyle" TargetType="Grid">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="False"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="SearchContainerStyle" TargetType="Grid">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Background="#F8FAFC">
+        <!-- FORM Section -->
+        <Grid Style="{StaticResource FormContainerStyle}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <Border Style="{StaticResource FormCard}">
+                    <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="24" ShadowDepth="4" Direction="270"/></Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- Header -->
+                            <RowDefinition Height="Auto"/> <!-- Separator -->
+                            <RowDefinition Height="Auto"/> <!-- Main Info -->
+                            <RowDefinition Height="Auto"/> <!-- Payments -->
+                            <RowDefinition Height="Auto"/> <!-- Actions -->
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <Grid Grid.Row="0" Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">
+                                <Border Background="#ECFDF5" CornerRadius="12" Padding="14,12" Margin="0,0,16,0">
+                                    <TextBlock Text="🏍️" FontSize="26" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="فاتورة بيع موتوسيكل" FontSize="22" FontWeight="Bold" Foreground="#1E293B"/>
+                                    <TextBlock Text="سجل فاتورة بيع موتوسيكل جديدة أو استعلم عن فواتير سابقة" FontSize="14" Foreground="#64748B" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="🔍 بحث عن فاتورة سابقة" Style="{StaticResource SecondaryButton}" Command="{Binding ShowSearchPanelCommand}" Margin="0,0,12,0" Padding="16,10"/>
+                                <Button Content="➕ تـسـجيـل فاتورة جـديـدة" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}" Padding="16,10"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Rectangle Grid.Row="1" Height="1" Fill="#E2E8F0" Margin="0,8,0,24"/>
+
+                        <!-- Main Info -->
+                        <Grid Grid.Row="2" IsEnabled="{Binding IsEditing}" Margin="0,0,0,24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
+                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
+                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
+                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Row 0: ID, Date, Customer -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="رقم الفاتورة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.SalesId}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F8FAFC" FontWeight="Bold"/>
+                            <TextBlock Grid.Row="0" Grid.Column="3" Text="التاريخ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <DatePicker Grid.Row="0" Grid.Column="4" SelectedDate="{Binding FormItem.SalesDate}" Padding="10,4" FontSize="14"/>
+                            <TextBlock Grid.Row="0" Grid.Column="6" Text="العميل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="0" Grid.Column="7" ItemsSource="{Binding Customers}" DisplayMemberPath="CusName" SelectedValuePath="CusId" SelectedValue="{Binding FormItem.CusId}" Padding="10,6" FontSize="14"/>
+
+                            <!-- Row 2: Car, Mileage, Total -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="الموتوسيكل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Cars}" DisplayMemberPath="ChassisNo" SelectedValuePath="CarId" SelectedValue="{Binding FormItem.CarId}" Padding="10,6" FontSize="14"/>
+                            <TextBlock Grid.Row="2" Grid.Column="3" Text="كيلومتر" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="6" Text="الإجمالي" Style="{StaticResource FormLabel}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.Total, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FontWeight="Bold" FontSize="16" Foreground="#059669"/>
+
+                            <!-- Row 4: Notes -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        </Grid>
+
+                        <!-- Payments Section -->
+                        <Border Grid.Row="3" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="16" Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
+                            <StackPanel>
+                                <TextBlock Text="💰 المدفوعات" FontSize="16" FontWeight="Bold" Foreground="#1E293B" Margin="0,0,0,12"/>
+                                <Border Background="#F1F5F9" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/><ColumnDefinition Width="120"/><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Grid.Column="0" Margin="0,0,12,0">
+                                            <TextBlock Text="التاريخ" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
+                                            <DatePicker SelectedDate="{Binding CurrentPayment.PayDate}" Padding="8,4" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                                        </Grid>
+                                        <Grid Grid.Column="1" Margin="0,0,12,0">
+                                            <TextBlock Text="المبلغ" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
+                                            <TextBox Text="{Binding CurrentPayment.PayMoney, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                        </Grid>
+                                        <Grid Grid.Column="2" Margin="0,0,12,0">
+                                            <TextBlock Text="الخزينة" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
+                                            <ComboBox ItemsSource="{Binding Cashes}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding CurrentPayment.CashId}" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                                        </Grid>
+                                        <Grid Grid.Column="3" Margin="0,0,12,0">
+                                            <TextBlock Text="ملاحظات" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
+                                            <TextBox Text="{Binding CurrentPayment.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                        </Grid>
+                                        <Button Grid.Column="4" Content="➕ إضافة" Style="{StaticResource PrimaryButton}" Command="{Binding AddPaymentCommand}" Padding="16,8" Background="#10B981"/>
+                                    </Grid>
+                                </Border>
+                                <Border CornerRadius="8" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" MaxHeight="160">
+                                    <DataGrid ItemsSource="{Binding FormPayments}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="36" ColumnHeaderHeight="40"
+                                              AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9">
+                                        <DataGrid.ColumnHeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader">
+                                                <Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#334155"/><Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="Padding" Value="10,6"/><Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                            </Style>
+                                        </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="التاريخ" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="120"/>
+                                            <DataGridTextColumn Header="المبلغ" Binding="{Binding PayMoney, StringFormat=\{0:N2\}}" Width="120" FontWeight="SemiBold"/>
+                                            <DataGridTemplateColumn Header="الخزينة" Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                                <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CashId,CashName">
+                                                        <Binding Path="CashId"/><Binding Path="DataContext.Cashes" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding></TextBlock.Text></TextBlock>
+                                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="ملاحظات" Binding="{Binding Notes}" Width="*"/>
+                                            <DataGridTemplateColumn Width="60"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                                <Button Content="🗑️" Command="{Binding DataContext.RemovePaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
+                                            </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Border>
+                                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                    <StackPanel Margin="0,0,32,0">
+                                        <TextBlock Text="إجمالي المدفوع" Foreground="#64748B" FontSize="12"/>
+                                        <TextBlock Text="{Binding TotalPayed, StringFormat=\{0:N2\}}" FontSize="18" FontWeight="Bold" Foreground="#10B981"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="الباقي" Foreground="#64748B" FontSize="12"/>
+                                        <TextBlock Text="{Binding FormItem.Total, StringFormat=\{0:N2\}}" FontSize="18" FontWeight="Bold" Foreground="#EF4444"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Footer Action Buttons -->
+                        <DockPanel Grid.Row="4">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Right"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" MinHeight="45">
+                                <Button Content="✏️ تـعـديـل الفاتورة" Command="{Binding EditSelectedCommand}" Margin="0,0,12,0" Padding="16,10">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Visibility" Value="Visible"/><Setter Property="Background" Value="#F59E0B"/><Setter Property="Foreground" Value="White"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style></Button.Style>
+                                </Button>
+                                <Button Content="💾 حـفـظ الفاتورة" Command="{Binding SaveCommand}" Margin="0,0,12,0" Padding="16,10">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                        <Setter Property="Background" Value="#10B981"/><Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                    </Style></Button.Style>
+                                </Button>
+                                <Button Content="✖ إلـغـاء" Command="{Binding CancelEditCommand}" Margin="0,0,16,0" Padding="16,10">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers><DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers>
+                                    </Style></Button.Style>
+                                </Button>
+                                <Button Content="🗑️ حـذف" Command="{Binding DeleteCommand}" Padding="16,10">
+                                    <Button.Style><Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                            <DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                                        </Style.Triggers>
+                                    </Style></Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- SEARCH Section -->
+        <Grid Style="{StaticResource SearchContainerStyle}" Margin="24">
+            <Border Background="White" CornerRadius="16" Padding="32" BorderBrush="#E2E8F0" BorderThickness="1">
+                <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="24" ShadowDepth="4" Direction="270"/></Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                    <DockPanel Grid.Row="0" Margin="0,0,0,24">
+                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                            <Border Background="#F3F4F6" CornerRadius="8" Padding="10" Margin="0,0,12,0"><TextBlock Text="🔎" FontSize="20"/></Border>
+                            <TextBlock Text="البحث في فواتير بيع الموتوسيكل" FontSize="20" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button DockPanel.Dock="Right" Content="✖ الـرجـوع للـنمـوذج" Style="{StaticResource SecondaryButton}" Command="{Binding HideSearchPanelCommand}" HorizontalAlignment="Right" Padding="16,8"/>
+                    </DockPanel>
+                    <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,0,24">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="كلمة البحث (رقم الفاتورة، اسم العميل):" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,16,0"/>
+                            <TextBox Width="460" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Padding="12,8" FontSize="15" Background="White"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Row="2" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+                        <DataGrid ItemsSource="{Binding FilteredInvoices}" SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="48"
+                                  ColumnHeaderHeight="54" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#F1F5F9"/><Setter Property="Foreground" Value="#334155"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="16,12"/>
+                                    <Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow"><Setter Property="Cursor" Value="Hand"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#DBEAFE"/><Setter Property="Foreground" Value="#1D4ED8"/></Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#EFF6FF"/></Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="100"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <Button Content="✅ اختيار" Style="{StaticResource PrimaryButton}" Margin="8,6" Padding="4" Background="#10B981" Foreground="White" FontSize="12" Command="{Binding DataContext.HideSearchPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="رقم الفاتورة" Binding="{Binding SalesId}" Width="100"/>
+                                <DataGridTextColumn Header="التاريخ" Binding="{Binding SalesDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="100"/>
+                                <DataGridTemplateColumn Header="العميل" Width="200"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                    <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
+                                        <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CusId,CusName">
+                                            <Binding Path="CusId"/><Binding Path="DataContext.Customers" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                        </MultiBinding></TextBlock.Text></TextBlock>
+                                </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                                <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="150"/>
+                                <DataGridTextColumn Header="الملاحظات" Binding="{Binding Notes}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

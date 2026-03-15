@@ -44,6 +44,8 @@ public class Repository<T> : IRepository<T> where T : class
         [typeof(Models.Inspection)]    = new("Inspection",     "Insp_ID",  "InspId"),
         [typeof(Models.Buy)]           = new("Buy",            "Buy_ID",   "BuyId"),
         [typeof(Models.BuySub)]        = new("Buy_Sub",        "ID",       "Id"),
+        [typeof(Models.Sale)]          = new("Sales",          "Sales_ID", "SalesId"),
+        [typeof(Models.SalesSub)]      = new("Sales_Sub",      "ID",       "Id"),
         [typeof(Models.PayType)]       = new("Pay_Types",      "Type_ID",  "TypeId"),
         [typeof(Models.ReBuy)]         = new("ReBuy",          "Buy_ID",   "BuyId"),
         [typeof(Models.ReBuySub)]      = new("ReBuy_Sub",      "ID",       "Id"),
@@ -64,6 +66,13 @@ public class Repository<T> : IRepository<T> where T : class
         [typeof(Models.ImportInvoice)] = new("Import_Invoice", "Inv_ID",   "InvId"),
         [typeof(Models.ImportPayment)] = new("Import_Payments","Pay_ID",   "PayId"),
         [typeof(Models.ImportSupplier)]= new("Import_Suppliers","Supp_ID", "SuppId"),
+
+        [typeof(Models.CusPayment)]    = new("Cus_Payments",   "Pay_ID",   "PayId"),
+        [typeof(Models.SuppPayment)]   = new("Supp_Payments",  "Pay_ID",   "PayId"),
+        [typeof(Models.ExpPayment)]    = new("Exp_Payments",   "Pay_ID",   "PayId"),
+        [typeof(Models.CashTransfer)]  = new("Cash_Transfer",  "Pay_ID",   "PayId"),
+
+        [typeof(Models.OpenStock)]     = new("Open_Stock",     "Store_ID", "StoreId"),
     };
 
     #endregion

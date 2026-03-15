@@ -1,0 +1,98 @@
+<UserControl x:Class="MotorBike.Views.ImportSuppliersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             Loaded="OnLoaded" FlowDirection="RightToLeft">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- DataGrid Card (Master) -->
+        <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270"/></Border.Effect>
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                      GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="44"
+                      ColumnHeaderHeight="48" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
+                <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#F8FAFC"/><Setter Property="Foreground" Value="#475569"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="16,12"/>
+                    <Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
+                </Style></DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="Cursor" Value="Hand"/>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#DBEAFE"/><Setter Property="Foreground" Value="#1D4ED8"/></Trigger>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#EFF6FF"/></Trigger>
+                    </Style.Triggers>
+                </Style></DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="الكود" Binding="{Binding SuppId}" Width="80"/>
+                    <DataGridTextColumn Header="اسم المورد" Binding="{Binding SuppName}" Width="2*"/>
+                    <DataGridTextColumn Header="الدولة" Binding="{Binding Country}" Width="*"/>
+                    <DataGridTextColumn Header="التليفون" Binding="{Binding Tel}" Width="*"/>
+                    <DataGridTextColumn Header="الرصيد" Binding="{Binding Bal}" Width="100"/>
+                    <DataGridTemplateColumn Header="نشط" Width="80"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                        <CheckBox IsChecked="{Binding Active, Mode=OneWay}" Style="{StaticResource ToggleSwitchStyle}" IsEnabled="False" HorizontalAlignment="Center"/>
+                    </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Form Card (Detail) -->
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="24" BorderBrush="#E2E8F0" BorderThickness="1">
+            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270"/></Border.Effect>
+            <StackPanel>
+                <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="100"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="100"/><ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.SuppId}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#94A3B8"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم المورد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FormItem.SuppName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <TextBlock Grid.Row="0" Grid.Column="6" Text="الدولة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.Country, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="التليفون" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.Tel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="3" Text="العنوان" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Adress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="6" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding FormItem.OmlaId}" Padding="10,6" FontSize="14"/>
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="سعر الصرف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FormItem.OmlaRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="3" Text="تاريخ التعامل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <DatePicker Grid.Row="4" Grid.Column="4" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
+                    <TextBlock Grid.Row="4" Grid.Column="6" Text="الملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <DockPanel Grid.Row="4" Grid.Column="7">
+                        <CheckBox DockPanel.Dock="Right" Margin="16,0,0,0" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBox Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    </DockPanel>
+                </Grid>
+
+                <DockPanel>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
+                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
