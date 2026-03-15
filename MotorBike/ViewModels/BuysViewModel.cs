@@ -220,16 +220,17 @@ public partial class BuysViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(SearchText))
         {
             FilteredInvoices = new ObservableCollection<Buy>(Invoices);
+            return;
         }
-        else
+
+        var keywords = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Invoices.Where(i =>
         {
-            var lowerSearch = SearchText.ToLower();
-            var filtered = Invoices.Where(i =>
-                i.BuyId.ToString().Contains(lowerSearch) ||
-                (Suppliers.FirstOrDefault(s => s.SuppId == i.SuppId)?.SuppName?.ToLower().Contains(lowerSearch) == true)
-            );
-            FilteredInvoices = new ObservableCollection<Buy>(filtered);
-        }
+            var suppName = Suppliers.FirstOrDefault(s => s.SuppId == i.SuppId)?.SuppName?.ToLower() ?? string.Empty;
+            var idStr = i.BuyId.ToString();
+            return keywords.All(k => idStr.Contains(k) || suppName.Contains(k));
+        });
+        FilteredInvoices = new ObservableCollection<Buy>(filtered);
     }
 
     [RelayCommand]
@@ -502,31 +503,38 @@ public partial class BuysViewModel : ObservableObject
 
     // --- Sub Items Management ---
     
+    private bool _isSelectingItem;
+
     partial void OnItemSearchTextChanged(string value)
     {
+        if (_isSelectingItem) return;
+
         if (string.IsNullOrWhiteSpace(value))
         {
-            IsItemSearchPopupOpen = false;
-            FilteredItemsList.Clear();
-        }
-        else
-        {
-            var lower = value.ToLower();
-            var filtered = Items.Where(x => 
-                x.ItemName.ToLower().Contains(lower) || 
-                (x.Bar1 != null && x.Bar1.ToLower().Contains(lower)) ||
-                (x.Bar2 != null && x.Bar2.ToLower().Contains(lower))
-            ).Take(15);
-            
-            FilteredItemsList = new ObservableCollection<Item>(filtered);
+            FilteredItemsList = new ObservableCollection<Item>(Items.Take(100));
             IsItemSearchPopupOpen = FilteredItemsList.Any();
+            return;
         }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Items.Where(item =>
+        {
+            return keywords.All(k =>
+                (item.ItemName != null && item.ItemName.ToLower().Contains(k)) ||
+                (item.Bar1 != null && item.Bar1.ToLower().Contains(k)) ||
+                (item.Bar2 != null && item.Bar2.ToLower().Contains(k))
+            );
+        }).Take(100);
+
+        FilteredItemsList = new ObservableCollection<Item>(filtered);
+        IsItemSearchPopupOpen = FilteredItemsList.Any();
     }
 
     [RelayCommand]
     private void SelectItem(Item item)
     {
         if (item == null) return;
+        _isSelectingItem = true;
         
         CurrentSubItem = new BuySub
         {
@@ -538,7 +546,7 @@ public partial class BuysViewModel : ObservableObject
             Qty = 1,
             UnitQty = 1,
             QtyAll = 1,
-            Total = item.Price0 * 1
+            Total = item.Price0
         };
         
         _isUpdatingSubDiscount = true;
@@ -549,6 +557,7 @@ public partial class BuysViewModel : ObservableObject
         
         ItemSearchText = item.ItemName;
         IsItemSearchPopupOpen = false;
+        _isSelectingItem = false;
     }
 
     [RelayCommand]

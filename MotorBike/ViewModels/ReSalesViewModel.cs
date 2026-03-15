@@ -128,8 +128,20 @@ public partial class ReSalesViewModel : ObservableObject
     partial void OnSearchTextChanged(string value) => FilterInvoices();
     private void FilterInvoices()
     {
-        if (string.IsNullOrWhiteSpace(SearchText)) FilteredInvoices = new ObservableCollection<ReSale>(Invoices);
-        else { var l = SearchText.ToLower(); FilteredInvoices = new ObservableCollection<ReSale>(Invoices.Where(i => i.SalesId.ToString().Contains(l) || (Customers.FirstOrDefault(c => c.CusId == i.CusId)?.CusName?.ToLower().Contains(l) == true))); }
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredInvoices = new ObservableCollection<ReSale>(Invoices);
+            return;
+        }
+
+        var keywords = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Invoices.Where(i =>
+        {
+            var cusName = Customers.FirstOrDefault(c => c.CusId == i.CusId)?.CusName?.ToLower() ?? string.Empty;
+            var idStr = i.SalesId.ToString();
+            return keywords.All(k => idStr.Contains(k) || cusName.Contains(k));
+        });
+        FilteredInvoices = new ObservableCollection<ReSale>(filtered);
     }
 
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
@@ -233,19 +245,62 @@ public partial class ReSalesViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
 
+    private bool _isSelectingItem;
+
     partial void OnItemSearchTextChanged(string value)
     {
-        if (string.IsNullOrWhiteSpace(value)) { IsItemSearchPopupOpen = false; FilteredItemsList.Clear(); }
-        else { var l = value.ToLower(); FilteredItemsList = new ObservableCollection<Item>(Items.Where(x => x.ItemName.ToLower().Contains(l) || (x.Bar1 != null && x.Bar1.ToLower().Contains(l))).Take(15)); IsItemSearchPopupOpen = FilteredItemsList.Any(); }
+        if (_isSelectingItem) return;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredItemsList = new ObservableCollection<Item>(Items.Take(100));
+            IsItemSearchPopupOpen = FilteredItemsList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Items.Where(item =>
+        {
+            return keywords.All(k =>
+                (item.ItemName != null && item.ItemName.ToLower().Contains(k)) ||
+                (item.Bar1 != null && item.Bar1.ToLower().Contains(k)) ||
+                (item.Bar2 != null && item.Bar2.ToLower().Contains(k))
+            );
+        }).Take(100);
+
+        FilteredItemsList = new ObservableCollection<Item>(filtered);
+        IsItemSearchPopupOpen = FilteredItemsList.Any();
     }
 
     [RelayCommand]
     private void SelectItem(Item item)
     {
         if (item == null) return;
-        CurrentSubItem = new ReSalesSub { SalesId = FormItem.SalesId, StoreId = CurrentSubItem.StoreId, ItemId = item.ItemId, UnitId = item.UnitId, Price = item.Price1, Qty = 1, UnitQty = 1, QtyAll = 1, Total = item.Price1 };
-        _isUpdatingSubDiscount = true; SubItemPrice = item.Price1; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; _isUpdatingSubDiscount = false;
-        ItemSearchText = item.ItemName; IsItemSearchPopupOpen = false;
+        _isSelectingItem = true;
+        
+        var price = item.Price1 > 0 ? item.Price1 : item.Price0;
+        CurrentSubItem = new ReSalesSub 
+        { 
+            SalesId = FormItem.SalesId, 
+            StoreId = CurrentSubItem.StoreId, 
+            ItemId = item.ItemId, 
+            UnitId = item.UnitId, 
+            Price = price, 
+            Qty = 1, 
+            UnitQty = 1, 
+            QtyAll = 1, 
+            Total = price 
+        };
+        
+        _isUpdatingSubDiscount = true; 
+        SubItemPrice = price; 
+        SubItemDiscountPercent = 0; 
+        SubItemDiscountValue = 0; 
+        _isUpdatingSubDiscount = false;
+        
+        ItemSearchText = item.ItemName; 
+        IsItemSearchPopupOpen = false;
+        _isSelectingItem = false;
     }
 
     [RelayCommand]

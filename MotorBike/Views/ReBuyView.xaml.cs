@@ -15,4 +15,24 @@ public partial class ReBuyView : UserControl
         if (sender is ListBoxItem lbi && lbi.DataContext is MotorBike.Models.Item item && DataContext is ReBuyViewModel vm)
             vm.SelectItemCommand.Execute(item);
     }
+
+    private void ItemSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReBuyViewModel vm)
+        {
+            if (string.IsNullOrWhiteSpace(vm.ItemSearchText))
+                vm.FilteredItemsList = new System.Collections.ObjectModel.ObservableCollection<MotorBike.Models.Item>(vm.Items.Take(100));
+            vm.IsItemSearchPopupOpen = vm.FilteredItemsList.Count > 0;
+        }
+    }
+
+    private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (ItemSearchPopup.IsOpen)
+        {
+            var offset = ItemSearchPopup.HorizontalOffset;
+            ItemSearchPopup.HorizontalOffset = offset + 1;
+            ItemSearchPopup.HorizontalOffset = offset;
+        }
+    }
 }

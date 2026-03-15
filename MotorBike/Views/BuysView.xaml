@@ -43,7 +43,7 @@
 
         <!-- FORM Section -->
         <Grid Style="{StaticResource FormContainerStyle}">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
                 <Border Style="{StaticResource FormCard}">
                     <Border.Effect>
                         <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="24" ShadowDepth="4" Direction="270" />
@@ -152,16 +152,22 @@
                                 
                                 <Grid Grid.Column="0" Margin="0,0,12,0">
                                     <TextBlock Text="✍️ بحث ذكي (بالاسم أو الباركود)" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
-                                    <TextBox Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Padding="8,6" ToolTip="ابحث هنا عن الأصناف"/>
-                                    <Popup IsOpen="{Binding IsItemSearchPopupOpen}" StaysOpen="False" Placement="Bottom" MinWidth="300">
-                                        <Border Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" MaxHeight="200">
-                                             <ItemsControl ItemsSource="{Binding FilteredItemsList}">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Button Content="{Binding ItemName}" Command="{Binding DataContext.SelectItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Padding="12,8" HorizontalContentAlignment="Left" Cursor="Hand"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                             </ItemsControl>
+                                    <TextBox x:Name="ItemSearchBox" Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Padding="8,6" ToolTip="ابحث هنا عن الأصناف" GotFocus="ItemSearch_GotFocus"/>
+                                    <Popup x:Name="ItemSearchPopup" IsOpen="{Binding IsItemSearchPopupOpen}" StaysOpen="False" Placement="Bottom" PlacementTarget="{Binding ElementName=ItemSearchBox}" Width="{Binding ActualWidth, ElementName=ItemSearchBox}" AllowsTransparency="True">
+                                        <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" MaxHeight="250">
+                                            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.1" BlurRadius="16" ShadowDepth="4" Direction="270"/></Border.Effect>
+                                            <ListBox ItemsSource="{Binding FilteredItemsList}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox.ItemTemplate><DataTemplate>
+                                                    <Border Padding="8,6" Cursor="Hand"><TextBlock FontSize="13" Foreground="#334155">
+                                                        <Run Text="{Binding ItemName, Mode=OneWay}"/><Run Text=" — " Foreground="#94A3B8"/><Run Text="سعر شراء: " Foreground="#64748B" FontSize="11"/><Run Text="{Binding Price0, StringFormat=\{0:N2\}, Mode=OneWay}" Foreground="#1D4ED8" FontWeight="SemiBold"/>
+                                                    </TextBlock></Border>
+                                                </DataTemplate></ListBox.ItemTemplate>
+                                                <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="0"/>
+                                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchItem_Click"/>
+                                                    <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#EFF6FF"/></Trigger></Style.Triggers>
+                                                </Style></ListBox.ItemContainerStyle>
+                                            </ListBox>
                                         </Border>
                                     </Popup>
                                 </Grid>

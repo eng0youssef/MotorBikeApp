@@ -128,8 +128,20 @@ public partial class ReBuyViewModel : ObservableObject
     partial void OnSearchTextChanged(string value) => FilterInvoices();
     private void FilterInvoices()
     {
-        if (string.IsNullOrWhiteSpace(SearchText)) FilteredInvoices = new ObservableCollection<ReBuy>(Invoices);
-        else { var l = SearchText.ToLower(); FilteredInvoices = new ObservableCollection<ReBuy>(Invoices.Where(i => i.BuyId.ToString().Contains(l) || (Suppliers.FirstOrDefault(s => s.SuppId == i.SuppId)?.SuppName?.ToLower().Contains(l) == true))); }
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredInvoices = new ObservableCollection<ReBuy>(Invoices);
+            return;
+        }
+
+        var keywords = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Invoices.Where(i =>
+        {
+            var suppName = Suppliers.FirstOrDefault(s => s.SuppId == i.SuppId)?.SuppName?.ToLower() ?? string.Empty;
+            var idStr = i.BuyId.ToString();
+            return keywords.All(k => idStr.Contains(k) || suppName.Contains(k));
+        });
+        FilteredInvoices = new ObservableCollection<ReBuy>(filtered);
     }
 
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
@@ -233,19 +245,61 @@ public partial class ReBuyViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
 
+    private bool _isSelectingItem;
+
     partial void OnItemSearchTextChanged(string value)
     {
-        if (string.IsNullOrWhiteSpace(value)) { IsItemSearchPopupOpen = false; FilteredItemsList.Clear(); }
-        else { var l = value.ToLower(); FilteredItemsList = new ObservableCollection<Item>(Items.Where(x => x.ItemName.ToLower().Contains(l) || (x.Bar1 != null && x.Bar1.ToLower().Contains(l))).Take(15)); IsItemSearchPopupOpen = FilteredItemsList.Any(); }
+        if (_isSelectingItem) return;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredItemsList = new ObservableCollection<Item>(Items.Take(100));
+            IsItemSearchPopupOpen = FilteredItemsList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Items.Where(item =>
+        {
+            return keywords.All(k =>
+                (item.ItemName != null && item.ItemName.ToLower().Contains(k)) ||
+                (item.Bar1 != null && item.Bar1.ToLower().Contains(k)) ||
+                (item.Bar2 != null && item.Bar2.ToLower().Contains(k))
+            );
+        }).Take(100);
+
+        FilteredItemsList = new ObservableCollection<Item>(filtered);
+        IsItemSearchPopupOpen = FilteredItemsList.Any();
     }
 
     [RelayCommand]
     private void SelectItem(Item item)
     {
         if (item == null) return;
-        CurrentSubItem = new ReBuySub { BuyId = FormItem.BuyId, StoreId = CurrentSubItem.StoreId, ItemId = item.ItemId, UnitId = item.UnitId, Price = item.Price0, Qty = 1, UnitQty = 1, QtyAll = 1, Total = item.Price0 };
-        _isUpdatingSubDiscount = true; SubItemPrice = item.Price0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; _isUpdatingSubDiscount = false;
-        ItemSearchText = item.ItemName; IsItemSearchPopupOpen = false;
+        _isSelectingItem = true;
+        
+        CurrentSubItem = new ReBuySub 
+        { 
+            BuyId = FormItem.BuyId, 
+            StoreId = CurrentSubItem.StoreId, 
+            ItemId = item.ItemId, 
+            UnitId = item.UnitId, 
+            Price = item.Price0, 
+            Qty = 1, 
+            UnitQty = 1, 
+            QtyAll = 1, 
+            Total = item.Price0 
+        };
+        
+        _isUpdatingSubDiscount = true; 
+        SubItemPrice = item.Price0; 
+        SubItemDiscountPercent = 0; 
+        SubItemDiscountValue = 0; 
+        _isUpdatingSubDiscount = false;
+        
+        ItemSearchText = item.ItemName; 
+        IsItemSearchPopupOpen = false;
+        _isSelectingItem = false;
     }
 
     [RelayCommand]

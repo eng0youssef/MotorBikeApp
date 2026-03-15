@@ -39,4 +39,32 @@ public partial class BuysView : UserControl
             }
         }
     }
+
+    private void ItemSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is BuysViewModel vm)
+        {
+            if (string.IsNullOrWhiteSpace(vm.ItemSearchText))
+                vm.FilteredItemsList = new System.Collections.ObjectModel.ObservableCollection<MotorBike.Models.Item>(vm.Items.Take(100));
+            vm.IsItemSearchPopupOpen = vm.FilteredItemsList.Count > 0;
+        }
+    }
+
+    private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        if (ItemSearchPopup.IsOpen)
+        {
+            var offset = ItemSearchPopup.HorizontalOffset;
+            ItemSearchPopup.HorizontalOffset = offset + 1;
+            ItemSearchPopup.HorizontalOffset = offset;
+        }
+    }
+
+    private void SearchItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem lbi && lbi.DataContext is MotorBike.Models.Item item && DataContext is BuysViewModel vm)
+        {
+            vm.SelectItemCommand.Execute(item);
+        }
+    }
 }
