@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Dapper;
 using MotorBike.DataAccess;
 using MotorBike.Models;
 
@@ -12,11 +11,10 @@ namespace MotorBike.ViewModels;
 
 public partial class OpenStockViewModel : ObservableObject
 {
-    private readonly IRepository<OpenStock> _repository;
     private readonly IRepository<Store> _storeRepo;
     private readonly IRepository<Item> _itemRepo;
     private readonly IRepository<Unit> _unitRepo;
-    private readonly IDbConnectionFactory _connectionFactory;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<OpenStock> _items = [];
     [ObservableProperty] private ObservableCollection<Store> _stores = [];
@@ -28,18 +26,31 @@ public partial class OpenStockViewModel : ObservableObject
     [ObservableProperty] private bool _isEditing;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
+    // رسالة خطأ معروضة بشكل مميز (تغيب تلقائياً بعد 3 ثوان)
+    [ObservableProperty] private string _errorMessage = string.Empty;
+
+    // الصنف المختار في الفورم — لمراقبة تغييره وجلب سعر الشراء وفلترة الوحدات
+    [ObservableProperty] private Item? _selectedFormItem;
+
+    // الوحدات المفلترة بحسب الصنف المختار (الأساسية + الثانوية فقط)
+    [ObservableProperty] private ObservableCollection<Unit> _formUnits = [];
+
+    // الوحدة المختارة في الفورم — لضبط عامل الوحدة تلقائياً
+    [ObservableProperty] private Unit? _selectedFormUnit;
+
+    // flag لمنع الكتابة على السعر/UnitQty عند تحميل سجل للتعديل
+    private bool _skipAutoFill;
+
     public OpenStockViewModel(
-        IRepository<OpenStock> repository,
         IRepository<Store> storeRepo,
         IRepository<Item> itemRepo,
         IRepository<Unit> unitRepo,
-        IDbConnectionFactory connectionFactory)
+        CompositeKeyRepository compositeRepo)
     {
-        _repository = repository;
         _storeRepo = storeRepo;
         _itemRepo = itemRepo;
         _unitRepo = unitRepo;
-        _connectionFactory = connectionFactory;
+        _compositeRepo = compositeRepo;
         SetDefaultValues();
     }
 
@@ -47,7 +58,7 @@ public partial class OpenStockViewModel : ObservableObject
     {
         try
         {
-            var data = await _repository.GetAllAsync();
+            var data = await _compositeRepo.GetAllOpenStockAsync();
             Items = new ObservableCollection<OpenStock>(data.OrderByDescending(x => x.OpenDate));
         }
         catch (Exception ex)
@@ -78,6 +89,9 @@ public partial class OpenStockViewModel : ObservableObject
 
     private void SetDefaultValues()
     {
+        SelectedFormItem = null;
+        SelectedFormUnit = null;
+        FormUnits = [];
         FormItem = new OpenStock
         {
             OpenDate = DateTime.Now,
@@ -87,8 +101,6 @@ public partial class OpenStockViewModel : ObservableObject
         };
 
         if (Stores.Any()) FormItem.StoreId = Stores.First().StoreId;
-        if (ItemList.Any()) FormItem.ItemId = ItemList.First().ItemId;
-        if (Units.Any()) FormItem.UnitId = Units.First().UnitId;
     }
 
     [RelayCommand]
@@ -122,6 +134,14 @@ public partial class OpenStockViewModel : ObservableObject
             UnitQty = SelectedItem.UnitQty,
             QtyAll = SelectedItem.QtyAll
         };
+
+        // ضبط الصنف المختار في الفورم — نمنع الكتابة التلقائية لأن السعر والوحدة محفوظان من السجل
+        _skipAutoFill = true;
+        SelectedFormItem = ItemList.FirstOrDefault(i => i.ItemId == SelectedItem.ItemId);
+        // بعد فلترة الوحدات، نختار الوحدة الصحيحة
+        SelectedFormUnit = FormUnits.FirstOrDefault(u => u.UnitId == SelectedItem.UnitId);
+        _skipAutoFill = false;
+
         IsEditing = true;
         StatusMessage = "جاري تعديل الرصيد المحدد...";
     }
@@ -129,6 +149,8 @@ public partial class OpenStockViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
+        ErrorMessage = string.Empty;
+
         if (FormItem.StoreId == 0 || FormItem.ItemId == 0)
         {
             StatusMessage = "يرجى تحديد المخزن والصنف.";
@@ -141,28 +163,35 @@ public partial class OpenStockViewModel : ObservableObject
             return;
         }
 
+        // تحقق من عدم تكرار الصنف في نفس المخزن (فقط عند الإضافة)
+        bool isNew = SelectedItem == null;
+        if (isNew)
+        {
+            bool alreadyExists = Items.Any(x =>
+                x.StoreId == FormItem.StoreId &&
+                x.ItemId  == FormItem.ItemId);
+
+            if (alreadyExists)
+            {
+                ErrorMessage = "الصنف الذي قمت باختياره موجود بالفعل في الرصيد الافتتاحي";
+                return;
+            }
+        }
+
         try
         {
-            // Calculate computed columns before saving
+            // حساب الأعمدة المحسوبة
             FormItem.Total = (FormItem.Qty * FormItem.Price) - FormItem.Disc;
             FormItem.QtyAll = FormItem.Qty * FormItem.UnitQty;
 
-            bool isNew = SelectedItem == null;
-            using var db = _connectionFactory.CreateConnection();
-
             if (isNew)
             {
-                var sql = @"INSERT INTO Open_Stock (Store_ID, Item_ID, Open_Date, Unit_ID, Qty, Price, Disc, Disc_Per, Total, UnitQty, QtyAll) 
-                            VALUES (@StoreId, @ItemId, @OpenDate, @UnitId, @Qty, @Price, @Disc, @DiscPer, @Total, @UnitQty, @QtyAll)";
-                await db.ExecuteAsync(sql, FormItem);
+                await _compositeRepo.InsertOpenStockAsync(FormItem);
                 StatusMessage = "تم إضافة الرصيد بنجاح.";
             }
             else
             {
-                var sql = @"UPDATE Open_Stock SET Open_Date = @OpenDate, Unit_ID = @UnitId, Qty = @Qty, Price = @Price, 
-                            Disc = @Disc, Disc_Per = @DiscPer, Total = @Total, UnitQty = @UnitQty, QtyAll = @QtyAll 
-                            WHERE Store_ID = @StoreId AND Item_ID = @ItemId";
-                await db.ExecuteAsync(sql, FormItem);
+                await _compositeRepo.UpdateOpenStockAsync(FormItem);
                 StatusMessage = "تم تحديث الرصيد بنجاح.";
             }
 
@@ -171,7 +200,7 @@ public partial class OpenStockViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            StatusMessage = $"خطأ أثناء الحفظ. تأكد من عدم تكرار الصنف في نفس المخزن. التفاصيل: {ex.Message}";
+            StatusMessage = $"خطأ أثناء الحفظ. التفاصيل: {ex.Message}";
         }
     }
 
@@ -186,10 +215,8 @@ public partial class OpenStockViewModel : ObservableObject
 
         try
         {
-            using var db = _connectionFactory.CreateConnection();
-            var sql = "DELETE FROM Open_Stock WHERE Store_ID = @StoreId AND Item_ID = @ItemId";
-            await db.ExecuteAsync(sql, new { SelectedItem.StoreId, SelectedItem.ItemId });
-            
+            await _compositeRepo.DeleteOpenStockAsync(SelectedItem.StoreId, SelectedItem.ItemId);
+
             StatusMessage = "تم الحذف بنجاح.";
             IsEditing = false;
             await LoadDataAsync();
@@ -214,5 +241,67 @@ public partial class OpenStockViewModel : ObservableObject
         {
             // View mode, do nothing special
         }
+    }
+
+    /// <summary>
+    /// عند تغيير الصنف: يجلب سعر الشراء، ويفلتر الوحدات المرتبطة بالصنف فقط
+    /// </summary>
+    partial void OnSelectedFormItemChanged(Item? value)
+    {
+        // فلترة الوحدات بحسب الصنف دائماً
+        if (value == null)
+        {
+            FormUnits = [];
+            SelectedFormUnit = null;
+            return;
+        }
+
+        // بناء قائمة وحدات الصنف: الوحدة الأساسية + الثانوية (إن وُجدت)
+        var filtered = Units.Where(u => u.UnitId == value.UnitId).ToList();
+        if (value.Unit2 > 0)
+        {
+            var secondUnit = Units.FirstOrDefault(u => u.UnitId == value.Unit2);
+            if (secondUnit != null) filtered.Add(secondUnit);
+        }
+        FormUnits = new ObservableCollection<Unit>(filtered);
+
+        if (_skipAutoFill) return;
+
+        // تعبئة سعر الشراء تلقائياً
+        FormItem.ItemId = value.ItemId;
+        FormItem.Price = value.Price0;
+
+        // اختيار الوحدة الأساسية تلقائياً
+        SelectedFormUnit = FormUnits.FirstOrDefault(u => u.UnitId == value.UnitId);
+
+        OnPropertyChanged(nameof(FormItem));
+    }
+
+    /// <summary>
+    /// عند تغيير الوحدة: يضبط عامل الوحدة والسعر تلقائياً
+    /// - الوحدة الأساسية  → UnitQty = 1        ، Price = Price0
+    /// - الوحدة الثانوية  → UnitQty = Unit2Qty  ، Price = Price0 × Unit2Qty
+    /// مثال: قطعة بـ 5 جنيه، كارتون = 7 قطع → سعر الكارتون = 35
+    /// </summary>
+    partial void OnSelectedFormUnitChanged(Unit? value)
+    {
+        if (value == null || _skipAutoFill) return;
+
+        FormItem.UnitId = value.UnitId;
+
+        if (SelectedFormItem != null && value.UnitId == SelectedFormItem.Unit2)
+        {
+            // وحدة ثانوية: UnitQty = عدد الوحدات الأساسية فيها، والسعر = سعر × العدد
+            FormItem.UnitQty = SelectedFormItem.Unit2Qty;
+            FormItem.Price   = SelectedFormItem.Price0 * SelectedFormItem.Unit2Qty;
+        }
+        else
+        {
+            // وحدة أساسية: السعر الأصلي وعامل = 1
+            FormItem.UnitQty = 1;
+            FormItem.Price   = SelectedFormItem?.Price0 ?? FormItem.Price;
+        }
+
+        OnPropertyChanged(nameof(FormItem));
     }
 }
