@@ -26,24 +26,48 @@ public partial class ReSalesViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Item> _items = [];
     [ObservableProperty] private ObservableCollection<Store> _stores = [];
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
+    [ObservableProperty] private ObservableCollection<Unit> _currentItemUnits = [];
 
     [ObservableProperty] private ObservableCollection<ReSale> _invoices = [];
     [ObservableProperty] private ObservableCollection<ReSale> _filteredInvoices = [];
 
     [ObservableProperty] private ReSale _formItem = new();
     [ObservableProperty] private ObservableCollection<ReSalesSub> _formSubItems = [];
+    [ObservableProperty] private ObservableCollection<ReSalesPayment> _formPayments = [];
 
     [ObservableProperty] private ReSalesSub _currentSubItem = new();
+    [ObservableProperty] private ReSalesPayment _currentPayment = new();
 
     [ObservableProperty] private string _itemSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Item> _filteredItemsList = [];
     [ObservableProperty] private bool _isItemSearchPopupOpen;
+
+    // --- Customer Search ---
+    [ObservableProperty] private string _customerSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
+    [ObservableProperty] private bool _isCustomerSearchPopupOpen;
+    private bool _isSelectingCustomer;
+
+    [ObservableProperty] private string _searchText = string.Empty;
+    [ObservableProperty] private bool _isSearchPanelVisible;
 
     [ObservableProperty] private ReSale? _selectedInvoice;
     [ObservableProperty] private ReSalesSub? _selectedSubItem;
     [ObservableProperty] private bool _isEditing;
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
+    [ObservableProperty] private double _totalPayed;
+    [ObservableProperty] private double _remaining;
+    [ObservableProperty] private bool _isCashPaymentMode;
+    partial void OnIsCashPaymentModeChanged(bool value) => HandleCashModeChanged();
+    [ObservableProperty] private double _subItemQty;
+    public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
+
+    partial void OnSubItemQtyChanged(double value)
+    {
+        if (CurrentSubItem != null) CurrentSubItem.Qty = value;
+        OnPropertyChanged(nameof(SubItemTotal));
+    }
 
     private double _discountPercentInput;
     public double DiscountPercentInput
@@ -82,26 +106,24 @@ public partial class ReSalesViewModel : ObservableObject
     public double SubItemPrice
     {
         get => _subItemPrice;
-        set { if (SetProperty(ref _subItemPrice, value)) { if (CurrentSubItem != null) CurrentSubItem.Price = value; if (!_isUpdatingSubDiscount) { _isUpdatingSubDiscount = true; SubItemDiscountValue = Math.Round(value * (SubItemDiscountPercent / 100.0), 2); if (CurrentSubItem != null) CurrentSubItem.Disc = SubItemDiscountValue; _isUpdatingSubDiscount = false; } } }
+        set { if (SetProperty(ref _subItemPrice, value)) { if (CurrentSubItem != null) CurrentSubItem.Price = value; if (!_isUpdatingSubDiscount) { _isUpdatingSubDiscount = true; SubItemDiscountValue = Math.Round(value * (SubItemDiscountPercent / 100.0), 2); if (CurrentSubItem != null) CurrentSubItem.Disc = SubItemDiscountValue; _isUpdatingSubDiscount = false; } OnPropertyChanged(nameof(SubItemTotal)); } }
     }
 
     private double _subItemDiscountPercent;
     public double SubItemDiscountPercent
     {
         get => _subItemDiscountPercent;
-        set { if (SetProperty(ref _subItemDiscountPercent, value)) { if (_isUpdatingSubDiscount) return; _isUpdatingSubDiscount = true; if (CurrentSubItem != null) { CurrentSubItem.DiscPer = value; SubItemDiscountValue = Math.Round(CurrentSubItem.Price * (value / 100.0), 2); CurrentSubItem.Disc = SubItemDiscountValue; } _isUpdatingSubDiscount = false; } }
+        set { if (SetProperty(ref _subItemDiscountPercent, value)) { if (_isUpdatingSubDiscount) return; _isUpdatingSubDiscount = true; if (CurrentSubItem != null) { CurrentSubItem.DiscPer = value; SubItemDiscountValue = Math.Round(CurrentSubItem.Price * (value / 100.0), 2); CurrentSubItem.Disc = SubItemDiscountValue; } _isUpdatingSubDiscount = false; OnPropertyChanged(nameof(SubItemTotal)); } }
     }
 
     private double _subItemDiscountValue;
     public double SubItemDiscountValue
     {
         get => _subItemDiscountValue;
-        set { if (SetProperty(ref _subItemDiscountValue, value)) { if (_isUpdatingSubDiscount) return; _isUpdatingSubDiscount = true; if (CurrentSubItem != null) { CurrentSubItem.Disc = value; SubItemDiscountPercent = CurrentSubItem.Price > 0 ? Math.Round((value / CurrentSubItem.Price) * 100.0, 2) : 0; CurrentSubItem.DiscPer = SubItemDiscountPercent; } _isUpdatingSubDiscount = false; } }
+        set { if (SetProperty(ref _subItemDiscountValue, value)) { if (_isUpdatingSubDiscount) return; _isUpdatingSubDiscount = true; if (CurrentSubItem != null) { CurrentSubItem.Disc = value; SubItemDiscountPercent = CurrentSubItem.Price > 0 ? Math.Round((value / CurrentSubItem.Price) * 100.0, 2) : 0; CurrentSubItem.DiscPer = SubItemDiscountPercent; } _isUpdatingSubDiscount = false; OnPropertyChanged(nameof(SubItemTotal)); } }
     }
     private bool _isUpdatingSubDiscount;
 
-    [ObservableProperty] private string _searchText = string.Empty;
-    [ObservableProperty] private bool _isSearchPanelVisible;
 
     public ReSalesViewModel(IDbConnectionFactory dbFactory, IRepository<ReSale> reSaleRepository, IRepository<Customer> customerRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
     {
@@ -169,31 +191,64 @@ public partial class ReSalesViewModel : ObservableObject
         {
             using var db = _dbFactory.CreateConnection();
             FormSubItems = new ObservableCollection<ReSalesSub>(await db.QueryAsync<ReSalesSub>("SELECT * FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = salesId }));
+            
+            var payments = await db.QueryAsync<ReSalesPayment>("SELECT * FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
+            FormPayments = new ObservableCollection<ReSalesPayment>(payments);
+            CalculatePayedTotal();
+            
             CalculateTotals();
         }
-        catch (Exception ex) { StatusMessage = "خطأ في تحميل الأصناف: " + ex.Message; }
+        catch (Exception ex) { StatusMessage = "خطأ في تحميل الأصناف والدفعات: " + ex.Message; }
     }
 
     [RelayCommand]
     public async Task AddNewAsync()
     {
-        var item = new ReSale { SalesDate = DateTime.Now, CusId = Customers.FirstOrDefault()?.CusId ?? 0, AddPc = Environment.MachineName, AddDate = DateTime.Now, IsPer = true };
-        item.SalesId = await _reSaleRepository.GetNextIdAsync();
+        var item = new ReSale { SalesDate = DateTime.Now, CusId = 0, AddPc = Environment.MachineName, AddDate = DateTime.Now, IsPer = true };
         _isInsertMode = true; IsEditing = true; SelectedInvoice = null; FormItem = item;
         _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
         FormSubItems.Clear();
+        FormPayments.Clear();
+        TotalPayed = 0;
+        Remaining = 0;
+        IsCashPaymentMode = false;
+        
         CurrentSubItem = new ReSalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
-        SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0;
-        StatusMessage = "مرتجع جديد — أدخل البيانات ثم اضغط حفظ";
+        SubItemQty = 1; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0;
+
+        CurrentPayment = new ReSalesPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
     }
 
-    [RelayCommand] public void EditSelected() { if (SelectedInvoice is null) return; FormItem = CloneInvoice(SelectedInvoice); _isInsertMode = false; IsEditing = true; StatusMessage = "تعديل المرتجع — غيّر البيانات ثم اضغط حفظ"; }
+    [RelayCommand] 
+    public void EditSelected() 
+    { 
+        if (SelectedInvoice is null) return; 
+        FormItem = CloneInvoice(SelectedInvoice); 
+        _isInsertMode = false; 
+        IsEditing = true; 
+        IsCashPaymentMode = FormItem.IsCash;
+        _isSelectingCustomer = true;
+        CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
+        _isSelectingCustomer = false;
+    }
     [RelayCommand]
     public void CancelEdit()
     {
         _isInsertMode = false; IsEditing = false; FormItem = new ReSale();
         _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
-        FormSubItems.Clear(); CurrentSubItem = new ReSalesSub(); SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; StatusMessage = null;
+        FormSubItems.Clear(); 
+        FormPayments.Clear();
+        TotalPayed = 0;
+        Remaining = 0;
+        IsCashPaymentMode = false;
+        CurrentSubItem = new ReSalesSub(); 
+        CurrentPayment = new ReSalesPayment();
+        SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; StatusMessage = null;
     }
 
     [RelayCommand]
@@ -205,29 +260,55 @@ public partial class ReSalesViewModel : ObservableObject
         try
         {
             CalculateTotals();
+            var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+            if (!_isInsertMode)
+            {
+                using (var db2 = _dbFactory.CreateConnection())
+                {
+                    var oldItems = await db2.QueryAsync<int>("SELECT DISTINCT ItemId FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId });
+                    foreach (var id in oldItems) if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
+                }
+            }
+
             using var db = _dbFactory.CreateConnection(); db.Open();
             using var tx = db.BeginTransaction();
             try
             {
                 if (_isInsertMode)
                 {
+                    FormItem.SalesId = await _reSaleRepository.GetNextIdAsync();
+                    OnPropertyChanged(nameof(FormItem));
                     FormItem.AddPc ??= Environment.MachineName; FormItem.AddDate = DateTime.Now; FormItem.AddUser = AppSession.CurrentUserId ?? 1;
-                    await db.ExecuteAsync(@"INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                    await db.ExecuteAsync(@"INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                                          VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
                 }
                 else
                 {
                     FormItem.EditPc = Environment.MachineName; FormItem.EditDate = DateTime.Now; FormItem.EditUser = AppSession.CurrentUserId ?? 1;
-                    await db.ExecuteAsync(@"UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser WHERE Sales_ID = @SalesId", FormItem, tx);
+                    await db.ExecuteAsync(@"UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser 
+                                          WHERE Sales_ID = @SalesId", FormItem, tx);
                     await db.ExecuteAsync("DELETE FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
+                    await db.ExecuteAsync("DELETE FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
                 }
                 int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM ReSales_Sub", transaction: tx);
                 foreach (var s in FormSubItems) { s.Id = ++maxSubId; s.SalesId = FormItem.SalesId; await db.ExecuteAsync(@"INSERT INTO ReSales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx); }
+
+                // Save payments
+                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM ReSales_Payments", transaction: tx);
+                foreach (var p in FormPayments)
+                {
+                    p.PayId = ++maxPayId;
+                    p.SalesId = FormItem.SalesId;
+                    await db.ExecuteAsync(@"INSERT INTO ReSales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
+                                          VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)", p, tx);
+                }
+
                 tx.Commit(); StatusMessage = "تم الحفظ بنجاح ✓";
             }
             catch { tx.Rollback(); throw; }
 
             // إعادة حساب Stock لكل الأصناف المتأثرة
-            foreach (var itemId in FormSubItems.Select(s => s.ItemId).Distinct())
+            foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
 
             _isInsertMode = false; IsEditing = false; await LoadInvoicesAsync();
@@ -245,7 +326,13 @@ public partial class ReSalesViewModel : ObservableObject
 
             using var db = _dbFactory.CreateConnection(); db.Open();
             using var tx = db.BeginTransaction();
-            try { await db.ExecuteAsync("DELETE FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx); await db.ExecuteAsync("DELETE FROM ReSales WHERE Sales_ID = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx); tx.Commit(); }
+            try 
+            { 
+                await db.ExecuteAsync("DELETE FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
+                await db.ExecuteAsync("DELETE FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx); 
+                await db.ExecuteAsync("DELETE FROM ReSales WHERE Sales_ID = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx); 
+                tx.Commit(); 
+            }
             catch { tx.Rollback(); throw; }
 
             foreach (var itemId in affectedItemIds)
@@ -253,7 +340,9 @@ public partial class ReSalesViewModel : ObservableObject
 
             StatusMessage = "تم حذف المرتجع بنجاح ✓"; IsEditing = false; FormItem = new ReSale();
             _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
-            FormSubItems.Clear(); SelectedInvoice = null; await LoadInvoicesAsync();
+            FormSubItems.Clear(); 
+            FormPayments.Clear();
+            SelectedInvoice = null; await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
@@ -291,6 +380,15 @@ public partial class ReSalesViewModel : ObservableObject
         if (item == null) return;
         _isSelectingItem = true;
         
+        // Filter units linked to this item (primary + secondary)
+        var filtered = Units.Where(u => u.UnitId == item.UnitId).ToList();
+        if (item.Unit2 > 0)
+        {
+            var secondUnit = Units.FirstOrDefault(u => u.UnitId == item.Unit2);
+            if (secondUnit != null) filtered.Add(secondUnit);
+        }
+        CurrentItemUnits = new ObservableCollection<Unit>(filtered);
+        
         var price = item.Price1 > 0 ? item.Price1 : item.Price0;
         CurrentSubItem = new ReSalesSub 
         { 
@@ -306,6 +404,7 @@ public partial class ReSalesViewModel : ObservableObject
         };
         
         _isUpdatingSubDiscount = true; 
+        SubItemQty = 1;
         SubItemPrice = price; 
         SubItemDiscountPercent = 0; 
         SubItemDiscountValue = 0; 
@@ -323,8 +422,9 @@ public partial class ReSalesViewModel : ObservableObject
         CurrentSubItem.Total = CurrentSubItem.Qty * (CurrentSubItem.Price - CurrentSubItem.Disc);
         FormSubItems.Add(CurrentSubItem);
         CurrentSubItem = new ReSalesSub { SalesId = FormItem.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
-        _isUpdatingSubDiscount = true; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; _isUpdatingSubDiscount = false;
+        _isUpdatingSubDiscount = true; SubItemQty = 1; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; _isUpdatingSubDiscount = false;
         ItemSearchText = string.Empty; CalculateTotals();
+        CurrentItemUnits = [];
     }
 
     [RelayCommand] private void RemoveSubItem(ReSalesSub sub) { if (sub != null && FormSubItems.Contains(sub)) { FormSubItems.Remove(sub); CalculateTotals(); } }
@@ -339,7 +439,80 @@ public partial class ReSalesViewModel : ObservableObject
         CalculateTotalsInternal(); _isUpdatingDiscount = false;
     }
 
-    private void CalculateTotalsInternal() { FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony; OnPropertyChanged(nameof(FormItem)); }
+    private void CalculateTotalsInternal() 
+    { 
+        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony; 
+        UpdateRemaining();
+        if (IsCashPaymentMode)
+        {
+            HandleCashModeChanged();
+        }
+        OnPropertyChanged(nameof(FormItem)); 
+    }
+
+    [RelayCommand]
+    private void AddPayment()
+    {
+        if (IsCashPaymentMode) return;
+        if (CurrentPayment.PayMoney <= 0 || CurrentPayment.CashId <= 0) return;
+
+        FormPayments.Add(CurrentPayment);
+        CalculatePayedTotal();
+
+        CurrentPayment = new ReSalesPayment
+        {
+            SalesId = FormItem.SalesId,
+            PayDate = DateTime.Now,
+            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
+        };
+    }
+
+    [RelayCommand]
+    private void RemovePayment(ReSalesPayment payment)
+    {
+        if (IsCashPaymentMode) return;
+        if (payment != null && FormPayments.Contains(payment))
+        {
+            FormPayments.Remove(payment);
+            CalculatePayedTotal();
+        }
+    }
+
+    private void CalculatePayedTotal()
+    {
+        TotalPayed = FormPayments.Sum(p => p.PayMoney);
+        UpdateRemaining();
+    }
+
+    private void UpdateRemaining()
+    {
+        Remaining = (FormItem?.Net ?? 0) - TotalPayed;
+    }
+
+    public void HandleCashModeChanged()
+    {
+        if (FormItem == null) return;
+        FormItem.IsCash = IsCashPaymentMode;
+
+        if (IsCashPaymentMode)
+        {
+            FormPayments.Clear();
+            FormPayments.Add(new ReSalesPayment
+            {
+                SalesId = FormItem.SalesId,
+                PayDate = DateTime.Now,
+                PayMoney = FormItem.Net,
+                CashId = Cashes.FirstOrDefault()?.CashId ?? 0,
+                Notes = "سداد كامل (كاش) - مرتجع"
+            });
+        }
+        else
+        {
+            FormPayments.Clear();
+        }
+        CalculatePayedTotal();
+    }
+    
     public void RecalculateTotals() { if (!_isUpdatingDiscount) CalculateTotals(); }
 
     private ReSale CloneInvoice(ReSale s) => new()
@@ -348,4 +521,37 @@ public partial class ReSalesViewModel : ObservableObject
         DiscPer = s.DiscPer, AddMony = s.AddMony, Net = s.Net, IsPer = s.IsPer, NetPer = s.NetPer,
         IsCash = s.IsCash, Notes = s.Notes, AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
     };
+
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        if (_isSelectingCustomer) return;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers.Take(100));
+            IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Customers.Where(c =>
+        {
+            var name = c.CusName?.ToLower() ?? string.Empty;
+            var tel = c.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+
+        FilteredCustomersList = new ObservableCollection<Customer>(filtered);
+        IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectCustomer(Customer customer)
+    {
+        if (customer == null) return;
+        _isSelectingCustomer = true;
+        FormItem.CusId = customer.CusId;
+        CustomerSearchText = customer.CusName;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+    }
 }

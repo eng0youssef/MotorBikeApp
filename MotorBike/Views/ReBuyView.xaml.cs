@@ -7,8 +7,15 @@ namespace MotorBike.Views;
 public partial class ReBuyView : UserControl
 {
     public ReBuyView() => InitializeComponent();
-    private void OnLoaded(object sender, RoutedEventArgs e) { if (DataContext is ReBuyViewModel vm) vm.LoadRelatedDataCommand.Execute(null); }
-    private void IsCash_Changed(object sender, RoutedEventArgs e) { }
+    private async void OnLoaded(object sender, RoutedEventArgs e) 
+    { 
+        if (DataContext is ReBuyViewModel vm) 
+        {
+            await vm.LoadRelatedDataAsync();
+            await vm.AddNewAsync();
+        }
+    }
+    private void IsCash_Changed(object sender, RoutedEventArgs e) { if (DataContext is ReBuyViewModel vm) vm.RecalculateTotals(); }
     private void Totals_TextChanged(object sender, TextChangedEventArgs e) { if (DataContext is ReBuyViewModel vm) vm.RecalculateTotals(); }
     private void SearchItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
@@ -26,13 +33,33 @@ public partial class ReBuyView : UserControl
         }
     }
 
+    private void SupplierSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is ReBuyViewModel vm)
+        {
+            if (string.IsNullOrWhiteSpace(vm.SupplierSearchText))
+                vm.FilteredSuppliersList = new System.Collections.ObjectModel.ObservableCollection<MotorBike.Models.Supplier>(vm.Suppliers.Take(100));
+            vm.IsSupplierSearchPopupOpen = vm.FilteredSuppliersList.Count > 0;
+        }
+    }
+
+    private void SearchSupplier_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem lbi && lbi.DataContext is MotorBike.Models.Supplier supplier && DataContext is ReBuyViewModel vm)
+            vm.SelectSupplierCommand.Execute(supplier);
+    }
+
     private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (ItemSearchPopup.IsOpen)
+        if (ItemSearchPopup.IsOpen || SupplierSearchPopup.IsOpen)
         {
             var offset = ItemSearchPopup.HorizontalOffset;
             ItemSearchPopup.HorizontalOffset = offset + 1;
             ItemSearchPopup.HorizontalOffset = offset;
+            
+            offset = SupplierSearchPopup.HorizontalOffset;
+            SupplierSearchPopup.HorizontalOffset = offset + 1;
+            SupplierSearchPopup.HorizontalOffset = offset;
         }
     }
 }

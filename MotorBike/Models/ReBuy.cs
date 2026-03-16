@@ -33,10 +33,6 @@ public partial class ReBuy
 
     public bool IsCash { get; set; }
 
-    public double Payed { get; set; }
-
-    public int? CashId { get; set; }
-
     public string? Notes { get; set; }
 
     public int? AddUser { get; set; }
@@ -53,7 +49,7 @@ public partial class ReBuy
 
     public virtual ICollection<ReBuySub> ReBuySubs { get; set; } = new List<ReBuySub>();
 
-    public virtual Cash? Cash { get; set; }
+    public virtual ICollection<ReBuyPayment> ReBuyPayments { get; set; } = new List<ReBuyPayment>();
 
     public virtual Supplier Supp { get; set; } = null!;
 }
