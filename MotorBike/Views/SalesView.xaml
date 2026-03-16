@@ -113,7 +113,7 @@
                                         <ListBox ItemsSource="{Binding FilteredCustomersList}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                             <ListBox.ItemTemplate><DataTemplate>
                                                 <Border Padding="8,6" Cursor="Hand"><TextBlock FontSize="13" Foreground="#334155">
-                                                    <Run Text="{Binding CusName, Mode=OneWay}"/><Run Text=" — " Foreground="#94A3B8"/><Run Text="{Binding Tel, Mode=OneWay}" Foreground="#64748B" FontSize="11"/>
+                                                    <Run Text="{Binding CusName, Mode=OneWay}"/>
                                                 </TextBlock></Border>
                                             </DataTemplate></ListBox.ItemTemplate>
                                             <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem">

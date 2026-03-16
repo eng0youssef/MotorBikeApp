@@ -322,7 +322,7 @@ public partial class SalesViewModel : ObservableObject
         var item = new Sale
         {
             SalesDate = DateTime.Now,
-            CusId = Customers.FirstOrDefault()?.CusId ?? 0,
+            CusId = 0,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
@@ -410,9 +410,9 @@ public partial class SalesViewModel : ObservableObject
     {
         if (FormItem is null) return;
 
-        if (FormItem.CusId <= 0)
+        if (FormItem.CusId <= 0 || !Customers.Any(c => c.CusId == FormItem.CusId))
         {
-            StatusMessage = "⚠️ يجب اختيار العميل لإتمام حفظ الفاتورة.";
+            StatusMessage = "⚠️ يجب اختيار العميل من القائمة لإتمام حفظ الفاتورة.";
             return;
         }
 

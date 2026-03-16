@@ -325,7 +325,7 @@ public partial class BuysViewModel : ObservableObject
         var item = new Buy
         {
             BuyDate = DateTime.Now,
-            SuppId = Suppliers.FirstOrDefault()?.SuppId ?? 0,
+            SuppId = 0,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
@@ -414,9 +414,9 @@ public partial class BuysViewModel : ObservableObject
         if (FormItem is null) return;
 
         // مراجعة المنطق (Validation Logic)
-        if (FormItem.SuppId <= 0)
+        if (FormItem.SuppId <= 0 || !Suppliers.Any(s => s.SuppId == FormItem.SuppId))
         {
-            StatusMessage = "⚠️ يجب اختيار المورد لإتمام حفظ الفاتورة.";
+            StatusMessage = "⚠️ يجب اختيار المورد من القائمة لإتمام حفظ الفاتورة.";
             return;
         }
 
