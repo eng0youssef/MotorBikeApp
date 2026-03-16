@@ -19,16 +19,19 @@ public partial class ReSale
     public double Disc { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double DiscPer { get; set; }
 
     public double AddMony { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double Net { get; set; }
 
     public bool IsPer { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double NetPer { get; set; }
 
     public bool IsCash { get; set; }
@@ -55,3 +58,4 @@ public partial class ReSale
 
     public virtual Customer Cus { get; set; } = null!;
 }
+

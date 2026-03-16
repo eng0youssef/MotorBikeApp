@@ -102,6 +102,115 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Item> _itemsList = [];
     [ObservableProperty] private ObservableCollection<Car> _carsList = [];
 
+    // New car entry fields (for cars not yet in DB)
+    [ObservableProperty] private string _newCarName = string.Empty;
+    [ObservableProperty] private string _newCarShasehNo = string.Empty;
+    [ObservableProperty] private string _newCarEngineNo = string.Empty;
+    [ObservableProperty] private double _newCarTotal;
+
+    // ── Smart Supplier Search ──────────────────────────────────────────────
+    [ObservableProperty] private string _supplierSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<ImportSupplier> _filteredSuppliersList = [];
+    [ObservableProperty] private bool _isSupplierSearchPopupOpen;
+    private bool _isSelectingSupplier;
+
+    partial void OnSupplierSearchTextChanged(string value)
+    {
+        if (_isSelectingSupplier) return;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredSuppliersList = new(Suppliers);
+            IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+            return;
+        }
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Suppliers.Where(s =>
+        {
+            var name = s.SuppName?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k));
+        });
+        FilteredSuppliersList = new(filtered);
+        IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectSupplier(ImportSupplier supplier)
+    {
+        if (supplier == null) return;
+        _isSelectingSupplier = true;
+        FormItem.SuppId = supplier.SuppId;
+        SupplierSearchText = supplier.SuppName;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
+    }
+
+    // ── Currency Rate ──────────────────────────────────────────────────────
+    [ObservableProperty] private byte _selectedOmlaId;
+
+    partial void OnSelectedOmlaIdChanged(byte value)
+    {
+        if (FormItem != null && Omlas != null && Omlas.Any())
+        {
+            FormItem.OmlaId = value;
+            var omla = Omlas.FirstOrDefault(o => o.OmlaId == value);
+            if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
+            OnPropertyChanged(nameof(FormItem));
+        }
+    }
+
+    // ── Smart Item Search ──────────────────────────────────────────────────
+    [ObservableProperty] private string _itemSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Item> _filteredItemsList = [];
+    [ObservableProperty] private bool _isItemSearchPopupOpen;
+    private bool _isSelectingItem;
+
+    // Units for current selected item only
+    [ObservableProperty] private ObservableCollection<Unit> _currentItemUnits = [];
+
+    partial void OnItemSearchTextChanged(string value)
+    {
+        if (_isSelectingItem) return;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredItemsList = new(ItemsList.Take(100));
+            IsItemSearchPopupOpen = FilteredItemsList.Any();
+            return;
+        }
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = ItemsList.Where(item =>
+            keywords.All(k =>
+                (item.ItemName != null && item.ItemName.ToLower().Contains(k)) ||
+                (item.Bar1 != null && item.Bar1.ToLower().Contains(k)) ||
+                (item.Bar2 != null && item.Bar2.ToLower().Contains(k))
+            )).Take(100);
+        FilteredItemsList = new(filtered);
+        IsItemSearchPopupOpen = FilteredItemsList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectItem(Item item)
+    {
+        if (item == null) return;
+        _isSelectingItem = true;
+
+        CurrentSubItem = new ImportInvItem
+        {
+            StoreId = CurrentSubItem.StoreId,
+            ItemId = item.ItemId,
+            UnitId = item.UnitId,
+            Price = item.Price0,   // Auto-fill price
+            Qty = 1,
+            UnitQty = 1
+        };
+
+        var itemUnits = Units.Where(u => u.UnitId == item.UnitId || u.UnitId == item.Unit2).ToList();
+        CurrentItemUnits = itemUnits.Any() ? new(itemUnits) : new(Units);
+
+        ItemSearchText = string.Empty;
+        IsItemSearchPopupOpen = false;
+        _isSelectingItem = false;
+    }
+
     [RelayCommand]
     public async Task LoadAsync()
     {
@@ -176,9 +285,19 @@ public partial class ImportInvoiceViewModel : ObservableObject
             InvDate = DateTime.Now,
             OmlaRate = 1
         };
-        
-        if (Omlas.Any()) FormItem.OmlaId = Omlas.First().OmlaId;
-        if (Suppliers.Any()) FormItem.SuppId = Suppliers.First().SuppId;
+        if (Omlas.Any())
+        {
+            var firstOmla = Omlas.First();
+            FormItem.OmlaId = firstOmla.OmlaId;
+            FormItem.OmlaRate = firstOmla.OmlaRate;
+            SelectedOmlaId = firstOmla.OmlaId;
+        }
+        FormItem.SuppId = 0;
+
+        _isSelectingSupplier = true;
+        SupplierSearchText = string.Empty;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
 
         FormItems.Clear();
         FormCars.Clear();
@@ -196,10 +315,20 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentSubItem = new ImportInvItem();
         if (Stores.Any()) CurrentSubItem.StoreId = Stores.First().StoreId;
         if (Units.Any()) CurrentSubItem.UnitId = Units.First().UnitId;
-        if (ItemsList.Any()) CurrentSubItem.ItemId = ItemsList.First().ItemId;
+
+        _isSelectingItem = true;
+        ItemSearchText = string.Empty;
+        IsItemSearchPopupOpen = false;
+        CurrentItemUnits = [];
+        _isSelectingItem = false;
 
         CurrentSubCar = new ImportInvCar();
         if (CarsList.Any()) CurrentSubCar.CarId = CarsList.First().CarId;
+
+        NewCarName = string.Empty;
+        NewCarShasehNo = string.Empty;
+        NewCarEngineNo = string.Empty;
+        NewCarTotal = 0;
 
         CurrentSubExp = new ImportExp { PayDate = DateTime.Now, OmlaRate = 1 };
         if (Omlas.Any()) CurrentSubExp.OmlaId = Omlas.First().OmlaId;
@@ -236,8 +365,16 @@ public partial class ImportInvoiceViewModel : ObservableObject
         try
         {
             var inv = await _invoiceRepo.GetByIdAsync(invId);
-            if (inv == null) return;
-            FormItem = inv;
+            if (inv != null)
+            {
+                FormItem = inv;
+                _isSelectingSupplier = true;
+                SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == inv.SuppId)?.SuppName ?? string.Empty;
+                IsSupplierSearchPopupOpen = false;
+                _isSelectingSupplier = false;
+                
+                SelectedOmlaId = (byte)inv.OmlaId;
+            }
 
             var items = await _itemRepo.GetAllAsync();
             FormItems = new(items.Where(x => x.InvId == invId));
@@ -283,6 +420,13 @@ public partial class ImportInvoiceViewModel : ObservableObject
             StoreId = oldStoreId,
             UnitId = oldUnitId
         };
+        
+        _isSelectingItem = true;
+        ItemSearchText = string.Empty;
+        IsItemSearchPopupOpen = false;
+        CurrentItemUnits = [];
+        _isSelectingItem = false;
+
         CalculateTotals();
     }
 
@@ -321,6 +465,32 @@ public partial class ImportInvoiceViewModel : ObservableObject
             FormCars.Remove(car);
             CalculateTotals();
         }
+    }
+
+    [RelayCommand]
+    public void AddNewCar()
+    {
+        if (string.IsNullOrWhiteSpace(NewCarShasehNo))
+        {
+            StatusMessage = "يرجى إدخال رقم الشاسيه على الأقل.";
+            return;
+        }
+
+        var newCar = new ImportInvCar
+        {
+            CarId = 0,
+            Total = NewCarTotal
+        };
+        FormCars.Add(newCar);
+
+        StatusMessage = $"تم إضافة موتوسيكل جديد مؤقتاً (شاسيه: {NewCarShasehNo}) — يجب تسجيله في بيانات الموتوسيكلات أولاً قبل الحفظ.";
+        
+        NewCarName = string.Empty;
+        NewCarShasehNo = string.Empty;
+        NewCarEngineNo = string.Empty;
+        NewCarTotal = 0;
+
+        CalculateTotals();
     }
 
     // ── Adding Sub-Expenses ──────────────────────────────────────────────
@@ -418,6 +588,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             {
                 FormItem.AddDate = DateTime.Now;
                 FormItem.AddPc = Environment.MachineName;
+                FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                 await _invoiceRepo.InsertAsync(FormItem);
                 
                 // Fetch the generated ID.
@@ -429,11 +600,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
             {
                 FormItem.EditDate = DateTime.Now;
                 FormItem.EditPc = Environment.MachineName;
+                FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                 await _invoiceRepo.UpdateAsync(FormItem);
                 
-                // Delete existing sub-items
-                // Note: In a real app we might write custom SQL but here we do it sequentially.
-                // We fetch current sub-items and delete them.
                 var existingItems = (await _itemRepo.GetAllAsync()).Where(x => x.InvId == FormItem.InvId);
                 foreach (var i in existingItems) await _itemRepo.DeleteAsync(i.Id);
 
@@ -454,7 +623,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _itemRepo.InsertAsync(item);
             }
 
-            foreach (var car in FormCars)
+            foreach (var car in FormCars.Where(c => c.CarId > 0 || c.CarId == 0)) 
             {
                 car.InvId = FormItem.InvId;
                 await _carRepo.InsertAsync(car);

@@ -34,6 +34,7 @@ public partial class ImportInvoice
     public double FrokOmla { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double? TotalCost { get; set; }
 
     public string? Notes { get; set; }

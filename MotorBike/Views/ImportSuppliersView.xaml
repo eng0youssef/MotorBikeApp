@@ -54,6 +54,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
                         <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
@@ -69,17 +70,27 @@
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="العنوان" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Adress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Row="2" Grid.Column="6" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding FormItem.OmlaId}" Padding="10,6" FontSize="14"/>
+                    <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding SelectedOmlaId}" Padding="10,6" FontSize="14"/>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="سعر الصرف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FormItem.OmlaRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                    <TextBlock Grid.Row="4" Grid.Column="3" Text="تاريخ التعامل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <DatePicker Grid.Row="4" Grid.Column="4" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
-                    <TextBlock Grid.Row="4" Grid.Column="6" Text="الملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <DockPanel Grid.Row="4" Grid.Column="7">
+                    <TextBlock Grid.Row="4" Grid.Column="6" Text="تاريخ التعامل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <DatePicker Grid.Row="4" Grid.Column="7" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="مدين افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtDebit" Grid.Row="6" Grid.Column="1" Text="{Binding FormItem.Debit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="3" Text="دائن افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtCredit" Grid.Row="6" Grid.Column="4" Text="{Binding FormItem.Credit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="6" Text="الرصيد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <DockPanel Grid.Row="6" Grid.Column="7">
                         <CheckBox DockPanel.Dock="Right" Margin="16,0,0,0" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
-                        <TextBox Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                        <TextBox x:Name="txtBal" Text="{Binding FormItem.Bal, Mode=OneWay}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#1D4ED8" FontWeight="Bold"/>
                     </DockPanel>
+                    
+                    <TextBlock Grid.Row="4" Grid.Column="3" Text="الملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="4" Grid.Column="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                 </Grid>
 
                 <DockPanel>

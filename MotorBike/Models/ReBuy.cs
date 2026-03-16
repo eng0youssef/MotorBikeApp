@@ -19,16 +19,19 @@ public partial class ReBuy
     public double Disc { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double DiscPer { get; set; }
 
     public double AddMoney { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double Net { get; set; }
 
     public bool IsPer { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double NetPer { get; set; }
 
     public bool IsCash { get; set; }
@@ -53,3 +56,4 @@ public partial class ReBuy
 
     public virtual Supplier Supp { get; set; } = null!;
 }
+
