@@ -26,11 +26,13 @@ public partial class ReSalesSub
     public double DiscPer { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double Total { get; set; }
 
     public double UnitQty { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double QtyAll { get; set; }
 
     public virtual ReSale Sales { get; set; } = null!;
@@ -41,3 +43,4 @@ public partial class ReSalesSub
 
     public virtual Unit Unit { get; set; } = null!;
 }
+

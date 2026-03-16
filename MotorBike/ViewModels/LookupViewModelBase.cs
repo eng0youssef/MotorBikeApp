@@ -27,6 +27,11 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     [ObservableProperty]
     private T _formItem = new();
 
+    partial void OnFormItemChanged(T value) => OnFormItemChangedHook(value);
+
+    /// <summary>Hook for subclasses to react when FormItem is replaced.</summary>
+    protected virtual void OnFormItemChangedHook(T value) { }
+
     [ObservableProperty]
     private bool _isEditing;
 

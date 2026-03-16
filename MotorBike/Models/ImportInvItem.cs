@@ -21,11 +21,13 @@ public partial class ImportInvItem
     public double Price { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double Total { get; set; }
 
     public double UnitQty { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double QtyAll { get; set; }
 
     public decimal CostPer { get; set; }
@@ -33,6 +35,7 @@ public partial class ImportInvItem
     public double? CostTotal { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double? CostUnit { get; set; }
 
     public virtual ImportInvoice Inv { get; set; } = null!;

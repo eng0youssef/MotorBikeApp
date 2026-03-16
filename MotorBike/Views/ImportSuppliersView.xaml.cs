@@ -15,4 +15,18 @@ public partial class ImportSuppliersView : UserControl
             await vm.LoadRelatedDataAsync();
         }
     }
+
+    private void txtDebitCredit_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (DataContext is ImportSuppliersViewModel vm && vm.FormItem != null)
+        {
+            double.TryParse(txtDebit.Text, out double debit);
+            double.TryParse(txtCredit.Text, out double credit);
+            double bal = credit - debit;
+            vm.FormItem.Debit = debit;
+            vm.FormItem.Credit = credit;
+            vm.FormItem.Bal = bal;
+            txtBal.Text = bal.ToString("0.##");
+        }
+    }
 }

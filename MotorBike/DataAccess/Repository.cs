@@ -203,6 +203,11 @@ public class Repository<T> : IRepository<T> where T : class
     {
         var type = prop.PropertyType;
 
+        // Skip computed columns
+        var dbGenAttr = prop.GetCustomAttribute<System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedAttribute>();
+        if (dbGenAttr != null && dbGenAttr.DatabaseGeneratedOption == System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)
+            return true;
+
         // byte[] — binary/row-version fields (RowId)
         if (type == typeof(byte[]) && prop.Name == "RowId")
             return true;

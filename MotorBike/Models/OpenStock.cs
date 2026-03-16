@@ -25,10 +25,13 @@ public partial class OpenStock
     public double DiscPer { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double Total { get; set; }
 
     public double UnitQty { get; set; }
 
     /// <summary>Computed column</summary>
+    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double QtyAll { get; set; }
 }
+

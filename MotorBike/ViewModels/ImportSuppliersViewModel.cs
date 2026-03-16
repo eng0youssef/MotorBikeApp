@@ -37,6 +37,31 @@ public partial class ImportSuppliersViewModel : LookupViewModelBase<ImportSuppli
         }
     }
 
+    [ObservableProperty]
+    private byte _selectedOmlaId;
+
+    partial void OnSelectedOmlaIdChanged(byte value)
+    {
+        if (FormItem != null)
+        {
+            FormItem.OmlaId = value;
+            var omla = Omlas.FirstOrDefault(o => o.OmlaId == value);
+            if (omla != null)
+            {
+                FormItem.OmlaRate = omla.OmlaRate;
+            }
+            OnPropertyChanged(nameof(FormItem));
+        }
+    }
+
+    protected override void OnFormItemChangedHook(ImportSupplier value)
+    {
+        if (value != null)
+        {
+            SelectedOmlaId = value.OmlaId;
+        }
+    }
+
     protected override object GetEntityId(ImportSupplier entity) => entity.SuppId;
     protected override bool IsNewRecord(ImportSupplier entity) => entity.SuppId == 0;
     protected override void SetEntityId(ImportSupplier entity, int id) => entity.SuppId = id;
@@ -50,7 +75,12 @@ public partial class ImportSuppliersViewModel : LookupViewModelBase<ImportSuppli
         entity.Bal = 0;
         entity.Active = true;
         entity.Country = "";
+        
         if (Omlas.Any())
-            entity.OmlaId = Omlas.First().OmlaId;
+        {
+            var firstOmla = Omlas.First();
+            entity.OmlaId = firstOmla.OmlaId;
+            entity.OmlaRate = firstOmla.OmlaRate;
+        }
     }
 }
