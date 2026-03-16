@@ -80,6 +80,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
                                 <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
+                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
@@ -115,12 +116,21 @@
                             <TextBlock Grid.Row="2" Grid.Column="6" Text="ميناء الشحن" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.ShipPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding SelectedOmlaId}" Padding="10,6" FontSize="14"/>
-                            <TextBlock Grid.Row="4" Grid.Column="3" Text="سعر الصرف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="4" Text="{Binding FormItem.OmlaRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                            <TextBlock Grid.Row="4" Grid.Column="6" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                            <!-- نوع الفاتورة FOB / CIF -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="نوع الفاتورة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="4" Grid.Column="1"
+                                      ItemsSource="{Binding InvTypeList}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SelectedInvType}"
+                                      Padding="10,6" FontSize="14" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Row="4" Grid.Column="3" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="4" Grid.Column="4" ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding SelectedOmlaId}" Padding="10,6" FontSize="14"/>
+                            <TextBlock Grid.Row="4" Grid.Column="6" Text="سعر الصرف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.OmlaRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                         </Grid>
 
                         <!-- TABS -->

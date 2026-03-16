@@ -65,6 +65,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private bool _isSearchPanelVisible;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
+    // Tracks if current form item is a new record or modifying an existing one
+    private bool _isNewInvoice = true;
+
     [ObservableProperty] private ObservableCollection<ImportInvoice> _invoices = [];
     [ObservableProperty] private ObservableCollection<ImportInvoice> _filteredInvoices = [];
     [ObservableProperty] private string _searchText = string.Empty;
@@ -142,6 +145,26 @@ public partial class ImportInvoiceViewModel : ObservableObject
         SupplierSearchText = supplier.SuppName;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
+    }
+
+    // ── InvType (FOB / CIF) ────────────────────────────────────────────────
+    public record InvTypeItem(byte Id, string Name);
+
+    public List<InvTypeItem> InvTypeList { get; } =
+    [
+        new(1, "FOB"),
+        new(2, "CIF")
+    ];
+
+    [ObservableProperty] private byte _selectedInvType = 1;
+
+    partial void OnSelectedInvTypeChanged(byte value)
+    {
+        if (FormItem != null)
+        {
+            FormItem.InvType = value;
+            OnPropertyChanged(nameof(FormItem));
+        }
     }
 
     // ── Currency Rate ──────────────────────────────────────────────────────
@@ -234,7 +257,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 StatusMessage = "يرجى التأكد من إدخال البيانات الأساسية (موردين، مخازن، وحدات، عملات، خزائن، مصروفات) أولاً.";
             }
 
-            AddNewRecord();
+            await AddNewRecord();
         }
         catch (Exception ex)
         {
@@ -278,10 +301,13 @@ public partial class ImportInvoiceViewModel : ObservableObject
     // ── CRUD Operations ──────────────────────────────────────────────────
 
     [RelayCommand]
-    public void AddNewRecord()
+    public async Task AddNewRecord()
     {
+        _isNewInvoice = true;
+        int nextId = await _invoiceRepo.GetNextIdAsync();
         FormItem = new ImportInvoice
         {
+            InvId = nextId,
             InvDate = DateTime.Now,
             OmlaRate = 1
         };
@@ -304,6 +330,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         FormExps.Clear();
         FormPayments.Clear();
 
+        SelectedInvType = 1; // Default: FOB
         ResetSubEntries();
         IsEditing = true;
         SelectedInvoice = null;
@@ -349,19 +376,20 @@ public partial class ImportInvoiceViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void CancelEdit()
+    public async Task CancelEdit()
     {
         IsEditing = false;
         if (SelectedInvoice != null)
-            _ = LoadInvoiceDetailsAsync(SelectedInvoice.InvId);
+            await LoadInvoiceDetailsAsync(SelectedInvoice.InvId);
         else
-            AddNewRecord();
+            await AddNewRecord();
     }
 
     private bool CanEditOrDelete() => SelectedInvoice != null;
 
     private async Task LoadInvoiceDetailsAsync(int invId)
     {
+        _isNewInvoice = false;
         try
         {
             var inv = await _invoiceRepo.GetByIdAsync(invId);
@@ -374,6 +402,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 _isSelectingSupplier = false;
                 
                 SelectedOmlaId = (byte)inv.OmlaId;
+                SelectedInvType = inv.InvType > 0 ? inv.InvType : (byte)1;
             }
 
             var items = await _itemRepo.GetAllAsync();
@@ -583,18 +612,18 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CalculateTotals();
         try
         {
-            bool isNew = FormItem.InvId == 0;
+            bool isNew = _isNewInvoice;
             if (isNew)
             {
+                if (FormItem.InvId == 0) // Just in case it wasn't populated
+                    FormItem.InvId = await _invoiceRepo.GetNextIdAsync();
+
                 FormItem.AddDate = DateTime.Now;
                 FormItem.AddPc = Environment.MachineName;
                 FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                 await _invoiceRepo.InsertAsync(FormItem);
                 
-                // Fetch the generated ID.
-                var allInvs = await _invoiceRepo.GetAllAsync();
-                var newInv = allInvs.OrderByDescending(x => x.InvId).FirstOrDefault();
-                if (newInv != null) FormItem.InvId = newInv.InvId;
+                _isNewInvoice = false; // Next save will update instead of inserting
             }
             else
             {
@@ -617,28 +646,36 @@ public partial class ImportInvoiceViewModel : ObservableObject
             }
 
             // Insert new sub-items
+            int nextItemId = await _itemRepo.GetNextIdAsync();
             foreach (var item in FormItems)
             {
+                if (item.Id == 0) item.Id = nextItemId++;
                 item.InvId = FormItem.InvId;
                 await _itemRepo.InsertAsync(item);
             }
 
+            int nextCarId = await _carRepo.GetNextIdAsync();
             foreach (var car in FormCars.Where(c => c.CarId > 0 || c.CarId == 0)) 
             {
+                if (car.Id == 0) car.Id = nextCarId++;
                 car.InvId = FormItem.InvId;
                 await _carRepo.InsertAsync(car);
             }
 
+            int nextExpId = await _expRepo.GetNextIdAsync();
             foreach (var exp in FormExps)
             {
+                if (exp.Id == 0) exp.Id = nextExpId++;
                 exp.InvId = FormItem.InvId;
                 exp.AddDate = DateTime.Now;
                 exp.AddPc = Environment.MachineName;
                 await _expRepo.InsertAsync(exp);
             }
 
+            int nextPayId = await _paymentRepo.GetNextIdAsync();
             foreach (var pay in FormPayments)
             {
+                if (pay.PayId == 0) pay.PayId = nextPayId++;
                 pay.InvId = FormItem.InvId;
                 pay.SuppId = FormItem.SuppId;
                 pay.AddDate = DateTime.Now;
@@ -688,7 +725,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
             FilteredInvoices = new(Invoices);
-            AddNewRecord();
+            await AddNewRecord();
         }
         catch (Exception ex)
         {
