@@ -19,6 +19,7 @@ public partial class ReBuyViewModel : ObservableObject
     private readonly IRepository<Item> _itemRepository;
     private readonly IRepository<Store> _storeRepository;
     private readonly IRepository<Unit> _unitRepository;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
@@ -102,10 +103,11 @@ public partial class ReBuyViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
-    public ReBuyViewModel(IDbConnectionFactory dbFactory, IRepository<ReBuy> reBuyRepository, IRepository<Supplier> supplierRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository)
+    public ReBuyViewModel(IDbConnectionFactory dbFactory, IRepository<ReBuy> reBuyRepository, IRepository<Supplier> supplierRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
     {
         _dbFactory = dbFactory; _reBuyRepository = reBuyRepository; _supplierRepository = supplierRepository;
         _cashRepository = cashRepository; _itemRepository = itemRepository; _storeRepository = storeRepository; _unitRepository = unitRepository;
+        _compositeRepo = compositeRepo;
     }
 
     [RelayCommand]
@@ -223,6 +225,11 @@ public partial class ReBuyViewModel : ObservableObject
                 tx.Commit(); StatusMessage = "تم الحفظ بنجاح ✓";
             }
             catch { tx.Rollback(); throw; }
+
+            // إعادة حساب Stock لكل الأصناف المتأثرة
+            foreach (var itemId in FormSubItems.Select(s => s.ItemId).Distinct())
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
+
             _isInsertMode = false; IsEditing = false; await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }
@@ -234,10 +241,16 @@ public partial class ReBuyViewModel : ObservableObject
         if (SelectedInvoice is null) return;
         try
         {
+            var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+
             using var db = _dbFactory.CreateConnection(); db.Open();
             using var tx = db.BeginTransaction();
             try { await db.ExecuteAsync("DELETE FROM ReBuy_Sub WHERE BuyId = @BuyId", new { BuyId = SelectedInvoice.BuyId }, tx); await db.ExecuteAsync("DELETE FROM ReBuy WHERE Buy_ID = @BuyId", new { BuyId = SelectedInvoice.BuyId }, tx); tx.Commit(); }
             catch { tx.Rollback(); throw; }
+
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
+
             StatusMessage = "تم حذف المرتجع بنجاح ✓"; IsEditing = false; FormItem = new ReBuy();
             _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
             FormSubItems.Clear(); SelectedInvoice = null; await LoadInvoicesAsync();

@@ -11,11 +11,12 @@ public partial class SalesView : UserControl
         InitializeComponent();
     }
 
-    private void OnLoaded(object sender, RoutedEventArgs e)
+    private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         if (DataContext is SalesViewModel vm)
         {
-            vm.LoadRelatedDataCommand.Execute(null);
+            await vm.LoadRelatedDataAsync();
+            await vm.AddNewAsync(); // Default to new invoice on load
         }
     }
 
@@ -23,7 +24,7 @@ public partial class SalesView : UserControl
     {
         if (DataContext is SalesViewModel vm)
         {
-            vm.RecalculateTotals();
+            vm.HandleCashModeChanged();
         }
     }
 
@@ -42,7 +43,7 @@ public partial class SalesView : UserControl
 
     private void SearchItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
-        if (sender is System.Windows.Controls.ListBoxItem item && item.DataContext is MotorBike.Models.Item selectedItem)
+        if (sender is ListBoxItem item && item.DataContext is MotorBike.Models.Item selectedItem)
         {
             if (DataContext is SalesViewModel vm)
             {
@@ -63,13 +64,48 @@ public partial class SalesView : UserControl
         }
     }
 
+    private void CustomerSearch_GotFocus(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SalesViewModel vm)
+        {
+            if (string.IsNullOrWhiteSpace(vm.CustomerSearchText))
+                vm.FilteredCustomersList = new System.Collections.ObjectModel.ObservableCollection<MotorBike.Models.Customer>(vm.Customers);
+            vm.IsCustomerSearchPopupOpen = vm.FilteredCustomersList.Count > 0;
+        }
+    }
+
+    private void SearchCustomer_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is ListBoxItem lbi && lbi.DataContext is MotorBike.Models.Customer customer && DataContext is SalesViewModel vm)
+        {
+            vm.SelectCustomerCommand.Execute(customer);
+        }
+    }
+
     private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
     {
-        if (ItemSearchPopup.IsOpen)
+        RefreshPopup(ItemSearchPopup);
+        RefreshPopup(CustomerSearchPopup);
+    }
+
+    private static void RefreshPopup(System.Windows.Controls.Primitives.Popup popup)
+    {
+        if (popup.IsOpen)
         {
-            var offset = ItemSearchPopup.HorizontalOffset;
-            ItemSearchPopup.HorizontalOffset = offset + 1;
-            ItemSearchPopup.HorizontalOffset = offset;
+            var offset = popup.HorizontalOffset;
+            popup.HorizontalOffset = offset + 1;
+            popup.HorizontalOffset = offset;
+        }
+    }
+
+    private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (DataContext is SalesViewModel vm)
+        {
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                vm.RecalculateTotals();
+            }), System.Windows.Threading.DispatcherPriority.Background);
         }
     }
 }

@@ -195,6 +195,9 @@ public partial class OpenStockViewModel : ObservableObject
                 StatusMessage = "تم تحديث الرصيد بنجاح.";
             }
 
+            // إعادة حساب Stock للصنف
+            await _compositeRepo.RecalcStockForItemAsync(FormItem.ItemId);
+
             IsEditing = false;
             await LoadDataAsync();
         }
@@ -215,7 +218,11 @@ public partial class OpenStockViewModel : ObservableObject
 
         try
         {
+            var deletedItemId = SelectedItem.ItemId;
             await _compositeRepo.DeleteOpenStockAsync(SelectedItem.StoreId, SelectedItem.ItemId);
+
+            // إعادة حساب Stock للصنف
+            await _compositeRepo.RecalcStockForItemAsync(deletedItemId);
 
             StatusMessage = "تم الحذف بنجاح.";
             IsEditing = false;

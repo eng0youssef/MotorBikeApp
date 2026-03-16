@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,6 +20,7 @@ public partial class SalesViewModel : ObservableObject
     private readonly IRepository<Item> _itemRepository;
     private readonly IRepository<Store> _storeRepository;
     private readonly IRepository<Unit> _unitRepository;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
@@ -40,12 +42,20 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Item> _filteredItemsList = [];
     [ObservableProperty] private bool _isItemSearchPopupOpen;
 
+    // --- Customer Search ---
+    [ObservableProperty] private string _customerSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
+    [ObservableProperty] private bool _isCustomerSearchPopupOpen;
+    private bool _isSelectingCustomer;
+
     [ObservableProperty] private Sale? _selectedInvoice;
     [ObservableProperty] private SalesSub? _selectedSubItem;
     [ObservableProperty] private bool _isEditing;
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
+    [ObservableProperty] private double _remaining;
+    [ObservableProperty] private bool _isCashPaymentMode;
 
     private double _discountPercentInput;
     public double DiscountPercentInput
@@ -167,7 +177,8 @@ public partial class SalesViewModel : ObservableObject
         IRepository<Cash> cashRepository,
         IRepository<Item> itemRepository,
         IRepository<Store> storeRepository,
-        IRepository<Unit> unitRepository)
+        IRepository<Unit> unitRepository,
+        CompositeKeyRepository compositeRepo)
     {
         _dbFactory = dbFactory;
         _saleRepository = saleRepository;
@@ -176,6 +187,7 @@ public partial class SalesViewModel : ObservableObject
         _itemRepository = itemRepository;
         _storeRepository = storeRepository;
         _unitRepository = unitRepository;
+        _compositeRepo = compositeRepo;
     }
 
     [RelayCommand]
@@ -249,9 +261,12 @@ public partial class SalesViewModel : ObservableObject
 
     partial void OnSelectedInvoiceChanged(Sale? value)
     {
-        if (value is not null && !IsEditing)
+        if (value is not null)
         {
             IsSearchPanelVisible = false;
+            _isInsertMode = false;
+            IsEditing = false;
+            
             FormItem = CloneInvoice(value);
             
             _isUpdatingDiscount = true;
@@ -267,6 +282,15 @@ public partial class SalesViewModel : ObservableObject
             }
             _isUpdatingDiscount = false;
 
+            // Set customer search text
+            _isSelectingCustomer = true;
+            CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
+            IsCustomerSearchPopupOpen = false;
+            _isSelectingCustomer = false;
+
+            // Update cash mode
+            IsCashPaymentMode = FormItem.IsCash;
+
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
         }
     }
@@ -278,6 +302,7 @@ public partial class SalesViewModel : ObservableObject
             using var db = _dbFactory.CreateConnection();
             var subItems = await db.QueryAsync<SalesSub>("SELECT * FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = salesId });
             FormSubItems = new ObservableCollection<SalesSub>(subItems);
+            WireSubItemsCollection();
 
             var payments = await db.QueryAsync<SalesPayment>("SELECT * FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
             FormPayments = new ObservableCollection<SalesPayment>(payments);
@@ -316,8 +341,11 @@ public partial class SalesViewModel : ObservableObject
         _isUpdatingDiscount = false;
         
         FormSubItems.Clear();
+        WireSubItemsCollection();
         FormPayments.Clear();
         TotalPayed = 0;
+        Remaining = 0;
+        IsCashPaymentMode = false;
         
         CurrentSubItem = new SalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         SubItemPrice = 0;
@@ -326,6 +354,12 @@ public partial class SalesViewModel : ObservableObject
 
         CurrentPayment = new SalesPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         
+        // Reset customer search
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+
         StatusMessage = "فاتورة جديدة — أدخل البيانات ثم اضغط حفظ";
     }
 
@@ -336,6 +370,7 @@ public partial class SalesViewModel : ObservableObject
         FormItem = CloneInvoice(SelectedInvoice);
         _isInsertMode = false;
         IsEditing = true;
+        IsCashPaymentMode = FormItem.IsCash;
         StatusMessage = "تعديل الفاتورة — غيّر البيانات ثم اضغط حفظ";
     }
 
@@ -354,12 +389,19 @@ public partial class SalesViewModel : ObservableObject
         FormSubItems.Clear();
         FormPayments.Clear();
         TotalPayed = 0;
+        Remaining = 0;
+        IsCashPaymentMode = false;
         CurrentSubItem = new SalesSub();
         CurrentPayment = new SalesPayment();
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
         
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+
         StatusMessage = null;
     }
 
@@ -446,6 +488,10 @@ public partial class SalesViewModel : ObservableObject
                 throw;
             }
 
+            // إعادة حساب Stock لكل الأصناف المتأثرة
+            foreach (var itemId in FormSubItems.Select(s => s.ItemId).Distinct())
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
+
             _isInsertMode = false;
             IsEditing = false;
             await LoadInvoicesAsync();
@@ -462,6 +508,8 @@ public partial class SalesViewModel : ObservableObject
         if (SelectedInvoice is null) return;
         try
         {
+            var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+
             using var db = _dbFactory.CreateConnection();
             db.Open();
             using var tx = db.BeginTransaction();
@@ -472,6 +520,9 @@ public partial class SalesViewModel : ObservableObject
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }
+
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;
@@ -485,6 +536,8 @@ public partial class SalesViewModel : ObservableObject
             FormSubItems.Clear();
             FormPayments.Clear();
             TotalPayed = 0;
+            Remaining = 0;
+            IsCashPaymentMode = false;
             SelectedInvoice = null;
             await LoadInvoicesAsync();
         }
@@ -492,6 +545,42 @@ public partial class SalesViewModel : ObservableObject
         {
             StatusMessage = $"خطأ في الحذف: {ex.Message}";
         }
+    }
+
+    // --- Customer Search ---
+
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        if (_isSelectingCustomer) return;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+            IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Customers.Where(c =>
+        {
+            var name = c.CusName?.ToLower() ?? string.Empty;
+            var tel = c.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+
+        FilteredCustomersList = new ObservableCollection<Customer>(filtered);
+        IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectCustomer(Customer customer)
+    {
+        if (customer == null) return;
+        _isSelectingCustomer = true;
+        FormItem.CusId = customer.CusId;
+        CustomerSearchText = customer.CusName;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
     }
 
     // --- Sub Items Management ---
@@ -590,6 +679,7 @@ public partial class SalesViewModel : ObservableObject
     [RelayCommand]
     private void AddPayment()
     {
+        if (IsCashPaymentMode) return;
         if (CurrentPayment.PayMoney <= 0 || CurrentPayment.CashId <= 0) return;
 
         FormPayments.Add(CurrentPayment);
@@ -606,6 +696,7 @@ public partial class SalesViewModel : ObservableObject
     [RelayCommand]
     private void RemovePayment(SalesPayment payment)
     {
+        if (IsCashPaymentMode) return;
         if (payment != null && FormPayments.Contains(payment))
         {
             FormPayments.Remove(payment);
@@ -616,6 +707,37 @@ public partial class SalesViewModel : ObservableObject
     private void CalculatePayedTotal()
     {
         TotalPayed = FormPayments.Sum(p => p.PayMoney);
+        UpdateRemaining();
+    }
+
+    private void UpdateRemaining()
+    {
+        Remaining = (FormItem?.Net ?? 0) - TotalPayed;
+    }
+
+    public void HandleCashModeChanged()
+    {
+        if (FormItem == null) return;
+        IsCashPaymentMode = FormItem.IsCash;
+
+        if (FormItem.IsCash)
+        {
+            FormPayments.Clear();
+            FormPayments.Add(new SalesPayment
+            {
+                SalesId = FormItem.SalesId,
+                PayDate = DateTime.Now,
+                PayMoney = FormItem.Net,
+                CashId = Cashes.FirstOrDefault()?.CashId ?? 0,
+                Notes = "سداد كامل (كاش)"
+            });
+            CalculatePayedTotal();
+        }
+        else
+        {
+            FormPayments.Clear();
+            CalculatePayedTotal();
+        }
     }
 
     private void CalculateTotals()
@@ -638,17 +760,59 @@ public partial class SalesViewModel : ObservableObject
         
         CalculateTotalsInternal();
         _isUpdatingDiscount = false;
+
+        if (IsCashPaymentMode && FormPayments.Any())
+        {
+            FormPayments[0].PayMoney = FormItem.Net;
+            OnPropertyChanged(nameof(FormPayments));
+            CalculatePayedTotal();
+        }
     }
 
     private void CalculateTotalsInternal()
     {
         FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony;
         OnPropertyChanged(nameof(FormItem));
+        UpdateRemaining();
     }
     
     public void RecalculateTotals()
     {
         if (!_isUpdatingDiscount) CalculateTotals();
+    }
+
+    private void WireSubItemsCollection()
+    {
+        FormSubItems.CollectionChanged -= OnSubItemsCollectionChanged;
+        FormSubItems.CollectionChanged += OnSubItemsCollectionChanged;
+
+        foreach (var sub in FormSubItems)
+        {
+            sub.PropertyChanged -= OnSubItemPropertyChanged;
+            sub.PropertyChanged += OnSubItemPropertyChanged;
+        }
+    }
+
+    private void OnSubItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (SalesSub sub in e.NewItems)
+            {
+                sub.PropertyChanged -= OnSubItemPropertyChanged;
+                sub.PropertyChanged += OnSubItemPropertyChanged;
+            }
+
+        if (e.OldItems != null)
+            foreach (SalesSub sub in e.OldItems)
+                sub.PropertyChanged -= OnSubItemPropertyChanged;
+    }
+
+    private void OnSubItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SalesSub.Total))
+        {
+            CalculateTotals();
+        }
     }
 
     private Sale CloneInvoice(Sale source)

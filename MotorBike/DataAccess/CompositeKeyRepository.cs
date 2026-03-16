@@ -101,4 +101,53 @@ public class CompositeKeyRepository
             "DELETE FROM [Stock] WHERE [ItemID]=@ItemId AND [StoreID]=@StoreId",
             new { ItemId = itemId, StoreId = storeId }) > 0;
     }
+
+    // ── Stock Recalculation ──────────────────────────────────────────────
+
+    /// <summary>
+    /// يمسح كل بيانات الصنف من جدول Stock ثم يعيد حسابها
+    /// من جميع الجداول (رصيد افتتاحي، شراء، استيراد، مرتجع بيع = وارد)
+    /// (بيع، مرتجع شراء = صادر) — مجمّعة بالمخزن.
+    /// </summary>
+    public async Task RecalcStockForItemAsync(int itemId)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        db.Open();
+        using var tx = db.BeginTransaction();
+        try
+        {
+            // 1 — حذف كل سجلات الصنف من Stock
+            await db.ExecuteAsync(
+                "DELETE FROM [Stock] WHERE [ItemID] = @ItemId",
+                new { ItemId = itemId }, tx);
+
+            // 2 — تجميع كل الكميات الواردة والصادرة وإدراج الصافي
+            const string sql = @"
+                INSERT INTO [Stock] ([ItemID], [StoreID], [Qty])
+                SELECT @ItemId, StoreID, SUM(Qty) AS Qty
+                FROM (
+                    SELECT [StoreID],  [QtyAll] AS Qty FROM [Open_Stock]      WHERE [ItemID] = @ItemId
+                    UNION ALL
+                    SELECT [StoreID],  [QtyAll] AS Qty FROM [Buy_Sub]         WHERE [ItemID] = @ItemId
+                    UNION ALL
+                    SELECT [StoreID],  [QtyAll] AS Qty FROM [Import_Inv_Item] WHERE [ItemID] = @ItemId
+                    UNION ALL
+                    SELECT [StoreID],  [QtyAll] AS Qty FROM [ReSales_Sub]     WHERE [ItemID] = @ItemId
+                    UNION ALL
+                    SELECT [StoreID], -[QtyAll] AS Qty FROM [Sales_Sub]       WHERE [ItemID] = @ItemId
+                    UNION ALL
+                    SELECT [StoreID], -[QtyAll] AS Qty FROM [ReBuy_Sub]       WHERE [ItemID] = @ItemId
+                ) AS AllMovements
+                GROUP BY StoreID
+                HAVING SUM(Qty) <> 0";
+
+            await db.ExecuteAsync(sql, new { ItemId = itemId }, tx);
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
 }

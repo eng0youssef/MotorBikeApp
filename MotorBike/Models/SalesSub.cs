@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MotorBike.Models;
 
-public partial class SalesSub
+public partial class SalesSub : ObservableObject
 {
     public int Id { get; set; }
 
@@ -15,19 +16,55 @@ public partial class SalesSub
 
     public int UnitId { get; set; }
 
-    public double Qty { get; set; }
+    private double _qty;
+    public double Qty
+    {
+        get => _qty;
+        set { if (SetProperty(ref _qty, value)) RecalcTotal(); }
+    }
 
-    public double Price { get; set; }
+    private double _price;
+    public double Price
+    {
+        get => _price;
+        set { if (SetProperty(ref _price, value)) RecalcTotal(); }
+    }
 
-    public double Disc { get; set; }
+    private double _disc;
+    public double Disc
+    {
+        get => _disc;
+        set { if (SetProperty(ref _disc, value)) RecalcTotal(); }
+    }
 
-    public double DiscPer { get; set; }
+    private double _discPer;
+    public double DiscPer
+    {
+        get => _discPer;
+        set
+        {
+            if (SetProperty(ref _discPer, value))
+            {
+                Disc = Math.Round(Price * (value / 100.0), 2);
+            }
+        }
+    }
 
-    public double Total { get; set; }
+    private double _total;
+    public double Total
+    {
+        get => _total;
+        set => SetProperty(ref _total, value);
+    }
 
     public double UnitQty { get; set; }
 
     public double QtyAll { get; set; }
+
+    private void RecalcTotal()
+    {
+        Total = Qty * (Price - Disc);
+    }
 
     public virtual Item Item { get; set; } = null!;
 
