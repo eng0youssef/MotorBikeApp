@@ -36,10 +36,6 @@ public partial class ReSale
 
     public bool IsCash { get; set; }
 
-    public double Payed { get; set; }
-
-    public int? CashId { get; set; }
-
     public string? Notes { get; set; }
 
     public int? AddUser { get; set; }
@@ -58,7 +54,7 @@ public partial class ReSale
 
     public virtual ICollection<ReSalesSub> ReSalesSubs { get; set; } = new List<ReSalesSub>();
 
-    public virtual Cash? Cash { get; set; }
+    public virtual ICollection<ReSalesPayment> ReSalesPayments { get; set; } = new List<ReSalesPayment>();
 
     public virtual Customer Cus { get; set; } = null!;
 }

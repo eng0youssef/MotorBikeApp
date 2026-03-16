@@ -27,6 +27,7 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Item> _items = [];
     [ObservableProperty] private ObservableCollection<Store> _stores = [];
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
+    [ObservableProperty] private ObservableCollection<Unit> _currentItemUnits = [];
 
     [ObservableProperty] private ObservableCollection<Buy> _invoices = [];
     [ObservableProperty] private ObservableCollection<Buy> _filteredInvoices = [];
@@ -56,6 +57,14 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private double _totalPayed;
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
+    [ObservableProperty] private double _subItemQty;
+    public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
+
+    partial void OnSubItemQtyChanged(double value)
+    {
+        if (CurrentSubItem != null) CurrentSubItem.Qty = value;
+        OnPropertyChanged(nameof(SubItemTotal));
+    }
 
     private double _discountPercentInput;
     public double DiscountPercentInput
@@ -119,6 +128,7 @@ public partial class BuysViewModel : ObservableObject
                     if (CurrentSubItem != null) CurrentSubItem.Disc = SubItemDiscountValue;
                     _isUpdatingSubDiscount = false;
                 }
+                OnPropertyChanged(nameof(SubItemTotal));
             }
         }
     }
@@ -140,6 +150,7 @@ public partial class BuysViewModel : ObservableObject
                     CurrentSubItem.Disc = SubItemDiscountValue;
                 }
                 _isUpdatingSubDiscount = false;
+                OnPropertyChanged(nameof(SubItemTotal));
             }
         }
     }
@@ -161,6 +172,7 @@ public partial class BuysViewModel : ObservableObject
                     CurrentSubItem.DiscPer = SubItemDiscountPercent;
                 }
                 _isUpdatingSubDiscount = false;
+                OnPropertyChanged(nameof(SubItemTotal));
             }
         }
     }
@@ -330,7 +342,7 @@ public partial class BuysViewModel : ObservableObject
             AddDate = DateTime.Now
         };
         
-        item.BuyId = await _buyRepository.GetNextIdAsync();
+        // item.BuyId = await _buyRepository.GetNextIdAsync(); // Delayed until save
 
         _isInsertMode = true;
         IsEditing = true;
@@ -351,6 +363,7 @@ public partial class BuysViewModel : ObservableObject
         IsCashPaymentMode = false;
         
         CurrentSubItem = new BuySub { BuyId = item.BuyId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
+        SubItemQty = 1;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
@@ -363,7 +376,6 @@ public partial class BuysViewModel : ObservableObject
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
-        StatusMessage = "فاتورة جديدة — أدخل البيانات ثم اضغط حفظ";
     }
 
     [RelayCommand]
@@ -374,7 +386,6 @@ public partial class BuysViewModel : ObservableObject
         _isInsertMode = false;
         IsEditing = true;
         IsCashPaymentMode = FormItem.IsCash;
-        StatusMessage = "تعديل الفاتورة — غيّر البيانات ثم اضغط حفظ";
     }
 
     [RelayCommand]
@@ -429,7 +440,16 @@ public partial class BuysViewModel : ObservableObject
         try
         {
             CalculateTotals();
-            
+            var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+            if (!_isInsertMode)
+            {
+                using (var db2 = _dbFactory.CreateConnection())
+                {
+                    var oldItems = await db2.QueryAsync<int>("SELECT DISTINCT ItemId FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId });
+                    foreach (var id in oldItems) if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
+                }
+            }
+
             using var db = _dbFactory.CreateConnection();
             db.Open();
             using var tx = db.BeginTransaction();
@@ -438,6 +458,9 @@ public partial class BuysViewModel : ObservableObject
             {
                 if (_isInsertMode)
                 {
+                    FormItem.BuyId = await _buyRepository.GetNextIdAsync();
+                    OnPropertyChanged(nameof(FormItem));
+
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
@@ -493,7 +516,7 @@ public partial class BuysViewModel : ObservableObject
             }
 
             // إعادة حساب Stock لكل الأصناف المتأثرة
-            foreach (var itemId in FormSubItems.Select(s => s.ItemId).Distinct())
+            foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
 
             _isInsertMode = false;
@@ -624,6 +647,15 @@ public partial class BuysViewModel : ObservableObject
         if (item == null) return;
         _isSelectingItem = true;
         
+        // Filter units linked to this item (primary + secondary)
+        var filtered = Units.Where(u => u.UnitId == item.UnitId).ToList();
+        if (item.Unit2 > 0)
+        {
+            var secondUnit = Units.FirstOrDefault(u => u.UnitId == item.Unit2);
+            if (secondUnit != null) filtered.Add(secondUnit);
+        }
+        CurrentItemUnits = new ObservableCollection<Unit>(filtered);
+        
         CurrentSubItem = new BuySub
         {
             BuyId = FormItem.BuyId,
@@ -638,6 +670,7 @@ public partial class BuysViewModel : ObservableObject
         };
         
         _isUpdatingSubDiscount = true;
+        SubItemQty = 1;
         SubItemPrice = item.Price0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
@@ -659,12 +692,14 @@ public partial class BuysViewModel : ObservableObject
         
         CurrentSubItem = new BuySub { BuyId = FormItem.BuyId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         _isUpdatingSubDiscount = true;
+        SubItemQty = 1;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
         _isUpdatingSubDiscount = false;
         
         ItemSearchText = string.Empty;
+        CurrentItemUnits = [];
         
         CalculateTotals();
     }

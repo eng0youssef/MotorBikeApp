@@ -132,7 +132,6 @@ public partial class BuyCarViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         CurrentPayment = new BuyCarPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
-        StatusMessage = "فاتورة جديدة — أدخل البيانات ثم اضغط حفظ";
     }
 
     [RelayCommand]
@@ -142,7 +141,6 @@ public partial class BuyCarViewModel : ObservableObject
         FormItem = CloneInvoice(SelectedInvoice);
         _isInsertMode = false;
         IsEditing = true;
-        StatusMessage = "تعديل الفاتورة — غيّر البيانات ثم اضغط حفظ";
     }
 
     [RelayCommand]
