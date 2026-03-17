@@ -73,10 +73,10 @@
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                     <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="24"/>
-                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/> <RowDefinition Height="16"/>
@@ -106,7 +106,7 @@
                                   BorderBrush="#CBD5E1" 
                                   BorderThickness="1" />
 
-                        <CheckBox Style="{StaticResource ToggleSwitchStyle}" Grid.Row="0" Grid.Column="9" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
+                        <CheckBox Style="{StaticResource ToggleSwitchStyle}" Grid.Row="0" Grid.Column="9" Grid.ColumnSpan="2" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
 
                         <!-- Row 2: Price0, DiscPer0, Price1 -->
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="سعر الشراء" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
@@ -117,6 +117,9 @@
 
                         <TextBlock Grid.Row="2" Grid.Column="6" Text="متوسط التكلفة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.AvrgCost, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="9" Text="سعر الاستيراد" Style="{StaticResource FormLabel}" VerticalAlignment="Center" Foreground="#1D4ED8"/>
+                        <TextBox Grid.Row="2" Grid.Column="10" Text="{Binding FormItem.ImpPrice, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" Style="{StaticResource FormTextBox}" BorderBrush="#1D4ED8"/>
 
                         <!-- Row 4: Price1, DiscPer1, MinPrice -->
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="سعر البيع" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
