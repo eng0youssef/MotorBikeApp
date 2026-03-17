@@ -27,6 +27,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
     private readonly IRepository<Unit> _unitRepo;
     private readonly IRepository<Item> _itemsLookupRepo;
     private readonly IRepository<Car> _carsLookupRepo;
+    private readonly IRepository<CarModel> _carModelRepo;
+    private readonly IRepository<Color> _colorRepo;
 
     public ImportInvoiceViewModel(
         IRepository<ImportInvoice> invoiceRepo,
@@ -41,7 +43,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
         IRepository<Store> storeRepo,
         IRepository<Unit> unitRepo,
         IRepository<Item> itemsLookupRepo,
-        IRepository<Car> carsLookupRepo)
+        IRepository<Car> carsLookupRepo,
+        IRepository<CarModel> carModelRepo,
+        IRepository<Color> colorRepo)
     {
         _invoiceRepo = invoiceRepo;
         _itemRepo = itemRepo;
@@ -57,6 +61,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
         _unitRepo = unitRepo;
         _itemsLookupRepo = itemsLookupRepo;
         _carsLookupRepo = carsLookupRepo;
+        _carModelRepo = carModelRepo;
+        _colorRepo = colorRepo;
 
         FormItem = new ImportInvoice { InvDate = DateTime.Now };
     }
@@ -95,6 +101,30 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private ImportExp _currentSubExp = new() { PayDate = DateTime.Now };
     [ObservableProperty] private ImportPayment _currentSubPayment = new() { PayDate = DateTime.Now };
 
+    [ObservableProperty] private int _currentSubItemUnitId;
+    private Item? _selectedItemForSubItem;
+
+    partial void OnCurrentSubItemUnitIdChanged(int value)
+    {
+        if (_isSelectingItem || _selectedItemForSubItem == null) return;
+        
+        double unitQty = 1;
+        if (value > 0 && value == _selectedItemForSubItem.Unit2)
+        {
+            unitQty = _selectedItemForSubItem.Unit2Qty > 0 ? _selectedItemForSubItem.Unit2Qty : 1;
+        }
+        
+        CurrentSubItem = new ImportInvItem
+        {
+            StoreId = CurrentSubItem.StoreId,
+            ItemId = CurrentSubItem.ItemId,
+            UnitId = value,
+            Qty = CurrentSubItem.Qty,
+            UnitQty = unitQty,
+            Price = Math.Round(_selectedItemForSubItem.ImpPrice * unitQty, 4)
+        };
+    }
+
     // Lookups
     [ObservableProperty] private ObservableCollection<ImportSupplier> _suppliers = [];
     [ObservableProperty] private ObservableCollection<Omla> _omlas = [];
@@ -104,11 +134,19 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
     [ObservableProperty] private ObservableCollection<Item> _itemsList = [];
     [ObservableProperty] private ObservableCollection<Car> _carsList = [];
+    [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
+    [ObservableProperty] private ObservableCollection<Color> _colors = [];
+    [ObservableProperty] private ObservableCollection<Cash> _filteredPaymentCashList = [];
 
-    // New car entry fields (for cars not yet in DB)
-    [ObservableProperty] private string _newCarName = string.Empty;
-    [ObservableProperty] private string _newCarShasehNo = string.Empty;
-    [ObservableProperty] private string _newCarEngineNo = string.Empty;
+    // New car entry fields
+    [ObservableProperty] private int _newCarModelId;
+    [ObservableProperty] private int _newCarColorId;
+    [ObservableProperty] private short _newCarYearNo = (short)DateTime.Now.Year;
+    [ObservableProperty] private string _newCarChassisNo = string.Empty;
+    [ObservableProperty] private string _newCarMotorNo = string.Empty;
+    [ObservableProperty] private string _newCarPlateNo = string.Empty;
+    [ObservableProperty] private int _newCarMileage = 0;
+    [ObservableProperty] private string _newCarNotes = string.Empty;
     [ObservableProperty] private double _newCarTotal;
 
     // ── Smart Supplier Search ──────────────────────────────────────────────
@@ -145,6 +183,18 @@ public partial class ImportInvoiceViewModel : ObservableObject
         SupplierSearchText = supplier.SuppName;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
+
+        // تعيين العملة وسعر الصرف تلقائياً من بيانات المورد — فقط للفواتير الجديدة
+        if (_isNewInvoice)
+        {
+            FormItem.OmlaId = supplier.OmlaId;
+            var omla = Omlas.FirstOrDefault(o => o.OmlaId == supplier.OmlaId);
+            if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
+            SelectedOmlaId = supplier.OmlaId;
+            FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
+            OnPropertyChanged(nameof(FormItem));
+            CalculateTotals();
+        }
     }
 
     // ── InvType (FOB / CIF) ────────────────────────────────────────────────
@@ -167,19 +217,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
         }
     }
 
-    // ── Currency Rate ──────────────────────────────────────────────────────
+    // ── Currency Rate (read-only, set from supplier) ─────────────────────
     [ObservableProperty] private byte _selectedOmlaId;
-
-    partial void OnSelectedOmlaIdChanged(byte value)
-    {
-        if (FormItem != null && Omlas != null && Omlas.Any())
-        {
-            FormItem.OmlaId = value;
-            var omla = Omlas.FirstOrDefault(o => o.OmlaId == value);
-            if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
-            OnPropertyChanged(nameof(FormItem));
-        }
-    }
 
     // ── Smart Item Search ──────────────────────────────────────────────────
     [ObservableProperty] private string _itemSearchText = string.Empty;
@@ -215,21 +254,23 @@ public partial class ImportInvoiceViewModel : ObservableObject
     {
         if (item == null) return;
         _isSelectingItem = true;
+        _selectedItemForSubItem = item;
+
+        var itemUnits = Units.Where(u => (item.UnitId > 0 && u.UnitId == item.UnitId) || (item.Unit2 > 0 && u.UnitId == item.Unit2)).ToList();
+        CurrentItemUnits = new(itemUnits);
 
         CurrentSubItem = new ImportInvItem
         {
             StoreId = CurrentSubItem.StoreId,
             ItemId = item.ItemId,
             UnitId = item.UnitId,
-            Price = item.Price0,   // Auto-fill price
+            Price = item.ImpPrice,
             Qty = 1,
             UnitQty = 1
         };
+        CurrentSubItemUnitId = item.UnitId;
 
-        var itemUnits = Units.Where(u => u.UnitId == item.UnitId || u.UnitId == item.Unit2).ToList();
-        CurrentItemUnits = itemUnits.Any() ? new(itemUnits) : new(Units);
-
-        ItemSearchText = string.Empty;
+        ItemSearchText = item.ItemName ?? string.Empty;
         IsItemSearchPopupOpen = false;
         _isSelectingItem = false;
     }
@@ -247,6 +288,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
             var units = await _unitRepo.GetAllAsync(); Units = new(units.Where(x => x.Active));
             var items = await _itemsLookupRepo.GetAllAsync(); ItemsList = new(items.Where(x => x.Active));
             var cars = await _carsLookupRepo.GetAllAsync(); CarsList = new(cars);
+            var models = await _carModelRepo.GetAllAsync(); CarModels = new(models.Where(x => x.Active));
+            var colors = await _colorRepo.GetAllAsync(); Colors = new(colors.Where(x => x.Active));
 
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
@@ -311,14 +354,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
             InvDate = DateTime.Now,
             OmlaRate = 1
         };
-        if (Omlas.Any())
-        {
-            var firstOmla = Omlas.First();
-            FormItem.OmlaId = firstOmla.OmlaId;
-            FormItem.OmlaRate = firstOmla.OmlaRate;
-            SelectedOmlaId = firstOmla.OmlaId;
-        }
         FormItem.SuppId = 0;
+        SelectedOmlaId = 0;
 
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty;
@@ -352,9 +389,14 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentSubCar = new ImportInvCar();
         if (CarsList.Any()) CurrentSubCar.CarId = CarsList.First().CarId;
 
-        NewCarName = string.Empty;
-        NewCarShasehNo = string.Empty;
-        NewCarEngineNo = string.Empty;
+        if (CarModels.Any()) NewCarModelId = CarModels.First().ModelId;
+        if (Colors.Any()) NewCarColorId = Colors.First().ColorId;
+        NewCarChassisNo = string.Empty;
+        NewCarMotorNo = string.Empty;
+        NewCarPlateNo = string.Empty;
+        NewCarNotes = string.Empty;
+        NewCarYearNo = (short)DateTime.Now.Year;
+        NewCarMileage = 0;
         NewCarTotal = 0;
 
         CurrentSubExp = new ImportExp { PayDate = DateTime.Now, OmlaRate = 1 };
@@ -403,6 +445,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 
                 SelectedOmlaId = (byte)inv.OmlaId;
                 SelectedInvType = inv.InvType > 0 ? inv.InvType : (byte)1;
+                FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == inv.OmlaId));
             }
 
             var items = await _itemRepo.GetAllAsync();
@@ -499,24 +542,45 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [RelayCommand]
     public void AddNewCar()
     {
-        if (string.IsNullOrWhiteSpace(NewCarShasehNo))
+        if (string.IsNullOrWhiteSpace(NewCarChassisNo) || NewCarModelId == 0 || NewCarColorId == 0)
         {
-            StatusMessage = "يرجى إدخال رقم الشاسيه على الأقل.";
+            StatusMessage = "يرجى إدخال الموديل، اللون، ورقم الشاسيه للاستمرار.";
             return;
         }
 
-        var newCar = new ImportInvCar
-        {
-            CarId = 0,
-            Total = NewCarTotal
-        };
-        FormCars.Add(newCar);
+        int tempId = CarsList.Any(c => c.CarId < 0) ? CarsList.Min(c => c.CarId) - 1 : -1;
 
-        StatusMessage = $"تم إضافة موتوسيكل جديد مؤقتاً (شاسيه: {NewCarShasehNo}) — يجب تسجيله في بيانات الموتوسيكلات أولاً قبل الحفظ.";
+        var newCar = new Car
+        {
+            CarId = tempId,
+            ModelId = NewCarModelId,
+            YearNo = NewCarYearNo,
+            ChassisNo = NewCarChassisNo,
+            MotorNo = NewCarMotorNo ?? string.Empty,
+            PlateNo = NewCarPlateNo ?? string.Empty,
+            Mileage = NewCarMileage,
+            ColorId = NewCarColorId,
+            Notes = NewCarNotes,
+            Active = true
+        };
+        CarsList.Add(newCar);
+
+        var importCar = new ImportInvCar
+        {
+            CarId = newCar.CarId,
+            Total = NewCarTotal,
+            Mileage = NewCarMileage,
+            Car = newCar
+        };
+        FormCars.Add(importCar);
+
+        StatusMessage = $"تم إضافة الموتوسيكل للشحنة (شاسيه: {NewCarChassisNo}). سيتم تسجيله نهائياً عند حفظ الفاتورة.";
         
-        NewCarName = string.Empty;
-        NewCarShasehNo = string.Empty;
-        NewCarEngineNo = string.Empty;
+        NewCarChassisNo = string.Empty;
+        NewCarMotorNo = string.Empty;
+        NewCarPlateNo = string.Empty;
+        NewCarNotes = string.Empty;
+        NewCarMileage = 0;
         NewCarTotal = 0;
 
         CalculateTotals();
@@ -532,6 +596,10 @@ public partial class ImportInvoiceViewModel : ObservableObject
             StatusMessage = "يرجى تحديد بند المصروف ومبلغ مالي.";
             return;
         }
+
+        // تعيين سعر صرف الخزينة تلقائياً
+        var cash = CashList.FirstOrDefault(c => c.CashId == CurrentSubExp.CashId);
+        if (cash != null) CurrentSubExp.OmlaRate = cash.OmlaRate;
 
         FormExps.Add(CurrentSubExp);
         var oldCashId = CurrentSubExp.CashId;
@@ -563,11 +631,20 @@ public partial class ImportInvoiceViewModel : ObservableObject
             return;
         }
 
+        // تعيين سعر صرف الخزينة تلقائياً للدفعة
+        var cash = CashList.FirstOrDefault(c => c.CashId == CurrentSubPayment.CashId);
+        if (cash != null) CurrentSubPayment.OmlaRate = cash.OmlaRate;
+
+        // تعيين عملة الدفعة من عملة الفاتورة
+        CurrentSubPayment.OmlaId = FormItem.OmlaId;
+
         FormPayments.Add(CurrentSubPayment);
         var oldCashId = CurrentSubPayment.CashId;
         
         CurrentSubPayment = new ImportPayment { PayDate = DateTime.Now, OmlaRate = 1, CashId = oldCashId };
-        if (Omlas.Any()) CurrentSubPayment.OmlaId = Omlas.First().OmlaId;
+        if (Omlas.Any()) CurrentSubPayment.OmlaId = FormItem.OmlaId;
+
+        CalculateFrokOmla();
         CalculateTotals();
     }
 
@@ -577,8 +654,27 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (payment != null && FormPayments.Contains(payment))
         {
             FormPayments.Remove(payment);
+            CalculateFrokOmla();
             CalculateTotals();
         }
+    }
+
+    /// <summary>
+    /// حساب فرق العملات تلقائياً:
+    /// FrokOmla = مجموع كل دفعة × (سعر صرف الخزينة وقت الدفع - سعر صرف الفاتورة)
+    /// </summary>
+    private void CalculateFrokOmla()
+    {
+        if (FormItem == null) return;
+        double invRate = (double)FormItem.OmlaRate;
+        double frok = 0;
+        foreach (var pay in FormPayments)
+        {
+            double payRate = (double)pay.OmlaRate;
+            frok += pay.PayMoney * (payRate - invRate);
+        }
+        FormItem.FrokOmla = Math.Round(frok, 2);
+        OnPropertyChanged(nameof(FormItem));
     }
 
     // ── Calculations ─────────────────────────────────────────────────────
@@ -587,15 +683,64 @@ public partial class ImportInvoiceViewModel : ObservableObject
     {
         if (FormItem == null) return;
 
+        double omlaRate = (double)FormItem.OmlaRate;
+        if (omlaRate <= 0) omlaRate = 1;
+
+        // 1) حساب Total و QtyAll لكل صنف محلياً (بالعملة الأجنبية)
+        foreach (var item in FormItems)
+        {
+            item.Total = Math.Round(item.Qty * item.Price, 2);
+            item.QtyAll = Math.Round(item.Qty * (item.UnitQty > 0 ? item.UnitQty : 1), 2);
+        }
+
+        // 2) إجمالي الفاتورة (بالعملة الأجنبية)
         double itemsTotal = FormItems.Sum(x => x.Total);
         double carsTotal = FormCars.Sum(x => x.Total ?? 0);
         FormItem.InvTotal = Math.Round(itemsTotal + carsTotal, 2);
 
-        FormItem.ExpTotal = Math.Round(FormExps.Sum(x => x.PayTotal), 2);
-        
-        FormItem.TotalCost = Math.Round(FormItem.InvTotal + FormItem.ExpTotal, 2);
-        
+        // 3) إجمالي المصروفات = كل مصروف × سعر صرف خزينته (بالعملة المحلية)
+        double expTotal = 0;
+        foreach (var exp in FormExps)
+        {
+            var cash = CashList.FirstOrDefault(c => c.CashId == exp.CashId);
+            decimal cashRate = cash?.OmlaRate ?? 1m;
+            expTotal += exp.PayTotal * (double)cashRate;
+        }
+        FormItem.ExpTotal = Math.Round(expTotal, 2);
+
+        // 4) التكلفة الإجمالية بالعملة المحلية:
+        //    (إجمالي الفاتورة × سعر الصرف) + المصروفات + فرق العملات
+        double invTotalLocal = FormItem.InvTotal * omlaRate;
+        FormItem.TotalCost = Math.Round(invTotalLocal + FormItem.ExpTotal + FormItem.FrokOmla, 2);
+
+        // 5) توزيع التكاليف على الأصناف والموتوسيكلات
+        double totalCost = FormItem.TotalCost ?? 0;
+        double invTotal = FormItem.InvTotal;
+        if (invTotal > 0 && totalCost > 0)
+        {
+            // CostPer = سعر الصنف / InvTotal — نسبته من إجمالي الفاتورة (مجموعهم = 100%)
+            // CostTotal = CostPer × TotalCost — نصيبه من كل التكاليف
+            // CostUnit = CostTotal / QtyAll
+            foreach (var item in FormItems)
+            {
+                item.CostPer = Math.Round((decimal)(item.Total / invTotal), 6);
+                item.CostTotal = Math.Round(totalCost * (double)item.CostPer, 2);
+                item.CostUnit = item.QtyAll > 0
+                    ? Math.Round(item.CostTotal.Value / item.QtyAll, 2)
+                    : 0;
+            }
+
+            foreach (var car in FormCars)
+            {
+                double carTotal = car.Total ?? 0;
+                car.CostPer = Math.Round((decimal)(carTotal / invTotal), 6);
+                car.CostTotal = Math.Round(totalCost * (double)car.CostPer, 2);
+            }
+        }
+
         OnPropertyChanged(nameof(FormItem));
+        FormItems = new(FormItems);
+        FormCars = new(FormCars);
     }
 
     // ── Save/Delete ──────────────────────────────────────────────────────
@@ -654,10 +799,23 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _itemRepo.InsertAsync(item);
             }
 
-            int nextCarId = await _carRepo.GetNextIdAsync();
-            foreach (var car in FormCars.Where(c => c.CarId > 0 || c.CarId == 0)) 
+            int nextCarId = await _carsLookupRepo.GetNextIdAsync();
+            int nextImportCarId = await _carRepo.GetNextIdAsync();
+            foreach (var car in FormCars) 
             {
-                if (car.Id == 0) car.Id = nextCarId++;
+                if (car.Id == 0) car.Id = nextImportCarId++;
+                
+                // If it's a completely new car (we assigned a negative temp ID)
+                if (car.CarId < 0 && car.Car != null)
+                {
+                    car.Car.CarId = nextCarId++;
+                    car.Car.AddDate = DateTime.Now;
+                    car.Car.AddPc = Environment.MachineName;
+                    car.Car.AddUser = AppSession.CurrentUserId ?? 1;
+                    await _carsLookupRepo.InsertAsync(car.Car);
+                    car.CarId = car.Car.CarId;
+                }
+
                 car.InvId = FormItem.InvId;
                 await _carRepo.InsertAsync(car);
             }
