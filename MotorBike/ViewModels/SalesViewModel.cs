@@ -436,16 +436,32 @@ public partial class SalesViewModel : ObservableObject
         try
         {
             CalculateTotals();
+
             var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            int? oldCusId = null;
+
             if (!_isInsertMode)
             {
-                using (var db2 = _dbFactory.CreateConnection())
-                {
-                    var oldItems = await db2.QueryAsync<int>("SELECT DISTINCT ItemId FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId });
-                    foreach (var id in oldItems) if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
-                }
+                using var dbPre = _dbFactory.CreateConnection();
+
+                var oldItemIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT ItemId FROM Sales_Sub WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var id in oldItemIds)
+                    if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
+
+                var oldCashIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT CashID FROM Sales_Payments WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var cid in oldCashIds)
+                    if (cid > 0 && !affectedCashIds.Contains(cid)) affectedCashIds.Add(cid);
+
+                oldCusId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT CusID FROM Sales WHERE Sales_ID = @SalesId",
+                    new { SalesId = FormItem.SalesId });
             }
-            
+
             using var db = _dbFactory.CreateConnection();
             db.Open();
             using var tx = db.BeginTransaction();
@@ -456,13 +472,13 @@ public partial class SalesViewModel : ObservableObject
                 {
                     FormItem.SalesId = await _saleRepository.GetNextIdAsync();
                     OnPropertyChanged(nameof(FormItem));
-
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                        VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                        FormItem, tx);
                 }
                 else
                 {
@@ -470,36 +486,40 @@ public partial class SalesViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
-                        Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                        EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
-                        WHERE Sales_ID = @SalesId", FormItem, tx);
-                        
-                    // Delete old subItems and payments
-                    await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
-                    await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
+                    UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
+                    Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
+                    WHERE Sales_ID = @SalesId",
+                        FormItem, tx);
+
+                    await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
+                    await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
                 }
 
-                int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM Sales_Sub", transaction: tx);
-
+                int maxSubId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(ID), 0) FROM Sales_Sub", transaction: tx);
                 foreach (var s in FormSubItems)
                 {
                     s.Id = ++maxSubId;
                     s.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Sales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
-                        VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx);
+                    INSERT INTO Sales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
+                    VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)",
+                        s, tx);
                 }
 
-                // Save payments
-                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Payments", transaction: tx);
+                int maxPayId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Sales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
-                        VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)", p, tx);
+                    INSERT INTO Sales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
+                    VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)",
+                        p, tx);
                 }
 
                 tx.Commit();
@@ -511,9 +531,15 @@ public partial class SalesViewModel : ObservableObject
                 throw;
             }
 
-            // إعادة حساب Stock لكل الأصناف المتأثرة
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            if (oldCusId.HasValue && oldCusId.Value != FormItem.CusId)
+                await _compositeRepo.RecalcBalanceForCustomerAsync(oldCusId.Value);
+            await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
+
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
             IsEditing = false;
@@ -546,6 +572,14 @@ public partial class SalesViewModel : ObservableObject
 
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // إعادة حساب رصيد العميل من كل الحركات
+            await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedInvoice.CusId);
+
+            // إعادة حساب رصيد كل خزينة متأثرة من كل الحركات
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;

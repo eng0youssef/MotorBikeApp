@@ -187,14 +187,23 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="3*" MinWidth="150"/>
+                                    <!-- Smart Search -->
                                     <ColumnDefinition Width="*" MinWidth="80"/>
+                                    <!-- Store -->
+                                    <ColumnDefinition Width="0.9*" MinWidth="70"/>
+                                    <!-- Unit -->
                                     <ColumnDefinition Width="0.7*" MinWidth="60"/>
-                                    <ColumnDefinition Width="0.6*" MinWidth="50"/>
+                                    <!-- Qty -->
                                     <ColumnDefinition Width="0.8*" MinWidth="70"/>
-                                    <ColumnDefinition Width="0.6*" MinWidth="50"/>
-                                    <ColumnDefinition Width="0.7*" MinWidth="60"/>
-                                    <ColumnDefinition Width="0.7*" MinWidth="60"/>
+                                    <!-- Price -->
+                                    <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                                    <!-- DiscPer -->
+                                    <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                                    <!-- Disc -->
+                                    <ColumnDefinition Width="0.8*" MinWidth="70"/>
+                                    <!-- Total -->
                                     <ColumnDefinition Width="Auto"/>
+                                    <!-- Add btn -->
                                 </Grid.ColumnDefinitions>
                                 <Grid Grid.Column="0" Margin="0,0,12,0">
                                     <TextBlock Text="بحث الصنف" Foreground="#64748B" FontSize="11" VerticalAlignment="Top" Margin="2,-16,0,0"/>
@@ -312,7 +321,7 @@
                         <!-- Cash Mode Treasury Selector (Only visible in Cash mode) -->
                         <Border Grid.Row="6" Background="#ECFDF5" CornerRadius="12" Padding="24" Margin="0,0,0,24" BorderBrush="#A7F3D0" BorderThickness="1" Visibility="{Binding IsCashPaymentMode, Converter={StaticResource BoolToVis}}" IsEnabled="{Binding IsEditing}">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <TextBlock Text="💳 اختر الخزينة التي سيتم سحب المبلغ (كاش) منها:" FontWeight="Bold" Foreground="#065F46" FontSize="16" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                <TextBlock Text="💳 اختر الخزينة التي سيتم ايداع المبلغ (كاش) فيها:" FontWeight="Bold" Foreground="#065F46" FontSize="16" VerticalAlignment="Center" Margin="0,0,16,0"/>
                                 <ComboBox ItemsSource="{Binding Cashes}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormPayments[0].CashId, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}" Padding="16,10" BorderBrush="#34D399" BorderThickness="1" Background="White" MinWidth="250" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>

@@ -173,14 +173,25 @@ public partial class ReSalesViewModel : ObservableObject
 
     partial void OnSelectedInvoiceChanged(ReSale? value)
     {
-        if (value is not null && !IsEditing)
+        if (value is not null)
         {
             IsSearchPanelVisible = false;
+            _isInsertMode = false;
+            IsEditing = true;
+            
             FormItem = CloneInvoice(value);
             _isUpdatingDiscount = true;
             if (FormItem.IsPer) { DiscountPercentInput = Math.Round(FormItem.DiscPer * 100.0, 2); DiscountValueInput = FormItem.Disc; }
             else { DiscountValueInput = FormItem.Disc; DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0; }
             _isUpdatingDiscount = false;
+            
+            _isSelectingCustomer = true;
+            CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
+            IsCustomerSearchPopupOpen = false;
+            _isSelectingCustomer = false;
+            
+            IsCashPaymentMode = FormItem.IsCash;
+            
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
         }
     }
@@ -191,6 +202,7 @@ public partial class ReSalesViewModel : ObservableObject
         {
             using var db = _dbFactory.CreateConnection();
             FormSubItems = new ObservableCollection<ReSalesSub>(await db.QueryAsync<ReSalesSub>("SELECT * FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = salesId }));
+            WireSubItemsCollection();
             
             var payments = await db.QueryAsync<ReSalesPayment>("SELECT * FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
             FormPayments = new ObservableCollection<ReSalesPayment>(payments);
@@ -222,6 +234,8 @@ public partial class ReSalesViewModel : ObservableObject
         CustomerSearchText = string.Empty;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+        
+        WireSubItemsCollection();
     }
 
     [RelayCommand] 
@@ -249,6 +263,11 @@ public partial class ReSalesViewModel : ObservableObject
         CurrentSubItem = new ReSalesSub(); 
         CurrentPayment = new ReSalesPayment();
         SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0; StatusMessage = null;
+        
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
     }
 
     [RelayCommand]
@@ -257,63 +276,123 @@ public partial class ReSalesViewModel : ObservableObject
         if (FormItem is null) return;
         if (FormItem.CusId <= 0) { StatusMessage = "⚠️ يجب اختيار العميل."; return; }
         if (!FormSubItems.Any()) { StatusMessage = "⚠️ لا يمكن حفظ مرتجع بدون أصناف."; return; }
+
         try
         {
             CalculateTotals();
+
             var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            int? oldCusId = null;
+
             if (!_isInsertMode)
             {
-                using (var db2 = _dbFactory.CreateConnection())
-                {
-                    var oldItems = await db2.QueryAsync<int>("SELECT DISTINCT ItemId FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId });
-                    foreach (var id in oldItems) if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
-                }
+                using var dbPre = _dbFactory.CreateConnection();
+
+                var oldItemIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT ItemId FROM ReSales_Sub WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var id in oldItemIds)
+                    if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
+
+                var oldCashIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT CashID FROM ReSales_Payments WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var cid in oldCashIds)
+                    if (cid > 0 && !affectedCashIds.Contains(cid)) affectedCashIds.Add(cid);
+
+                oldCusId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT CusID FROM ReSales WHERE Sales_ID = @SalesId",
+                    new { SalesId = FormItem.SalesId });
             }
 
-            using var db = _dbFactory.CreateConnection(); db.Open();
+            using var db = _dbFactory.CreateConnection();
+            db.Open();
             using var tx = db.BeginTransaction();
+
             try
             {
                 if (_isInsertMode)
                 {
                     FormItem.SalesId = await _reSaleRepository.GetNextIdAsync();
                     OnPropertyChanged(nameof(FormItem));
-                    FormItem.AddPc ??= Environment.MachineName; FormItem.AddDate = DateTime.Now; FormItem.AddUser = AppSession.CurrentUserId ?? 1;
-                    await db.ExecuteAsync(@"INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                                          VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                    FormItem.AddPc ??= Environment.MachineName;
+                    FormItem.AddDate = DateTime.Now;
+                    FormItem.AddUser = AppSession.CurrentUserId ?? 1;
+                    await db.ExecuteAsync(@"
+                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                        FormItem, tx);
                 }
                 else
                 {
-                    FormItem.EditPc = Environment.MachineName; FormItem.EditDate = DateTime.Now; FormItem.EditUser = AppSession.CurrentUserId ?? 1;
-                    await db.ExecuteAsync(@"UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser 
-                                          WHERE Sales_ID = @SalesId", FormItem, tx);
-                    await db.ExecuteAsync("DELETE FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
-                    await db.ExecuteAsync("DELETE FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
-                }
-                int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM ReSales_Sub", transaction: tx);
-                foreach (var s in FormSubItems) { s.Id = ++maxSubId; s.SalesId = FormItem.SalesId; await db.ExecuteAsync(@"INSERT INTO ReSales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx); }
+                    FormItem.EditPc = Environment.MachineName;
+                    FormItem.EditDate = DateTime.Now;
+                    FormItem.EditUser = AppSession.CurrentUserId ?? 1;
+                    await db.ExecuteAsync(@"
+                    UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, 
+                    AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser 
+                    WHERE Sales_ID = @SalesId",
+                        FormItem, tx);
 
-                // Save payments
-                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM ReSales_Payments", transaction: tx);
+                    await db.ExecuteAsync("DELETE FROM ReSales_Sub WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
+                    await db.ExecuteAsync("DELETE FROM ReSales_Payments WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
+                }
+
+                int maxSubId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(ID), 0) FROM ReSales_Sub", transaction: tx);
+                foreach (var s in FormSubItems)
+                {
+                    s.Id = ++maxSubId;
+                    s.SalesId = FormItem.SalesId;
+                    await db.ExecuteAsync(@"
+                    INSERT INTO ReSales_Sub (ID, SalesId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
+                    VALUES (@Id, @SalesId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)",
+                        s, tx);
+                }
+
+                int maxPayId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(Pay_ID), 0) FROM ReSales_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
-                    await db.ExecuteAsync(@"INSERT INTO ReSales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
-                                          VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)", p, tx);
+                    await db.ExecuteAsync(@"
+                    INSERT INTO ReSales_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
+                    VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)",
+                        p, tx);
                 }
 
-                tx.Commit(); StatusMessage = "تم الحفظ بنجاح ✓";
+                tx.Commit();
+                StatusMessage = "تم الحفظ بنجاح ✓";
             }
-            catch { tx.Rollback(); throw; }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
 
-            // إعادة حساب Stock لكل الأصناف المتأثرة
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
 
-            _isInsertMode = false; IsEditing = false; await LoadInvoicesAsync();
+            if (oldCusId.HasValue && oldCusId.Value != FormItem.CusId)
+                await _compositeRepo.RecalcBalanceForCustomerAsync(oldCusId.Value);
+            await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
+
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+            _isInsertMode = false;
+            IsEditing = false;
+            await LoadInvoicesAsync();
         }
-        catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }
+        catch (Exception ex)
+        {
+            StatusMessage = $"خطأ في الحفظ: {ex.Message}";
+        }
     }
 
     [RelayCommand]
@@ -337,6 +416,14 @@ public partial class ReSalesViewModel : ObservableObject
 
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // إعادة حساب رصيد العميل من كل الحركات
+            await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedInvoice.CusId);
+
+            // إعادة حساب رصيد كل خزينة متأثرة من كل الحركات
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             StatusMessage = "تم حذف المرتجع بنجاح ✓"; IsEditing = false; FormItem = new ReSale();
             _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
@@ -496,13 +583,16 @@ public partial class ReSalesViewModel : ObservableObject
 
         if (IsCashPaymentMode)
         {
+            // حفظ الخزينة الحالية إذا كانت موجودة في الدفعة لضمان عدم ضياع التعديل
+            int existingCashId = FormPayments.FirstOrDefault()?.CashId ?? Cashes.FirstOrDefault()?.CashId ?? 0;
+
             FormPayments.Clear();
             FormPayments.Add(new ReSalesPayment
             {
                 SalesId = FormItem.SalesId,
                 PayDate = DateTime.Now,
                 PayMoney = FormItem.Net,
-                CashId = Cashes.FirstOrDefault()?.CashId ?? 0,
+                CashId = existingCashId,
                 Notes = "سداد كامل (كاش) - مرتجع"
             });
         }
@@ -521,6 +611,40 @@ public partial class ReSalesViewModel : ObservableObject
         DiscPer = s.DiscPer, AddMony = s.AddMony, Net = s.Net, IsPer = s.IsPer, NetPer = s.NetPer,
         IsCash = s.IsCash, Notes = s.Notes, AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
     };
+
+    private void WireSubItemsCollection()
+    {
+        FormSubItems.CollectionChanged -= OnSubItemsCollectionChanged;
+        FormSubItems.CollectionChanged += OnSubItemsCollectionChanged;
+
+        foreach (var sub in FormSubItems)
+        {
+            sub.PropertyChanged -= OnSubItemPropertyChanged;
+            sub.PropertyChanged += OnSubItemPropertyChanged;
+        }
+    }
+
+    private void OnSubItemsCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (ReSalesSub sub in e.NewItems)
+            {
+                sub.PropertyChanged -= OnSubItemPropertyChanged;
+                sub.PropertyChanged += OnSubItemPropertyChanged;
+            }
+
+        if (e.OldItems != null)
+            foreach (ReSalesSub sub in e.OldItems)
+                sub.PropertyChanged -= OnSubItemPropertyChanged;
+    }
+
+    private void OnSubItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ReSalesSub.Total))
+        {
+            CalculateTotals();
+        }
+    }
 
     partial void OnCustomerSearchTextChanged(string value)
     {

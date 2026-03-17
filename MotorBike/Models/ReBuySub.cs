@@ -1,11 +1,12 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MotorBike.Models;
 
 /// <summary>
 /// تفاصيل مرتجع المشتريات — جدول ReBuy_Sub
 /// </summary>
-public partial class ReBuySub
+public partial class ReBuySub : ObservableObject
 {
     public int Id { get; set; }
 
@@ -17,23 +18,60 @@ public partial class ReBuySub
 
     public int UnitId { get; set; }
 
-    public double Qty { get; set; }
+    private double _qty;
+    public double Qty
+    {
+        get => _qty;
+        set { if (SetProperty(ref _qty, value)) RecalcTotal(); }
+    }
 
-    public double Price { get; set; }
+    private double _price;
+    public double Price
+    {
+        get => _price;
+        set { if (SetProperty(ref _price, value)) RecalcTotal(); }
+    }
 
-    public double Disc { get; set; }
+    private double _disc;
+    public double Disc
+    {
+        get => _disc;
+        set { if (SetProperty(ref _disc, value)) RecalcTotal(); }
+    }
 
-    public double DiscPer { get; set; }
+    private double _discPer;
+    public double DiscPer
+    {
+        get => _discPer;
+        set
+        {
+            if (SetProperty(ref _discPer, value))
+            {
+                // Auto-calc Disc from DiscPer
+                Disc = Math.Round(Price * (value / 100.0), 2);
+            }
+        }
+    }
 
+    private double _total;
     /// <summary>Computed column</summary>
     [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
-    public double Total { get; set; }
+    public double Total
+    {
+        get => _total;
+        set => SetProperty(ref _total, value);
+    }
 
     public double UnitQty { get; set; }
 
     /// <summary>Computed column</summary>
     [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
     public double QtyAll { get; set; }
+
+    private void RecalcTotal()
+    {
+        Total = Qty * (Price - Disc);
+    }
 
     public virtual ReBuy Buy { get; set; } = null!;
 
@@ -43,4 +81,3 @@ public partial class ReBuySub
 
     public virtual Unit Unit { get; set; } = null!;
 }
-

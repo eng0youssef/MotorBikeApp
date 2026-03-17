@@ -424,7 +424,6 @@ public partial class BuysViewModel : ObservableObject
     {
         if (FormItem is null) return;
 
-        // مراجعة المنطق (Validation Logic)
         if (FormItem.SuppId <= 0 || !Suppliers.Any(s => s.SuppId == FormItem.SuppId))
         {
             StatusMessage = "⚠️ يجب اختيار المورد من القائمة لإتمام حفظ الفاتورة.";
@@ -440,14 +439,30 @@ public partial class BuysViewModel : ObservableObject
         try
         {
             CalculateTotals();
+
             var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            int? oldSuppId = null;
+
             if (!_isInsertMode)
             {
-                using (var db2 = _dbFactory.CreateConnection())
-                {
-                    var oldItems = await db2.QueryAsync<int>("SELECT DISTINCT ItemId FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId });
-                    foreach (var id in oldItems) if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
-                }
+                using var dbPre = _dbFactory.CreateConnection();
+
+                var oldItemIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT ItemId FROM Buy_Sub WHERE BuyId = @BuyId",
+                    new { BuyId = FormItem.BuyId });
+                foreach (var id in oldItemIds)
+                    if (!affectedItemIds.Contains(id)) affectedItemIds.Add(id);
+
+                var oldCashIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT CashID FROM Buy_Payments WHERE BuyId = @BuyId",
+                    new { BuyId = FormItem.BuyId });
+                foreach (var cid in oldCashIds)
+                    if (cid > 0 && !affectedCashIds.Contains(cid)) affectedCashIds.Add(cid);
+
+                oldSuppId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT SuppID FROM Buy WHERE Buy_ID = @BuyId",
+                    new { BuyId = FormItem.BuyId });
             }
 
             using var db = _dbFactory.CreateConnection();
@@ -460,13 +475,13 @@ public partial class BuysViewModel : ObservableObject
                 {
                     FormItem.BuyId = await _buyRepository.GetNextIdAsync();
                     OnPropertyChanged(nameof(FormItem));
-
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, IsTax, VatTax, Tax, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                        VALUES (@BuyId, @BuyDate, @SuppId, @Total, @IsTax, @VatTax, @Tax, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                    INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, IsTax, VatTax, Tax, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @IsTax, @VatTax, @Tax, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                        FormItem, tx);
                 }
                 else
                 {
@@ -474,36 +489,40 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax,
-                        Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                        EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
-                        WHERE Buy_ID = @BuyId", FormItem, tx);
-                        
-                    // Delete old subItems and payments
-                    await db.ExecuteAsync("DELETE FROM Buy_Sub WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId }, tx);
-                    await db.ExecuteAsync("DELETE FROM Buy_Payments WHERE BuyId = @BuyId", new { BuyId = FormItem.BuyId }, tx);
+                    UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax,
+                    Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
+                    WHERE Buy_ID = @BuyId",
+                        FormItem, tx);
+
+                    await db.ExecuteAsync("DELETE FROM Buy_Sub WHERE BuyId = @BuyId",
+                        new { BuyId = FormItem.BuyId }, tx);
+                    await db.ExecuteAsync("DELETE FROM Buy_Payments WHERE BuyId = @BuyId",
+                        new { BuyId = FormItem.BuyId }, tx);
                 }
 
-                int maxSubId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(ID), 0) FROM Buy_Sub", transaction: tx);
-
+                int maxSubId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(ID), 0) FROM Buy_Sub", transaction: tx);
                 foreach (var s in FormSubItems)
                 {
                     s.Id = ++maxSubId;
                     s.BuyId = FormItem.BuyId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy_Sub (ID, BuyId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
-                        VALUES (@Id, @BuyId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)", s, tx);
+                    INSERT INTO Buy_Sub (ID, BuyId, StoreId, ItemId, UnitId, Qty, Price, Disc, DiscPer, UnitQty) 
+                    VALUES (@Id, @BuyId, @StoreId, @ItemId, @UnitId, @Qty, @Price, @Disc, @DiscPer, @UnitQty)",
+                        s, tx);
                 }
 
-                // Save payments
-                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Buy_Payments", transaction: tx);
+                int maxPayId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(Pay_ID), 0) FROM Buy_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
                     p.PayId = ++maxPayId;
                     p.BuyId = FormItem.BuyId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, BuyID) 
-                        VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @BuyId)", p, tx);
+                    INSERT INTO Buy_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, BuyID) 
+                    VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @BuyId)",
+                        p, tx);
                 }
 
                 tx.Commit();
@@ -515,9 +534,15 @@ public partial class BuysViewModel : ObservableObject
                 throw;
             }
 
-            // إعادة حساب Stock لكل الأصناف المتأثرة
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            if (oldSuppId.HasValue && oldSuppId.Value != FormItem.SuppId)
+                await _compositeRepo.RecalcBalanceForSupplierAsync(oldSuppId.Value);
+            await _compositeRepo.RecalcBalanceForSupplierAsync(FormItem.SuppId);
+
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
             IsEditing = false;
@@ -552,6 +577,14 @@ public partial class BuysViewModel : ObservableObject
             // إعادة حساب Stock لكل الأصناف المتأثرة
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // إعادة حساب رصيد المورد من كل الحركات
+            await _compositeRepo.RecalcBalanceForSupplierAsync(SelectedInvoice.SuppId);
+
+            // إعادة حساب رصيد كل خزينة متأثرة من كل الحركات
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;

@@ -150,4 +150,77 @@ public class CompositeKeyRepository
             throw;
         }
     }
+
+    // ── Supplier Balance Recalculation ───────────────────────────────────
+
+    /// <summary>
+    /// يعيد حساب رصيد المورد (Bal) من كل الحركات:
+    /// رصيد افتتاحي + فواتير شراء - مدفوعات شراء - مرتجع شراء + مدفوعات مرتجع شراء - سدادات مورد
+    /// </summary>
+    public async Task RecalcBalanceForSupplierAsync(int suppId)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE Suppliers SET Bal = 
+                ISNULL(Debit, 0) - ISNULL(Credit, 0)
+                + ISNULL((SELECT SUM(Net) FROM Buy WHERE SuppID = @SuppId), 0)
+                - ISNULL((SELECT SUM(bp.PayMoney) FROM Buy_Payments bp INNER JOIN Buy b ON bp.BuyId = b.Buy_ID WHERE b.SuppID = @SuppId), 0)
+                - ISNULL((SELECT SUM(Net) FROM ReBuy WHERE SuppID = @SuppId), 0)
+                + ISNULL((SELECT SUM(rp.PayMoney) FROM ReBuy_Payments rp INNER JOIN ReBuy rb ON rp.BuyId = rb.Buy_ID WHERE rb.SuppID = @SuppId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Supp_Payments WHERE SuppID = @SuppId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE SuppID = @SuppId), 0)
+            WHERE Supp_ID = @SuppId";
+        await db.ExecuteAsync(sql, new { SuppId = suppId });
+    }
+
+    // ── Customer Balance Recalculation ───────────────────────────────────
+
+    /// <summary>
+    /// يعيد حساب رصيد العميل (Bal) من كل الحركات:
+    /// رصيد افتتاحي + فواتير بيع - مدفوعات بيع - مرتجع بيع + مدفوعات مرتجع بيع - سدادات عميل
+    /// </summary>
+    public async Task RecalcBalanceForCustomerAsync(int cusId)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE Customers SET Bal = 
+                ISNULL(Debit, 0) - ISNULL(Credit, 0)
+                + ISNULL((SELECT SUM(Net) FROM Sales WHERE CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(sp.PayMoney) FROM Sales_Payments sp INNER JOIN Sales s ON sp.SalesId = s.Sales_ID WHERE s.CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(Net) FROM ReSales WHERE CusID = @CusId), 0)
+                + ISNULL((SELECT SUM(rp.PayMoney) FROM ReSales_Payments rp INNER JOIN ReSales rs ON rp.SalesId = rs.Sales_ID WHERE rs.CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Cus_Payments WHERE CusID = @CusId), 0)
+            WHERE Cus_ID = @CusId";
+        await db.ExecuteAsync(sql, new { CusId = cusId });
+    }
+
+    // ── Cash Balance Recalculation ───────────────────────────────────────
+
+    /// <summary>
+    /// يعيد حساب رصيد الخزينة (Bal) من كل الحركات:
+    /// رصيد افتتاحي
+    /// + مدفوعات بيع (وارد) + سدادات عملاء (وارد) + مدفوعات مرتجع شراء (وارد) + تحويلات واردة
+    /// - مدفوعات شراء (صادر) - سدادات موردين (صادر) - مصروفات (صادر) - مدفوعات مرتجع بيع (صادر) - تحويلات صادرة
+    /// </summary>
+    public async Task RecalcBalanceForCashAsync(int cashId)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE Cash SET Bal = 
+                ISNULL(Debit, 0) - ISNULL(Credit, 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Sales_Payments WHERE CashID = @CashId), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Sales_Car_Payments WHERE CashID = @CashId), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Cus_Payments WHERE CashID = @CashId), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM ReBuy_Payments WHERE CashID = @CashId), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashTo = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Car_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Supp_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Exp_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM ReSales_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashId = @CashId), 0)
+            WHERE Cash_ID = @CashId";
+        await db.ExecuteAsync(sql, new { CashId = cashId });
+    }
 }
