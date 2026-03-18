@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <conv:ByteArrayToImageConverter x:Key="ByteToImageConverter" />
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
     </UserControl.Resources>
 
     <Grid Background="Transparent">

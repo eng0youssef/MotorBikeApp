@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Dapper;
 using MotorBike.DataAccess;
 using MotorBike.Models;
 
@@ -11,8 +12,10 @@ namespace MotorBike.ViewModels;
 
 public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
 {
+    private readonly IDbConnectionFactory _dbFactory;
     private readonly IRepository<Customer> _customerRepo;
     private readonly IRepository<Cash> _cashRepo;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
@@ -21,17 +24,23 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
     [
         new(0, "سداد لعميل"),
         new(1, "تحصيل من عميل"),
-        new(2, "رد مبلغ"),
-        new(3, "خصم/تسوية")
     ];
 
+    // ── لحفظ القيم القديمة عند التعديل ──
+    private int? _oldCusId;
+    private int? _oldCashId;
+
     public CusPaymentsViewModel(
+        IDbConnectionFactory dbFactory,
         IRepository<CusPayment> repository,
         IRepository<Customer> customerRepo,
-        IRepository<Cash> cashRepo) : base(repository)
+        IRepository<Cash> cashRepo,
+        CompositeKeyRepository compositeRepo) : base(repository)
     {
+        _dbFactory = dbFactory;
         _customerRepo = customerRepo;
         _cashRepo = cashRepo;
+        _compositeRepo = compositeRepo;
     }
 
     [RelayCommand]
@@ -63,6 +72,73 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
 
         if (Customers.Any()) entity.CusId = Customers.First().CusId;
         if (CashList.Any()) entity.CashId = CashList.First().CashId;
+    }
+
+    // ── Balance Recalculation Hooks ─────────────────────────────────
+
+    protected override async Task BeforeSaveAsync(bool isInsert)
+    {
+        if (!isInsert && FormItem != null)
+        {
+            // جلب القيم القديمة من قاعدة البيانات قبل التعديل
+            using var db = _dbFactory.CreateConnection();
+            var old = await db.QueryFirstOrDefaultAsync<CusPayment>(
+                "SELECT CusID, CashID FROM Cus_Payments WHERE Pay_ID = @PayId",
+                new { FormItem.PayId });
+
+            if (old != null)
+            {
+                _oldCusId = old.CusId;
+                _oldCashId = old.CashId;
+            }
+        }
+        else
+        {
+            _oldCusId = null;
+            _oldCashId = null;
+        }
+    }
+
+    protected override async Task AfterSaveAsync(bool wasInsert)
+    {
+        if (FormItem == null) return;
+
+        // إعادة حساب رصيد العميل القديم لو اتغير
+        if (_oldCusId.HasValue && _oldCusId.Value != FormItem.CusId)
+            await _compositeRepo.RecalcBalanceForCustomerAsync(_oldCusId.Value);
+
+        // إعادة حساب رصيد العميل الحالي
+        await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
+
+        // إعادة حساب رصيد الخزينة القديمة لو اتغيرت
+        if (_oldCashId.HasValue && _oldCashId.Value != (FormItem.CashId ?? 0) && _oldCashId.Value > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+
+        // إعادة حساب رصيد الخزينة الحالية
+        if (FormItem.CashId.HasValue && FormItem.CashId.Value > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId.Value);
+    }
+
+    protected override Task BeforeDeleteAsync()
+    {
+        // حفظ بيانات السجل المحدد قبل الحذف (SelectedItem لسة موجود)
+        if (SelectedItem != null)
+        {
+            _oldCusId = SelectedItem.CusId;
+            _oldCashId = SelectedItem.CashId;
+        }
+        return Task.CompletedTask;
+    }
+
+    protected override async Task AfterDeleteAsync()
+    {
+        // إعادة حساب رصيد العميل بعد الحذف
+        if (_oldCusId.HasValue)
+            await _compositeRepo.RecalcBalanceForCustomerAsync(_oldCusId.Value);
+
+        // إعادة حساب رصيد الخزينة بعد الحذف
+        if (_oldCashId.HasValue && _oldCashId.Value > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
     }
 
 }

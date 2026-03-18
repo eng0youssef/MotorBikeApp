@@ -6,6 +6,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              Loaded="OnLoaded" FlowDirection="RightToLeft">
     <UserControl.Resources>
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
         <conv:IdToNameConverter x:Key="IdToNameConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         <Style x:Key="FormCard" TargetType="Border">
@@ -78,7 +79,7 @@
 
                             <!-- Row 0: ID, Date, Customer -->
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="رقم الفاتورة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.SalesId}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F8FAFC" FontWeight="Bold"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.SalesId, Converter={StaticResource HideZeroConv}}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F8FAFC" FontWeight="Bold"/>
                             <TextBlock Grid.Row="0" Grid.Column="3" Text="التاريخ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                             <DatePicker Grid.Row="0" Grid.Column="4" SelectedDate="{Binding FormItem.SalesDate}" Padding="10,4" FontSize="14"/>
                             <TextBlock Grid.Row="0" Grid.Column="6" Text="العميل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>

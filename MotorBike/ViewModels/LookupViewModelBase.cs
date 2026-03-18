@@ -16,6 +16,9 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     /// <summary>Tracks whether the current form operation is an insert (true) or update (false).</summary>
     private bool _isInsertMode;
 
+    /// <summary>Exposes insert mode flag to subclasses (read-only).</summary>
+    protected bool IsInsertMode => _isInsertMode;
+
     [ObservableProperty]
     private ObservableCollection<T> _items = [];
 
@@ -67,7 +70,9 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
         {
             var item = new T();
             SetDefaultValues(item);
-            await SetNewIdAsync(item);
+            // Delaying ID generation until SaveAsync: await SetNewIdAsync(item);
+            await Task.CompletedTask;
+
             _isInsertMode = true;
             IsEditing = true;
             SelectedItem = null;
@@ -97,6 +102,14 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
 
         try
         {
+            if (_isInsertMode)
+            {
+                await SetNewIdAsync(FormItem);
+            }
+
+            var wasInsert = _isInsertMode;
+            await BeforeSaveAsync(wasInsert);
+
             SetAuditFields(FormItem, _isInsertMode);
 
             if (_isInsertMode)
@@ -109,6 +122,8 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
                 await _repository.UpdateAsync(FormItem);
                 StatusMessage = "تم تعديل السجل بنجاح ✓";
             }
+
+            await AfterSaveAsync(wasInsert);
 
             _isInsertMode = false;
             IsEditing = false;
@@ -127,8 +142,13 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
 
         try
         {
+            await BeforeDeleteAsync();
+
             var id = GetEntityId(SelectedItem);
             await _repository.DeleteAsync(id);
+
+            await AfterDeleteAsync();
+
             StatusMessage = "تم حذف السجل ✓";
             IsEditing = false;
             FormItem = new T();
@@ -148,6 +168,20 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
         FormItem = new T();
         StatusMessage = null;
     }
+
+    // ── Balance recalculation hooks ──────────────────────────────────
+
+    /// <summary>Called before saving. Use to capture old values (e.g. old CustomerId, old CashId) for balance recalculation.</summary>
+    protected virtual Task BeforeSaveAsync(bool isInsert) => Task.CompletedTask;
+
+    /// <summary>Called after saving. Use to recalculate balances for both old and new entities.</summary>
+    protected virtual Task AfterSaveAsync(bool wasInsert) => Task.CompletedTask;
+
+    /// <summary>Called before deleting. Use to capture entity values needed for balance recalculation.</summary>
+    protected virtual Task BeforeDeleteAsync() => Task.CompletedTask;
+
+    /// <summary>Called after deleting. Use to recalculate balances for affected entities.</summary>
+    protected virtual Task AfterDeleteAsync() => Task.CompletedTask;
 
     // ── Abstract / Virtual hooks for subclasses ──────────────────────
 

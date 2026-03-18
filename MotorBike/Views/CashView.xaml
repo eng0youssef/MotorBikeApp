@@ -7,6 +7,7 @@
              Loaded="OnLoaded" FlowDirection="RightToLeft">
     <UserControl.Resources>
         <conv:CashTypeConverter x:Key="TypeConverter" />
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -42,7 +43,7 @@
 
                     <!-- Row 0 -->
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.CashId}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.CashId , Converter={StaticResource HideZeroConv}}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم الخزينة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FormItem.CashName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Row="0" Grid.Column="6" Text="النوع" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>

@@ -347,10 +347,10 @@ public partial class ImportInvoiceViewModel : ObservableObject
     public async Task AddNewRecord()
     {
         _isNewInvoice = true;
-        int nextId = await _invoiceRepo.GetNextIdAsync();
+        await Task.CompletedTask;
         FormItem = new ImportInvoice
         {
-            InvId = nextId,
+            InvId = 0,
             InvDate = DateTime.Now,
             OmlaRate = 1
         };

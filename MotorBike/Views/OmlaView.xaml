@@ -3,7 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:MotorBike.Converters"
              Loaded="OnLoaded" FlowDirection="RightToLeft">
+    <UserControl.Resources>
+        <conv:CashTypeConverter x:Key="TypeConverter" />
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
+    </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
@@ -32,7 +37,7 @@
                 <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="80"/></Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Column="1" Text="{Binding FormItem.OmlaId}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
+                    <TextBox Grid.Column="1" Text="{Binding FormItem.OmlaId, Converter={StaticResource HideZeroConv}}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
                     <TextBlock Grid.Column="3" Text="اسم العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Column="4" Text="{Binding FormItem.OmlaName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Column="6" Text="سعر الصرف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>

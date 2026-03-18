@@ -6,6 +6,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              Loaded="OnLoaded" FlowDirection="RightToLeft">
     <UserControl.Resources>
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
         <conv:HideZeroConverter x:Key="HideZeroConverter" />
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
     </UserControl.Resources>
@@ -89,7 +90,7 @@
 
                         <!-- Row 0: ID, Name, CatId -->
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.ItemId}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.ItemId, Converter={StaticResource HideZeroConv}}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
                         
                         <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم الصنف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                         <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FormItem.ItemName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>

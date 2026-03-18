@@ -4,7 +4,13 @@
              mc:Ignorable="d"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="clr-namespace:MotorBike.Converters"
              Loaded="OnLoaded" FlowDirection="RightToLeft">
+    <UserControl.Resources>
+        <conv:CashTypeConverter x:Key="TypeConverter" />
+        <conv:HideZeroConverter x:Key="HideZeroConv"/>
+    </UserControl.Resources>
+    
     <Grid Background="Transparent" Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -76,7 +82,7 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.UnitId}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.UnitId, Converter={StaticResource HideZeroConv}}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
                     
                     <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم الوحدة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FormItem.UnitName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>

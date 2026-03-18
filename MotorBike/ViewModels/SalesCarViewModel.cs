@@ -131,7 +131,7 @@ public partial class SalesCarViewModel : ObservableObject
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
-        item.SalesId = await _salesCarRepository.GetNextIdAsync();
+        await Task.CompletedTask;
 
         _isInsertMode = true;
         IsEditing = true;
@@ -179,6 +179,7 @@ public partial class SalesCarViewModel : ObservableObject
             {
                 if (_isInsertMode)
                 {
+                    FormItem.SalesId = await _salesCarRepository.GetNextIdAsync();
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
