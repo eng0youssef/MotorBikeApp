@@ -1,10 +1,13 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace MotorBike.Models;
 
 /// <summary>
 /// تفاصيل أصناف فاتورة الاستيراد — جدول Import_Inv_Item
 /// Total, QtyAll, CostUnit are computed columns.
 /// </summary>
-public partial class ImportInvItem
+public partial class ImportInvItem : ObservableObject
 {
     public int Id { get; set; }
 
@@ -16,27 +19,34 @@ public partial class ImportInvItem
 
     public int UnitId { get; set; }
 
-    public double Qty { get; set; }
+    private double _qty;
+    public double Qty { get => _qty; set => SetProperty(ref _qty, value); }
 
-    public double Price { get; set; }
+    private double _price;
+    public double Price { get => _price; set => SetProperty(ref _price, value); }
 
+    private double _total;
     /// <summary>Computed column</summary>
-    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
-    public double Total { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public double Total { get => _total; set => SetProperty(ref _total, value); }
 
     public double UnitQty { get; set; }
 
+    private double _qtyAll;
     /// <summary>Computed column</summary>
-    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
-    public double QtyAll { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public double QtyAll { get => _qtyAll; set => SetProperty(ref _qtyAll, value); }
 
-    public decimal CostPer { get; set; }
+    private decimal _costPer;
+    public decimal CostPer { get => _costPer; set => SetProperty(ref _costPer, value); }
 
-    public double? CostTotal { get; set; }
+    private double? _costTotal;
+    public double? CostTotal { get => _costTotal; set => SetProperty(ref _costTotal, value); }
 
+    private double? _costUnit;
     /// <summary>Computed column</summary>
-    [System.ComponentModel.DataAnnotations.Schema.DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.Computed)]
-    public double? CostUnit { get; set; }
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public double? CostUnit { get => _costUnit; set => SetProperty(ref _costUnit, value); }
 
     public virtual ImportInvoice Inv { get; set; } = null!;
 

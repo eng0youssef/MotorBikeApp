@@ -1,9 +1,11 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace MotorBike.Models;
 
 /// <summary>
 /// تفاصيل سيارات فاتورة الاستيراد — جدول Import_Inv_Car
 /// </summary>
-public partial class ImportInvCar
+public partial class ImportInvCar : ObservableObject
 {
     public int Id { get; set; }
 
@@ -13,11 +15,14 @@ public partial class ImportInvCar
 
     public int Mileage { get; set; }
 
-    public double? Total { get; set; }
+    private double? _total;
+    public double? Total { get => _total; set => SetProperty(ref _total, value); }
 
-    public decimal CostPer { get; set; }
+    private decimal _costPer;
+    public decimal CostPer { get => _costPer; set => SetProperty(ref _costPer, value); }
 
-    public double? CostTotal { get; set; }
+    private double? _costTotal;
+    public double? CostTotal { get => _costTotal; set => SetProperty(ref _costTotal, value); }
 
     public virtual ImportInvoice Inv { get; set; } = null!;
 

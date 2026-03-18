@@ -207,22 +207,23 @@
                                             <Button Grid.Column="5" Content="➕ إضافة" Style="{StaticResource PrimaryButton}" Command="{Binding AddSubItemCommand}" Padding="16,8"/>
                                         </Grid>
                                     </Border>
-                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormItems}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormItems}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single"
+                                              CellEditEnding="DataGrid_CellEditEnding"
                                               GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
-                                            <DataGridTemplateColumn Header="الصنف" Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                            <DataGridTemplateColumn Header="الصنف" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
                                                     <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="ItemId,ItemName">
                                                         <Binding Path="ItemId"/><Binding Path="DataContext.ItemsList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                                                     </MultiBinding></TextBlock.Text></TextBlock>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="الكمية" Binding="{Binding Qty}" Width="70"/>
-                                            <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat=\{0:N2\}}" Width="80"/>
-                                            <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold"/>
-                                            <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:P2\}}" Width="80" Foreground="#6366F1"/>
-                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626"/>
-                                            <DataGridTextColumn Header="تكلفة الوحدة" Binding="{Binding CostUnit, StringFormat=\{0:N2\}}" Width="90" Foreground="#059669" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="الكمية" Binding="{Binding Qty, UpdateSourceTrigger=LostFocus}" Width="70"/>
+                                            <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="80"/>
+                                            <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:N4\}, UpdateSourceTrigger=LostFocus}" Width="80" Foreground="#6366F1"/>
+                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="تكلفة الوحدة" Binding="{Binding CostUnit, StringFormat=\{0:N2\}}" Width="90" Foreground="#059669" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTemplateColumn Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <Button Content="🗑️" Command="{Binding DataContext.RemoveSubItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
@@ -281,27 +282,28 @@
                                                     <TextBox Text="{Binding NewCarNotes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FontSize="13"/>
                                                 </Grid>
                                                 <Grid Grid.Column="4" Margin="0,0,16,0">
-                                                    <TextBlock Text="التكلفة الاستيرادية" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
+                                                    <TextBlock Text="سعر الاستيراد" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
                                                     <TextBox Text="{Binding NewCarTotal, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FontSize="13"/>
                                                 </Grid>
                                                 <Button Grid.Column="5" Content="➕ إضافة للشحنة" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCarCommand}" Padding="16,8"/>
                                             </Grid>
                                         </StackPanel>
                                     </Border>
-                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormCars}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormCars}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single"
+                                              CellEditEnding="DataGrid_CellEditEnding"
                                               GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
-                                            <DataGridTemplateColumn Header="الموتوسيكل" Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                                            <DataGridTemplateColumn Header="الموتوسيكل" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
                                                     <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CarId,ChassisNo">
                                                         <Binding Path="CarId"/><Binding Path="DataContext.CarsList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                                                     </MultiBinding></TextBlock.Text></TextBlock>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
-                                            <DataGridTextColumn Header="المسافة" Binding="{Binding Mileage}" Width="80"/>
-                                            <DataGridTextColumn Header="التكلفة" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="100" FontWeight="SemiBold"/>
-                                            <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:P2\}}" Width="80" Foreground="#6366F1"/>
-                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="المسافة" Binding="{Binding Mileage}" Width="80" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="السعر" Binding="{Binding Total, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="100" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:N4\}, UpdateSourceTrigger=LostFocus}" Width="80" Foreground="#6366F1"/>
+                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTemplateColumn Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <Button Content="🗑️" Command="{Binding DataContext.RemoveSubCarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
@@ -425,6 +427,8 @@
                                 <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.FrokOmla, Mode=OneWay, StringFormat=\{0:N2\}}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#EEF2FF" FontSize="14" ToolTip="يُحسب تلقائياً من فرق سعر الصرف بين الفاتورة والدفعات"/>
 
                                 <!-- الصف الثاني -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="إجمالي الفاتورة (بالمحلي)" Style="{StaticResource FormLabel}" VerticalAlignment="Center" FontWeight="Bold" FontSize="11" TextWrapping="Wrap"/>
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.InvTotalLocal, Mode=OneWay, StringFormat=\{0:N2\}}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#EEF2FF" FontSize="14" BorderThickness="0" ToolTip="حاصل ضرب الإجمالي بالعملة الأجنبية × سعر الصرف"/>
                                 <TextBlock Grid.Row="2" Grid.Column="6" Text="التكلفة الإجمالية بالمحلي" Style="{StaticResource FormLabel}" VerticalAlignment="Center" FontWeight="Bold" Foreground="#4F46E5" FontSize="11" TextWrapping="Wrap"/>
                                 <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.TotalCost, Mode=OneWay, StringFormat=\{0:N2\}}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#E0E7FF" Foreground="#3730A3" FontWeight="Bold" FontSize="18"/>
                             </Grid>

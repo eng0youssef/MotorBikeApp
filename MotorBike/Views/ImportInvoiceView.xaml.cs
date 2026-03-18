@@ -75,4 +75,18 @@ public partial class ImportInvoiceView : UserControl
             popup.HorizontalOffset = offset;
         }
     }
+
+    private void DataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (DataContext is ImportInvoiceViewModel vm)
+        {
+            string? header = e.Column.Header?.ToString();
+            bool isPercentageEdit = header == "النسبة %";
+
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                vm.RecalculateTotalsFromGrid(isPercentageEdit);
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+    }
 }

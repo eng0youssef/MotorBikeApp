@@ -25,6 +25,9 @@ public partial class ImportInvoice
 
     public double InvTotal { get; set; }
 
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double InvTotalLocal => Math.Round(InvTotal * (double)OmlaRate, 2);
+
     public byte OmlaId { get; set; }
 
     public decimal OmlaRate { get; set; }

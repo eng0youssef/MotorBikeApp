@@ -193,7 +193,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             SelectedOmlaId = supplier.OmlaId;
             FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
             OnPropertyChanged(nameof(FormItem));
-            CalculateTotals();
+            CalculateTotals(false);
         }
     }
 
@@ -460,7 +460,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             var payments = await _paymentRepo.GetAllAsync();
             FormPayments = new(payments.Where(x => x.InvId == invId));
 
-            CalculateTotals();
+            CalculateTotals(false);
             StatusMessage = $"تم تحميل الفاتورة رقم {invId}";
             IsEditing = false;
         }
@@ -499,7 +499,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentItemUnits = [];
         _isSelectingItem = false;
 
-        CalculateTotals();
+        CalculateTotals(true);
     }
 
     [RelayCommand]
@@ -508,7 +508,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (item != null && FormItems.Contains(item))
         {
             FormItems.Remove(item);
-            CalculateTotals();
+            CalculateTotals(true);
         }
     }
 
@@ -526,7 +526,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         FormCars.Add(CurrentSubCar);
         CurrentSubCar = new ImportInvCar();
         if (CarsList.Any()) CurrentSubCar.CarId = CarsList.First().CarId;
-        CalculateTotals();
+        CalculateTotals(true);
     }
 
     [RelayCommand]
@@ -535,7 +535,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (car != null && FormCars.Contains(car))
         {
             FormCars.Remove(car);
-            CalculateTotals();
+            CalculateTotals(true);
         }
     }
 
@@ -583,7 +583,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         NewCarMileage = 0;
         NewCarTotal = 0;
 
-        CalculateTotals();
+        CalculateTotals(true);
     }
 
     // ── Adding Sub-Expenses ──────────────────────────────────────────────
@@ -607,7 +607,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentSubExp = new ImportExp { PayDate = DateTime.Now, OmlaRate = 1, CashId = oldCashId };
         if (Omlas.Any()) CurrentSubExp.OmlaId = Omlas.First().OmlaId;
         if (ExpenseTypes.Any()) CurrentSubExp.ExpId = ExpenseTypes.First().ExpId;
-        CalculateTotals();
+        CalculateTotals(false);
     }
 
     [RelayCommand]
@@ -616,7 +616,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (exp != null && FormExps.Contains(exp))
         {
             FormExps.Remove(exp);
-            CalculateTotals();
+            CalculateTotals(false);
         }
     }
 
@@ -645,7 +645,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (Omlas.Any()) CurrentSubPayment.OmlaId = FormItem.OmlaId;
 
         CalculateFrokOmla();
-        CalculateTotals();
+        CalculateTotals(false);
     }
 
     [RelayCommand]
@@ -655,7 +655,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         {
             FormPayments.Remove(payment);
             CalculateFrokOmla();
-            CalculateTotals();
+            CalculateTotals(false);
         }
     }
 
@@ -679,7 +679,12 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
     // ── Calculations ─────────────────────────────────────────────────────
 
-    private void CalculateTotals()
+    public void RecalculateTotalsFromGrid(bool isPercentageEdit)
+    {
+        CalculateTotals(!isPercentageEdit);
+    }
+
+    private void CalculateTotals(bool recalculatePercentages = false)
     {
         if (FormItem == null) return;
 
@@ -718,13 +723,22 @@ public partial class ImportInvoiceViewModel : ObservableObject
         double invTotal = FormItem.InvTotal;
         if (invTotal > 0 && totalCost > 0)
         {
-            // CostPer = سعر الصنف / InvTotal — نسبته من إجمالي الفاتورة (مجموعهم = 100%)
-            // CostTotal = CostPer × TotalCost — نصيبه من كل التكاليف
-            // CostUnit = CostTotal / QtyAll
+            if (recalculatePercentages)
+            {
+                foreach (var item in FormItems)
+                {
+                    item.CostPer = Math.Round((decimal)(item.Total / invTotal) * 100m, 4);
+                }
+                foreach (var car in FormCars)
+                {
+                    double carTotal = car.Total ?? 0;
+                    car.CostPer = Math.Round((decimal)(carTotal / invTotal) * 100m, 4);
+                }
+            }
+
             foreach (var item in FormItems)
             {
-                item.CostPer = Math.Round((decimal)(item.Total / invTotal), 6);
-                item.CostTotal = Math.Round(totalCost * (double)item.CostPer, 2);
+                item.CostTotal = Math.Round(totalCost * (double)(item.CostPer / 100m), 2);
                 item.CostUnit = item.QtyAll > 0
                     ? Math.Round(item.CostTotal.Value / item.QtyAll, 2)
                     : 0;
@@ -732,15 +746,11 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
             foreach (var car in FormCars)
             {
-                double carTotal = car.Total ?? 0;
-                car.CostPer = Math.Round((decimal)(carTotal / invTotal), 6);
-                car.CostTotal = Math.Round(totalCost * (double)car.CostPer, 2);
+                car.CostTotal = Math.Round(totalCost * (double)(car.CostPer / 100m), 2);
             }
         }
 
         OnPropertyChanged(nameof(FormItem));
-        FormItems = new(FormItems);
-        FormCars = new(FormCars);
     }
 
     // ── Save/Delete ──────────────────────────────────────────────────────
@@ -754,7 +764,17 @@ public partial class ImportInvoiceViewModel : ObservableObject
             return;
         }
 
-        CalculateTotals();
+        CalculateTotals(false); // Only recalculate totals without overriding user's manual CostPer percentages
+
+        if (FormItems.Any() || FormCars.Any())
+        {
+            decimal totalCostPer = FormItems.Sum(x => x.CostPer) + FormCars.Sum(x => x.CostPer);
+            if (Math.Abs(totalCostPer - 100m) > 0.01m)
+            {
+                StatusMessage = $"مجموع النسب المئوية يجب أن يكون 100% (الحالي: {totalCostPer:N4}%). يرجى مراجعتها وتعديلها.";
+                return;
+            }
+        }
         try
         {
             bool isNew = _isNewInvoice;
@@ -827,6 +847,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 exp.InvId = FormItem.InvId;
                 exp.AddDate = DateTime.Now;
                 exp.AddPc = Environment.MachineName;
+                exp.AddUser = AppSession.CurrentUserId ?? 1;
                 await _expRepo.InsertAsync(exp);
             }
 
@@ -838,6 +859,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 pay.SuppId = FormItem.SuppId;
                 pay.AddDate = DateTime.Now;
                 pay.AddPc = Environment.MachineName;
+                pay.AddUser = AppSession.CurrentUserId ?? 1;
                 await _paymentRepo.InsertAsync(pay);
             }
 
