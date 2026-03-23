@@ -12,6 +12,7 @@ namespace MotorBike.ViewModels;
 
 public partial class SalesCarViewModel : ObservableObject
 {
+    // ── Dependencies ────────────────────────────────────────────────────────
     private readonly IDbConnectionFactory _dbFactory;
     private readonly IRepository<SalesCar> _salesCarRepository;
     private readonly IRepository<Customer> _customerRepository;
@@ -19,26 +20,44 @@ public partial class SalesCarViewModel : ObservableObject
     private readonly IRepository<Car> _carRepository;
     private readonly CompositeKeyRepository _compositeRepo;
 
+    // ── Lookup collections ─────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
     [ObservableProperty] private ObservableCollection<Car> _cars = [];
 
+    // ── Invoice lists ──────────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<SalesCar> _invoices = [];
     [ObservableProperty] private ObservableCollection<SalesCar> _filteredInvoices = [];
 
+    // ── Invoice form ───────────────────────────────────────────────────────
     [ObservableProperty] private SalesCar _formItem = new();
     [ObservableProperty] private ObservableCollection<SalesCarPayment> _formPayments = [];
     [ObservableProperty] private SalesCarPayment _currentPayment = new();
 
+    // ── State ──────────────────────────────────────────────────────────────
     [ObservableProperty] private SalesCar? _selectedInvoice;
     [ObservableProperty] private bool _isEditing;
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
 
+    // ── Invoice search ─────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
+    // ── Customer popup ─────────────────────────────────────────────────────
+    [ObservableProperty] private string _customerSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
+    [ObservableProperty] private bool _isCustomerPopupOpen;
+    [ObservableProperty] private string? _selectedCustomerDisplay;
+
+    // ── Car popup ──────────────────────────────────────────────────────────
+    [ObservableProperty] private string _carSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Car> _filteredCarsList = [];
+    [ObservableProperty] private bool _isCarPopupOpen;
+    [ObservableProperty] private string? _selectedCarDisplay;
+
+    // ── Constructor ────────────────────────────────────────────────────────
     public SalesCarViewModel(
         IDbConnectionFactory dbFactory,
         IRepository<SalesCar> salesCarRepository,
@@ -55,6 +74,7 @@ public partial class SalesCarViewModel : ObservableObject
         _compositeRepo = compositeRepo;
     }
 
+    // ── Initial data load ──────────────────────────────────────────────────
     [RelayCommand]
     public async Task LoadRelatedDataAsync()
     {
@@ -62,20 +82,20 @@ public partial class SalesCarViewModel : ObservableObject
         {
             var customers = await _customerRepository.GetAllAsync();
             Customers = new ObservableCollection<Customer>(customers);
+            FilteredCustomersList = new ObservableCollection<Customer>(customers);
 
             var cashes = await _cashRepository.GetAllAsync();
             Cashes = new ObservableCollection<Cash>(cashes);
 
             var cars = await _carRepository.GetAllAsync();
-            Cars = new ObservableCollection<Car>(cars);
+            var activeCars = cars.Where(c => c.Active).ToList();
+            Cars = new ObservableCollection<Car>(activeCars);
+            FilteredCarsList = new ObservableCollection<Car>(activeCars);
 
             await LoadInvoicesAsync();
             await AddNewAsync();
         }
-        catch (Exception ex)
-        {
-            StatusMessage = $"خطأ في تحميل البيانات: {ex.Message}";
-        }
+        catch (Exception ex) { StatusMessage = $"خطأ في تحميل البيانات: {ex.Message}"; }
     }
 
     private async Task LoadInvoicesAsync()
@@ -85,32 +105,37 @@ public partial class SalesCarViewModel : ObservableObject
         FilterInvoices();
     }
 
+    // ── Invoice filter ─────────────────────────────────────────────────────
     partial void OnSearchTextChanged(string value) => FilterInvoices();
 
     private void FilterInvoices()
     {
         if (string.IsNullOrWhiteSpace(SearchText))
-            FilteredInvoices = new ObservableCollection<SalesCar>(Invoices);
-        else
         {
-            var lower = SearchText.ToLower();
-            FilteredInvoices = new ObservableCollection<SalesCar>(
-                Invoices.Where(i => i.SalesId.ToString().Contains(lower) ||
-                    (Customers.FirstOrDefault(c => c.CusId == i.CusId)?.CusName?.ToLower().Contains(lower) == true)));
+            FilteredInvoices = new ObservableCollection<SalesCar>(Invoices);
+            return;
         }
+        var lower = SearchText.ToLower();
+        FilteredInvoices = new ObservableCollection<SalesCar>(
+            Invoices.Where(i =>
+                i.SalesId.ToString().Contains(lower) ||
+                (Customers.FirstOrDefault(c => c.CusId == i.CusId)?.CusName?
+                    .ToLower().Contains(lower) == true)));
     }
 
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
     [RelayCommand] private void HideSearchPanel() { IsSearchPanelVisible = false; }
 
+    // ── Selected invoice ───────────────────────────────────────────────────
     partial void OnSelectedInvoiceChanged(SalesCar? value)
     {
-        if (value is not null && !IsEditing)
-        {
-            IsSearchPanelVisible = false;
-            FormItem = CloneInvoice(value);
-            LoadPaymentsAsync(value.SalesId).ConfigureAwait(false);
-        }
+        if (value is null || IsEditing) return;
+
+        IsSearchPanelVisible = false;
+        FormItem = CloneInvoice(value);
+        SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
+        SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
+        LoadPaymentsAsync(value.SalesId).ConfigureAwait(false);
     }
 
     private async Task LoadPaymentsAsync(int salesId)
@@ -118,43 +143,68 @@ public partial class SalesCarViewModel : ObservableObject
         try
         {
             using var db = _dbFactory.CreateConnection();
-            var payments = await db.QueryAsync<SalesCarPayment>("SELECT * FROM Sales_Car_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
+            var payments = await db.QueryAsync<SalesCarPayment>(
+                "SELECT * FROM Sales_Car_Payments WHERE SalesId = @SalesId",
+                new { SalesId = salesId });
             FormPayments = new ObservableCollection<SalesCarPayment>(payments);
             CalculatePayedTotal();
         }
         catch (Exception ex) { StatusMessage = "خطأ في تحميل المدفوعات: " + ex.Message; }
     }
 
+    // ── Add new ────────────────────────────────────────────────────────────
     [RelayCommand]
     public async Task AddNewAsync()
     {
-        var item = new SalesCar
+        await Task.CompletedTask;
+
+        _isInsertMode = true;
+        IsEditing = true;
+        SelectedInvoice = null;
+
+        FormItem = new SalesCar
         {
             SalesDate = DateTime.Now,
             CusId = Customers.FirstOrDefault()?.CusId ?? 0,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
-        await Task.CompletedTask;
 
-        _isInsertMode = true;
-        IsEditing = true;
-        SelectedInvoice = null;
-        FormItem = item;
         FormPayments.Clear();
         TotalPayed = 0;
-        CurrentPayment = new SalesCarPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new SalesCarPayment
+        {
+            SalesId = FormItem.SalesId,
+            PayDate = DateTime.Now,
+            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
+        };
+
+        SelectedCarDisplay = null;
+        SelectedCustomerDisplay = null;
+
+        // Re-seed popup lists
+        FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+        FilteredCarsList = new ObservableCollection<Car>(Cars.Where(c => c.Active));
     }
 
+    // ── Edit selected ──────────────────────────────────────────────────────
     [RelayCommand]
     public void EditSelected()
     {
         if (SelectedInvoice is null) return;
         FormItem = CloneInvoice(SelectedInvoice);
+        SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName;
+        SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == FormItem.CarId)?.ChassisNo;
         _isInsertMode = false;
         IsEditing = true;
+
+        // Seed popup lists (include current car even if inactive)
+        FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+        FilteredCarsList = new ObservableCollection<Car>(
+            Cars.Where(c => c.Active || c.CarId == FormItem.CarId));
     }
 
+    // ── Cancel ─────────────────────────────────────────────────────────────
     [RelayCommand]
     public void CancelEdit()
     {
@@ -164,19 +214,25 @@ public partial class SalesCarViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         CurrentPayment = new SalesCarPayment { PayDate = DateTime.Now };
+        SelectedCarDisplay = null;
+        SelectedCustomerDisplay = null;
+        IsCustomerPopupOpen = false;
+        IsCarPopupOpen = false;
         StatusMessage = null;
     }
 
+    // ── Save ───────────────────────────────────────────────────────────────
     [RelayCommand]
     public async Task SaveAsync()
     {
         if (FormItem is null) return;
-        if (FormItem.CusId <= 0)
-        { StatusMessage = "⚠️ يجب اختيار العميل."; return; }
+        if (FormItem.CusId <= 0) { StatusMessage = "⚠️ يجب اختيار العميل."; return; }
+        if (FormItem.CarId <= 0) { StatusMessage = "⚠️ يجب اختيار الموتوسيكل."; return; }
 
         try
         {
-            var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            var affectedCashIds = FormPayments
+                .Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
             int? oldCusId = null;
 
             if (!_isInsertMode)
@@ -198,6 +254,11 @@ public partial class SalesCarViewModel : ObservableObject
             using var tx = db.BeginTransaction();
             try
             {
+                // Mark car as sold / inactive
+                await db.ExecuteAsync(
+                    "UPDATE Cars SET Active = 0 WHERE Car_ID = @CarId",
+                    new { CarId = FormItem.CarId }, tx);
+
                 if (_isInsertMode)
                 {
                     FormItem.SalesId = await _salesCarRepository.GetNextIdAsync();
@@ -205,8 +266,13 @@ public partial class SalesCarViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Sales_Car (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Notes, AddDate, AddPc, AddUser) 
-                        VALUES (@SalesId, @SalesDate, @CusId, @CarId, @Mileage, @Total, @Notes, @AddDate, @AddPc, @AddUser)", FormItem, tx);
+                        INSERT INTO Sales_Car
+                            (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Notes,
+                             AddDate, AddPc, AddUser)
+                        VALUES
+                            (@SalesId, @SalesDate, @CusId, @CarId, @Mileage, @Total, @Notes,
+                             @AddDate, @AddPc, @AddUser)",
+                        FormItem, tx);
                 }
                 else
                 {
@@ -214,23 +280,32 @@ public partial class SalesCarViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        UPDATE Sales_Car SET SalesDate=@SalesDate, CusId=@CusId, CarID=@CarId, Mileage=@Mileage, 
-                        Total=@Total, Notes=@Notes, EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
-                        WHERE Sales_ID = @SalesId", FormItem, tx);
-                    await db.ExecuteAsync("DELETE FROM Sales_Car_Payments WHERE SalesId = @SalesId", new { SalesId = FormItem.SalesId }, tx);
+                        UPDATE Sales_Car
+                        SET SalesDate = @SalesDate, CusId = @CusId, CarID = @CarId,
+                            Mileage   = @Mileage,   Total = @Total,  Notes = @Notes,
+                            EditDate  = @EditDate,  EditPc = @EditPc, EditUser = @EditUser
+                        WHERE Sales_ID = @SalesId",
+                        FormItem, tx);
+                    await db.ExecuteAsync(
+                        "DELETE FROM Sales_Car_Payments WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
                 }
 
-                int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Car_Payments", transaction: tx);
+                int maxPayId = await db.QuerySingleAsync<int>(
+                    "SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Car_Payments",
+                    transaction: tx);
+
                 foreach (var p in FormPayments)
                 {
-                    // Ensure valid dates to prevent SqlDateTime overflow (1/1/1753)
                     if (p.PayDate < new DateTime(1753, 1, 1)) p.PayDate = DateTime.Now;
-
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
-                        INSERT INTO Sales_Car_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID) 
-                        VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)", p, tx);
+                        INSERT INTO Sales_Car_Payments
+                            (Pay_ID, PayDate, PayMoney, CashID, Notes, SalesID)
+                        VALUES
+                            (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @SalesId)",
+                        p, tx);
                 }
 
                 tx.Commit();
@@ -252,6 +327,7 @@ public partial class SalesCarViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }
     }
 
+    // ── Delete ─────────────────────────────────────────────────────────────
     [RelayCommand]
     public async Task DeleteAsync()
     {
@@ -265,15 +341,18 @@ public partial class SalesCarViewModel : ObservableObject
             using var tx = db.BeginTransaction();
             try
             {
-                await db.ExecuteAsync("DELETE FROM Sales_Car_Payments WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
-                await db.ExecuteAsync("DELETE FROM Sales_Car WHERE Sales_ID = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
+                await db.ExecuteAsync(
+                    "DELETE FROM Sales_Car_Payments WHERE SalesId = @SalesId",
+                    new { SalesId = SelectedInvoice.SalesId }, tx);
+                await db.ExecuteAsync(
+                    "DELETE FROM Sales_Car WHERE Sales_ID = @SalesId",
+                    new { SalesId = SelectedInvoice.SalesId }, tx);
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }
 
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
-
             await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedInvoice.CusId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
@@ -282,33 +361,142 @@ public partial class SalesCarViewModel : ObservableObject
             FormPayments.Clear();
             TotalPayed = 0;
             SelectedInvoice = null;
+            SelectedCarDisplay = null;
+            SelectedCustomerDisplay = null;
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
 
-    // --- Payments ---
+    // ── Payments ───────────────────────────────────────────────────────────
     [RelayCommand]
     private void AddPayment()
     {
         if (CurrentPayment.PayMoney <= 0 || CurrentPayment.CashId <= 0) return;
         FormPayments.Add(CurrentPayment);
         CalculatePayedTotal();
-        CurrentPayment = new SalesCarPayment { SalesId = FormItem.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new SalesCarPayment
+        {
+            SalesId = FormItem.SalesId,
+            PayDate = DateTime.Now,
+            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
+        };
     }
 
     [RelayCommand]
     private void RemovePayment(SalesCarPayment payment)
     {
-        if (payment != null && FormPayments.Contains(payment)) { FormPayments.Remove(payment); CalculatePayedTotal(); }
+        if (payment != null && FormPayments.Contains(payment))
+        {
+            FormPayments.Remove(payment);
+            CalculatePayedTotal();
+        }
     }
 
-    private void CalculatePayedTotal() => TotalPayed = FormPayments.Sum(p => p.PayMoney);
+    private void CalculatePayedTotal() =>
+        TotalPayed = FormPayments.Sum(p => p.PayMoney);
 
-    private SalesCar CloneInvoice(SalesCar s) => new()
+    // ── Customer popup commands ────────────────────────────────────────────
+
+    [RelayCommand]
+    private void OpenCustomerSearch()
     {
-        SalesId = s.SalesId, SalesDate = s.SalesDate, CusId = s.CusId, CarId = s.CarId,
-        Mileage = s.Mileage, Total = s.Total, Notes = s.Notes,
-        AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
+        IsCarPopupOpen = false;   // close car popup if open
+        CustomerSearchText = string.Empty;
+        FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+        IsCustomerPopupOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseCustomerSearch()
+    {
+        IsCustomerPopupOpen = false;
+        CustomerSearchText = string.Empty;
+    }
+
+    [RelayCommand]
+    private void SelectCustomer(Customer customer)
+    {
+        if (customer is null) return;
+        FormItem.CusId = customer.CusId;
+        SelectedCustomerDisplay = customer.CusName;
+        IsCustomerPopupOpen = false;
+        CustomerSearchText = string.Empty;
+    }
+
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+        else
+        {
+            var lower = value.ToLower();
+            FilteredCustomersList = new ObservableCollection<Customer>(
+                Customers.Where(c =>
+                    c.CusName?.ToLower().Contains(lower) == true ||
+                    c.CusId.ToString().Contains(lower)));
+        }
+    }
+
+    // ── Car popup commands ─────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void OpenCarSearch()
+    {
+        IsCustomerPopupOpen = false;   // close customer popup if open
+        CarSearchText = string.Empty;
+        FilteredCarsList = new ObservableCollection<Car>(
+            Cars.Where(c => c.Active || c.CarId == FormItem.CarId));
+        IsCarPopupOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseCarSearch()
+    {
+        IsCarPopupOpen = false;
+        CarSearchText = string.Empty;
+    }
+
+    [RelayCommand]
+    private void SelectCar(Car car)
+    {
+        if (car is null) return;
+        FormItem.CarId = car.CarId;
+        FormItem.Mileage = car.Mileage;  
+        SelectedCarDisplay = car.ChassisNo;
+        IsCarPopupOpen = false;
+        CarSearchText = string.Empty;
+        OnPropertyChanged(nameof(FormItem));
+    }
+
+    partial void OnCarSearchTextChanged(string value)
+    {
+        var pool = Cars.Where(c => c.Active || c.CarId == FormItem.CarId);
+        if (string.IsNullOrWhiteSpace(value))
+            FilteredCarsList = new ObservableCollection<Car>(pool);
+        else
+        {
+            var lower = value.ToLower();
+            FilteredCarsList = new ObservableCollection<Car>(
+                pool.Where(c =>
+                    c.ChassisNo?.ToLower().Contains(lower) == true ||
+                    c.PlateNo?.ToLower().Contains(lower) == true ||
+                    c.MotorNo?.ToLower().Contains(lower) == true));
+        }
+    }
+
+    // ── Helper ─────────────────────────────────────────────────────────────
+    private static SalesCar CloneInvoice(SalesCar s) => new()
+    {
+        SalesId = s.SalesId,
+        SalesDate = s.SalesDate,
+        CusId = s.CusId,
+        CarId = s.CarId,
+        Mileage = s.Mileage,
+        Total = s.Total,
+        Notes = s.Notes,
+        AddUser = s.AddUser,
+        AddDate = s.AddDate,
+        AddPc = s.AddPc
     };
 }

@@ -205,8 +205,8 @@
                                         <RowDefinition Height="12" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    
-                                    <!-- Row 0: Model | Year | Color -->
+
+                                    <!--  Row 0: Model | Year | Color  -->
                                     <Grid Grid.Row="0">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="80" />
@@ -219,7 +219,7 @@
                                             <ColumnDefinition Width="200" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        
+
                                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource SectionLabel}" Text="الموديل" />
                                         <ComboBox Grid.Column="1" Padding="8,5" DisplayMemberPath="ModelName" FontSize="13"
                                                   ItemsSource="{Binding CarModels}"
@@ -234,13 +234,12 @@
                                                   ItemsSource="{Binding Colors}"
                                                   SelectedValue="{Binding CarColorId}"
                                                   SelectedValuePath="ColorId" />
-                                        
-                                        <CheckBox Grid.Column="8" VerticalAlignment="Center" HorizontalAlignment="Right"
-                                                  IsChecked="{Binding CarActive}" Content="نشط"
-                                                  FontSize="13" FontWeight="SemiBold" Foreground="#6D28D9" />
+
+                                        <!--<CheckBox Grid.Column="8" HorizontalAlignment="Right" VerticalAlignment="Center" Content="نشط" FontSize="13" FontWeight="SemiBold" Foreground="#6D28D9"
+                                                  IsChecked="{Binding CarActive}" />-->
                                     </Grid>
 
-                                    <!-- Row 2: Chassis | Motor | Plate | Notes -->
+                                    <!--  Row 2: Chassis | Motor | Plate | Notes  -->
                                     <Grid Grid.Row="2">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="80" />

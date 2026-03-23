@@ -66,8 +66,8 @@
                                   Padding="8,6" VerticalAlignment="Center"
                                   Background="White">
                             <ComboBoxItem Content="الكل" FontWeight="SemiBold"/>
-                            <ComboBoxItem Content="نشط " Foreground="#10B981" FontWeight="Bold"/>
-                            <ComboBoxItem Content="غير نشط " Foreground="#EF4444" FontWeight="Bold"/>
+                            <ComboBoxItem Content="متاح بالمخزن " Foreground="#10B981" FontWeight="Bold"/>
+                            <ComboBoxItem Content="مباع " Foreground="#EF4444" FontWeight="Bold"/>
                         </ComboBox>
 
                         <Border Background="#F8FAFC"
