@@ -17,6 +17,7 @@ public partial class SalesCarViewModel : ObservableObject
     private readonly IRepository<Customer> _customerRepository;
     private readonly IRepository<Cash> _cashRepository;
     private readonly IRepository<Car> _carRepository;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
@@ -43,13 +44,15 @@ public partial class SalesCarViewModel : ObservableObject
         IRepository<SalesCar> salesCarRepository,
         IRepository<Customer> customerRepository,
         IRepository<Cash> cashRepository,
-        IRepository<Car> carRepository)
+        IRepository<Car> carRepository,
+        CompositeKeyRepository compositeRepo)
     {
         _dbFactory = dbFactory;
         _salesCarRepository = salesCarRepository;
         _customerRepository = customerRepository;
         _cashRepository = cashRepository;
         _carRepository = carRepository;
+        _compositeRepo = compositeRepo;
     }
 
     [RelayCommand]
@@ -67,6 +70,7 @@ public partial class SalesCarViewModel : ObservableObject
             Cars = new ObservableCollection<Car>(cars);
 
             await LoadInvoicesAsync();
+            await AddNewAsync();
         }
         catch (Exception ex)
         {
@@ -159,7 +163,7 @@ public partial class SalesCarViewModel : ObservableObject
         FormItem = new SalesCar();
         FormPayments.Clear();
         TotalPayed = 0;
-        CurrentPayment = new SalesCarPayment();
+        CurrentPayment = new SalesCarPayment { PayDate = DateTime.Now };
         StatusMessage = null;
     }
 
@@ -172,6 +176,23 @@ public partial class SalesCarViewModel : ObservableObject
 
         try
         {
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            int? oldCusId = null;
+
+            if (!_isInsertMode)
+            {
+                using var dbPre = _dbFactory.CreateConnection();
+                var oldCashIds = await dbPre.QueryAsync<int>(
+                    "SELECT DISTINCT CashID FROM Sales_Car_Payments WHERE SalesID = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var cid in oldCashIds)
+                    if (cid > 0 && !affectedCashIds.Contains(cid)) affectedCashIds.Add(cid);
+
+                oldCusId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT CusId FROM Sales_Car WHERE Sales_ID = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+            }
+
             using var db = _dbFactory.CreateConnection();
             db.Open();
             using var tx = db.BeginTransaction();
@@ -202,6 +223,9 @@ public partial class SalesCarViewModel : ObservableObject
                 int maxPayId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Pay_ID), 0) FROM Sales_Car_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
+                    // Ensure valid dates to prevent SqlDateTime overflow (1/1/1753)
+                    if (p.PayDate < new DateTime(1753, 1, 1)) p.PayDate = DateTime.Now;
+
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
@@ -213,6 +237,13 @@ public partial class SalesCarViewModel : ObservableObject
                 StatusMessage = "تم الحفظ بنجاح ✓";
             }
             catch { tx.Rollback(); throw; }
+
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+            if (oldCusId.HasValue && oldCusId.Value != FormItem.CusId)
+                await _compositeRepo.RecalcBalanceForCustomerAsync(oldCusId.Value);
+            await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
 
             _isInsertMode = false;
             IsEditing = false;
@@ -227,6 +258,8 @@ public partial class SalesCarViewModel : ObservableObject
         if (SelectedInvoice is null) return;
         try
         {
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+
             using var db = _dbFactory.CreateConnection();
             db.Open();
             using var tx = db.BeginTransaction();
@@ -237,6 +270,11 @@ public partial class SalesCarViewModel : ObservableObject
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }
+
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+            await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedInvoice.CusId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;

@@ -2,172 +2,251 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:MotorBike.Converters"
-             mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              Loaded="OnLoaded" FlowDirection="RightToLeft">
+
     <UserControl.Resources>
-        <conv:IdToNameConverter x:Key="IdToNameConverter" />
+        <conv:IdToNameConverter x:Key="IdToNameConverter"/>
     </UserControl.Resources>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
 
-        <!-- DataGrid Card (Master) -->
-        <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+    <Grid Background="#F8FAFC">
+        <Border Background="White" CornerRadius="16" Margin="24"
+                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
+                <DropShadowEffect Color="#0F172A" Opacity="0.04"
+                                  BlurRadius="24" ShadowDepth="4" Direction="270"/>
             </Border.Effect>
-            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
-                      GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="44"
-                      ColumnHeaderHeight="48" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F8FAFC"/>
-                        <Setter Property="Foreground" Value="#475569"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Padding" Value="16,12"/>
-                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-                <DataGrid.RowStyle>
-                    <Style TargetType="DataGridRow">
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#DBEAFE"/>
-                                <Setter Property="Foreground" Value="#1D4ED8"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#EFF6FF"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.RowStyle>
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="كود" Binding="{Binding CarId}" Width="80"/>
-                    <DataGridTemplateColumn Header="الموديل" Width="*">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock VerticalAlignment="Center" Padding="4,0">
-                                    <TextBlock.Text>
-                                        <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="ModelId,ModelName">
-                                            <Binding Path="ModelId" />
-                                            <Binding Path="DataContext.CarModels" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="السنة" Binding="{Binding YearNo}" Width="80"/>
-                    <DataGridTextColumn Header="رقم الشاسيه" Binding="{Binding ChassisNo}" Width="*"/>
-                    <DataGridTextColumn Header="رقم الموتور" Binding="{Binding MotorNo}" Width="*"/>
-                    <DataGridTextColumn Header="رقم اللوحة" Binding="{Binding PlateNo}" Width="100"/>
-                    <DataGridTextColumn Header="كيلومتر" Binding="{Binding Mileage}" Width="80"/>
-                    <DataGridTemplateColumn Header="اللون" Width="100">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock VerticalAlignment="Center" Padding="4,0">
-                                    <TextBlock.Text>
-                                        <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="ColorId,ColorName">
-                                            <Binding Path="ColorId" />
-                                            <Binding Path="DataContext.Colors" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    <DataGridTemplateColumn Header="نشط" Width="80">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <CheckBox IsChecked="{Binding Active, Mode=OneWay}" Style="{StaticResource ToggleSwitchStyle}" IsEnabled="False" HorizontalAlignment="Center"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
 
-        <!-- Form Card (Detail) -->
-        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="24" BorderBrush="#E2E8F0" BorderThickness="1">
-            <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
-            </Border.Effect>
-            <StackPanel>
-                <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- header / search bar -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- separator -->
+                    <RowDefinition Height="*"/>
+                    <!-- DataGrid -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- status strip -->
+                </Grid.RowDefinitions>
+
+                <!-- ═══ HEADER ══════════════════════════════════════════════ -->
+                <Grid Grid.Row="0" Margin="24,20,24,20">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="24"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="24"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="16"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="16"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="16"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
 
-                    <!-- Row 0: ID, Model, Year -->
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="كود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.CarId}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#94A3B8"/>
-
-                    <TextBlock Grid.Row="0" Grid.Column="3" Text="الموديل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding CarModels}" DisplayMemberPath="ModelName" SelectedValuePath="ModelId" SelectedValue="{Binding FormItem.ModelId}" Padding="10,6" FontSize="14"/>
-
-                    <TextBlock Grid.Row="0" Grid.Column="6" Text="سنة الصنع" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.YearNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-
-                    <!-- Row 2: Chassis, Motor, Plate -->
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="رقم الشاسيه" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.ChassisNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-
-                    <TextBlock Grid.Row="2" Grid.Column="3" Text="رقم الموتور" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.MotorNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-
-                    <TextBlock Grid.Row="2" Grid.Column="6" Text="رقم اللوحة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.PlateNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-
-                    <!-- Row 4: Mileage, Color, Active -->
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="كيلومتر" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-
-                    <TextBlock Grid.Row="4" Grid.Column="3" Text="اللون" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="4" Grid.Column="4" ItemsSource="{Binding Colors}" DisplayMemberPath="ColorName" SelectedValuePath="ColorId" SelectedValue="{Binding FormItem.ColorId}" Padding="10,6" FontSize="14"/>
-
-                    <CheckBox Grid.Row="4" Grid.Column="7" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
-
-                    <!-- Row 6: Notes -->
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                </Grid>
-
-                <DockPanel>
-                    <!-- Action Buttons -->
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    <!-- Icon + title -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Border Background="#EDE9FE" CornerRadius="12"
+                                Padding="14,12" Margin="0,0,16,0">
+                            <TextBlock Text="🏍️" FontSize="26"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="قائمة الموتوسيكلات"
+                                       FontSize="22" FontWeight="Bold"
+                                       Foreground="#1E293B"/>
+                            <TextBlock Text="{Binding FilteredCars.Count,
+                                               StringFormat='إجمالي \{0\} موتوسيكل في النتائج'}"
+                                       FontSize="13" Foreground="#64748B"
+                                       Margin="0,4,0,0"/>
+                        </StackPanel>
                     </StackPanel>
 
-                    <!-- Status Message -->
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
-                </DockPanel>
-            </StackPanel>
+                    <!-- Filter and Search -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="الحالة:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#64748B" FontSize="13" FontWeight="SemiBold"/>
+                        <ComboBox Width="140" Margin="0,0,16,0" 
+                                  SelectedIndex="{Binding ActiveFilter}"
+                                  Padding="8,6" VerticalAlignment="Center"
+                                  Background="White">
+                            <ComboBoxItem Content="الكل" FontWeight="SemiBold"/>
+                            <ComboBoxItem Content="نشط " Foreground="#10B981" FontWeight="Bold"/>
+                            <ComboBoxItem Content="غير نشط " Foreground="#EF4444" FontWeight="Bold"/>
+                        </ComboBox>
+
+                        <Border Background="#F8FAFC"
+                                CornerRadius="10" BorderBrush="#E2E8F0"
+                                BorderThickness="1" Padding="12,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🔍" FontSize="15"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,0" Foreground="#94A3B8"/>
+                                <TextBox Width="300"
+                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         BorderThickness="0" Background="Transparent"
+                                         FontSize="14" Foreground="#1E293B"
+                                         VerticalAlignment="Center" Padding="0,8">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="TextBox">
+                                                        <Grid>
+                                                            <TextBlock Text="ابحث..."
+                                                                       Foreground="#CBD5E1" FontSize="13"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="2,0,0,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Value="">
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Separator -->
+                <Rectangle Grid.Row="1" Height="1" Fill="#E2E8F0"/>
+
+                <!-- ═══ DATA GRID ════════════════════════════════════════════ -->
+                <DataGrid Grid.Row="2"
+                          ItemsSource="{Binding FilteredCars}"
+                          SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                          AutoGenerateColumns="False" IsReadOnly="True"
+                          CanUserAddRows="False" SelectionMode="Single"
+                          GridLinesVisibility="Horizontal"
+                          HeadersVisibility="Column"
+                          BorderThickness="0" RowHeight="46"
+                          ColumnHeaderHeight="50"
+                          AlternatingRowBackground="#F8FAFC"
+                          Background="White" Foreground="#1E293B"
+                          FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
+
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background"   Value="#F1F5F9"/>
+                            <Setter Property="Foreground"   Value="#334155"/>
+                            <Setter Property="FontWeight"   Value="SemiBold"/>
+                            <Setter Property="Padding"      Value="16,12"/>
+                            <Setter Property="BorderBrush"  Value="#E2E8F0"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Cursor" Value="Hand"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#DBEAFE"/>
+                                    <Setter Property="Foreground" Value="#1D4ED8"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#EFF6FF"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <DataGrid.Columns>
+
+                        <!-- Highlight matched row indicator -->
+                        <DataGridTextColumn Header="كود"
+                                            Binding="{Binding CarId}"
+                                            Width="70"/>
+
+                        <DataGridTemplateColumn Header="الموديل" Width="160">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock VerticalAlignment="Center" Padding="6,0">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource IdToNameConverter}"
+                                                          ConverterParameter="ModelId,ModelName">
+                                                <Binding Path="ModelId"/>
+                                                <Binding Path="DataContext.CarModels"
+                                                         RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="السنة"
+                                            Binding="{Binding YearNo}"
+                                            Width="80"/>
+
+                        <DataGridTextColumn Header="رقم الشاسيه"
+                                            Binding="{Binding ChassisNo}"
+                                            Width="*"/>
+
+                        <DataGridTextColumn Header="رقم الموتور"
+                                            Binding="{Binding MotorNo}"
+                                            Width="*"/>
+
+                        <DataGridTextColumn Header="رقم اللوحة"
+                                            Binding="{Binding PlateNo}"
+                                            Width="110"/>
+
+                        <DataGridTextColumn Header="كيلومتر"
+                                            Binding="{Binding Mileage}"
+                                            Width="90"/>
+
+                        <DataGridTemplateColumn Header="اللون" Width="110">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock VerticalAlignment="Center" Padding="6,0">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource IdToNameConverter}"
+                                                          ConverterParameter="ColorId,ColorName">
+                                                <Binding Path="ColorId"/>
+                                                <Binding Path="DataContext.Colors"
+                                                         RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="نشط" Width="70">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding Active, Mode=OneWay}"
+                                              Style="{StaticResource ToggleSwitchStyle}"
+                                              IsEnabled="False"
+                                              HorizontalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="ملاحظات"
+                                            Binding="{Binding Notes}"
+                                            Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- ═══ STATUS STRIP ════════════════════════════════════════ -->
+                <Border Grid.Row="3" Background="#F8FAFC"
+                        BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"
+                        Padding="24,10">
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="#10B981" FontSize="13"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>
