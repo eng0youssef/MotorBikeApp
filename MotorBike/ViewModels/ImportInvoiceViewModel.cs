@@ -17,6 +17,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     private readonly IRepository<ImportInvCar> _carRepo;
     private readonly IRepository<ImportExp> _expRepo;
     private readonly IRepository<ImportPayment> _paymentRepo;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     // Lookup Repos
     private readonly IRepository<ImportSupplier> _supplierRepo;
@@ -45,13 +46,15 @@ public partial class ImportInvoiceViewModel : ObservableObject
         IRepository<Item> itemsLookupRepo,
         IRepository<Car> carsLookupRepo,
         IRepository<CarModel> carModelRepo,
-        IRepository<Color> colorRepo)
+        IRepository<Color> colorRepo,
+        CompositeKeyRepository compositeRepo)
     {
         _invoiceRepo = invoiceRepo;
         _itemRepo = itemRepo;
         _carRepo = carRepo;
         _expRepo = expRepo;
         _paymentRepo = paymentRepo;
+        _compositeRepo = compositeRepo;
 
         _supplierRepo = supplierRepo;
         _omlaRepo = omlaRepo;
@@ -73,6 +76,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
     // Tracks if current form item is a new record or modifying an existing one
     private bool _isNewInvoice = true;
+    private int? _oldSuppId; // لتتبع المورد القديم عند التعديل
 
     [ObservableProperty] private ObservableCollection<ImportInvoice> _invoices = [];
     [ObservableProperty] private ObservableCollection<ImportInvoice> _filteredInvoices = [];
@@ -178,23 +182,48 @@ public partial class ImportInvoiceViewModel : ObservableObject
     private void SelectSupplier(ImportSupplier supplier)
     {
         if (supplier == null) return;
+
+        // ── التحقق من تغيير العملة ──────────────────────────────────────
+        bool currencyChanging = FormItem.OmlaId > 0 && FormItem.OmlaId != supplier.OmlaId;
+
+        if (currencyChanging && FormPayments.Any())
+        {
+            var result = MessageBox.Show(
+                "تغيير المورد سيؤدي لتغيير العملة وحذف جميع المدفوعات المسجلة.\nهل تريد المتابعة؟",
+                "تنبيه تغيير العملة",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (result != MessageBoxResult.Yes)
+            {
+                // رجّع المورد القديم
+                _isSelectingSupplier = true;
+                var oldSupp = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId);
+                SupplierSearchText = oldSupp?.SuppName ?? string.Empty;
+                IsSupplierSearchPopupOpen = false;
+                _isSelectingSupplier = false;
+                return;
+            }
+
+            // المستخدم وافق — نمسح المدفوعات
+            FormPayments.Clear();
+        }
+
+        // ── تعيين المورد ─────────────────────────────────────────────────
         _isSelectingSupplier = true;
         FormItem.SuppId = supplier.SuppId;
         SupplierSearchText = supplier.SuppName;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
-        // تعيين العملة وسعر الصرف تلقائياً من بيانات المورد — فقط للفواتير الجديدة
-        if (_isNewInvoice)
-        {
-            FormItem.OmlaId = supplier.OmlaId;
-            var omla = Omlas.FirstOrDefault(o => o.OmlaId == supplier.OmlaId);
-            if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
-            SelectedOmlaId = supplier.OmlaId;
-            FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
-            OnPropertyChanged(nameof(FormItem));
-            CalculateTotals(false);
-        }
+        // ── تحديث العملة وسعر الصرف والخزائن ─────────────────────────────
+        FormItem.OmlaId = supplier.OmlaId;
+        var omla = Omlas.FirstOrDefault(o => o.OmlaId == supplier.OmlaId);
+        if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
+        SelectedOmlaId = supplier.OmlaId;
+        FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
+        OnPropertyChanged(nameof(FormItem));
+        CalculateTotals(false);
     }
 
     // ── InvType (FOB / CIF) ────────────────────────────────────────────────
@@ -355,6 +384,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             OmlaRate = 1
         };
         FormItem.SuppId = 0;
+        _oldSuppId = null;
         SelectedOmlaId = 0;
 
         _isSelectingSupplier = true;
@@ -438,6 +468,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             if (inv != null)
             {
                 FormItem = inv;
+                _oldSuppId = inv.SuppId;
                 _isSelectingSupplier = true;
                 SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == inv.SuppId)?.SuppName ?? string.Empty;
                 IsSupplierSearchPopupOpen = false;
@@ -623,7 +654,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     // ── Adding Sub-Payments ──────────────────────────────────────────────
 
     [RelayCommand]
-    public void AddSubPayment()
+    public async Task AddSubPayment()
     {
         if (CurrentSubPayment.PayMoney <= 0)
         {
@@ -631,9 +662,16 @@ public partial class ImportInvoiceViewModel : ObservableObject
             return;
         }
 
-        // تعيين سعر صرف الخزينة تلقائياً للدفعة
-        var cash = CashList.FirstOrDefault(c => c.CashId == CurrentSubPayment.CashId);
-        if (cash != null) CurrentSubPayment.OmlaRate = cash.OmlaRate;
+        // جلب سعر الصرف المحدث للخزينة من الداتابيز عشان فرق العملة يتحسب صح
+        var liveCash = await _cashRepo.GetByIdAsync(CurrentSubPayment.CashId);
+        if (liveCash != null) 
+        {
+            CurrentSubPayment.OmlaRate = liveCash.OmlaRate;
+            
+            // تحديث القائمة المحلية عشان لو استخدمناها تاني
+            var localCash = CashList.FirstOrDefault(c => c.CashId == CurrentSubPayment.CashId);
+            if (localCash != null) localCash.OmlaRate = liveCash.OmlaRate;
+        }
 
         // تعيين عملة الدفعة من عملة الفاتورة
         CurrentSubPayment.OmlaId = FormItem.OmlaId;
@@ -712,6 +750,15 @@ public partial class ImportInvoiceViewModel : ObservableObject
             expTotal += exp.PayTotal * (double)cashRate;
         }
         FormItem.ExpTotal = Math.Round(expTotal, 2);
+
+        // حساب فرق العملة من المدفوعات:
+        // لكل دفعة: (سعر صرف الدفعة - سعر صرف الفاتورة) * المبلغ المدفوع
+        double calculatedFrokOmla = 0;
+        foreach (var pay in FormPayments)
+        {
+            calculatedFrokOmla += pay.PayMoney * (double)(pay.OmlaRate - (decimal)omlaRate);
+        }
+        FormItem.FrokOmla = Math.Round(calculatedFrokOmla, 2);
 
         // 4) التكلفة الإجمالية بالعملة المحلية:
         //    (إجمالي الفاتورة × سعر الصرف) + المصروفات + فرق العملات
@@ -811,7 +858,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             }
 
             // Insert new sub-items
-            int nextItemId = await _itemRepo.GetNextIdAsync();
+            int nextItemId = Math.Max(await _itemRepo.GetNextIdAsync(), FormItems.Any() ? FormItems.Max(i => i.Id) + 1 : 1);
             foreach (var item in FormItems)
             {
                 if (item.Id == 0) item.Id = nextItemId++;
@@ -819,8 +866,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _itemRepo.InsertAsync(item);
             }
 
-            int nextCarId = await _carsLookupRepo.GetNextIdAsync();
-            int nextImportCarId = await _carRepo.GetNextIdAsync();
+            int nextCarId = await _carsLookupRepo.GetNextIdAsync(); // For actual Car records
+            int nextImportCarId = Math.Max(await _carRepo.GetNextIdAsync(), FormCars.Any() ? FormCars.Max(c => c.Id) + 1 : 1);
             foreach (var car in FormCars) 
             {
                 if (car.Id == 0) car.Id = nextImportCarId++;
@@ -840,7 +887,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _carRepo.InsertAsync(car);
             }
 
-            int nextExpId = await _expRepo.GetNextIdAsync();
+            int nextExpId = Math.Max(await _expRepo.GetNextIdAsync(), FormExps.Any() ? FormExps.Max(e => e.Id) + 1 : 1);
             foreach (var exp in FormExps)
             {
                 if (exp.Id == 0) exp.Id = nextExpId++;
@@ -851,7 +898,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _expRepo.InsertAsync(exp);
             }
 
-            int nextPayId = await _paymentRepo.GetNextIdAsync();
+            int nextPayId = Math.Max(await _paymentRepo.GetNextIdAsync(), FormPayments.Any() ? FormPayments.Max(p => p.PayId) + 1 : 1);
             foreach (var pay in FormPayments)
             {
                 if (pay.PayId == 0) pay.PayId = nextPayId++;
@@ -863,8 +910,43 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 await _paymentRepo.InsertAsync(pay);
             }
 
+            // ── إعادة حساب الأرصدة بعد الحفظ ──────────────────────────
+
+            // 1) إعادة حساب المخزون لكل صنف متأثر
+            var affectedItemIds = FormItems.Select(x => x.ItemId).Distinct().ToList();
+            if (!isNew)
+            {
+                // أضف الأصناف القديمة اللي ممكن تكون اتحذفت من الفاتورة
+                var oldItems = (await _itemRepo.GetAllAsync()).Where(x => x.InvId == FormItem.InvId);
+                foreach (var oi in oldItems)
+                    if (!affectedItemIds.Contains(oi.ItemId)) affectedItemIds.Add(oi.ItemId);
+            }
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // 2) إعادة حساب رصيد مورد الاستيراد
+            if (!isNew && _oldSuppId.HasValue && _oldSuppId.Value != FormItem.SuppId)
+                await _compositeRepo.RecalcBalanceForImportSupplierAsync(_oldSuppId.Value);
+            await _compositeRepo.RecalcBalanceForImportSupplierAsync(FormItem.SuppId);
+
+            // 3) إعادة حساب رصيد كل خزينة متأثرة (من المدفوعات + المصروفات)
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            foreach (var exp in FormExps)
+                if (!affectedCashIds.Contains(exp.CashId)) affectedCashIds.Add(exp.CashId);
+            if (!isNew)
+            {
+                var oldPayments = (await _paymentRepo.GetAllAsync()).Where(x => x.InvId == FormItem.InvId);
+                foreach (var op in oldPayments)
+                    if (!affectedCashIds.Contains(op.CashId)) affectedCashIds.Add(op.CashId);
+                var oldExps = (await _expRepo.GetAllAsync()).Where(x => x.InvId == FormItem.InvId);
+                foreach (var oe in oldExps)
+                    if (!affectedCashIds.Contains(oe.CashId)) affectedCashIds.Add(oe.CashId);
+            }
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
             IsEditing = false;
-            StatusMessage = "تم حفظ فاتورة الاستيراد بنجاح.";
+            StatusMessage = "تم حفظ فاتورة الاستيراد بنجاح ✓";
 
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
@@ -885,6 +967,13 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
         try
         {
+            // حفظ البيانات المتأثرة قبل الحذف لإعادة الحساب بعدها
+            var affectedItemIds = FormItems.Select(x => x.ItemId).Distinct().ToList();
+            var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            foreach (var exp in FormExps)
+                if (!affectedCashIds.Contains(exp.CashId)) affectedCashIds.Add(exp.CashId);
+            int deletedSuppId = SelectedInvoice.SuppId;
+
             // Delete sub-items first
             var existingItems = (await _itemRepo.GetAllAsync()).Where(x => x.InvId == SelectedInvoice.InvId);
             foreach (var i in existingItems) await _itemRepo.DeleteAsync(i.Id);
@@ -901,7 +990,20 @@ public partial class ImportInvoiceViewModel : ObservableObject
             // Delete main invoice
             await _invoiceRepo.DeleteAsync(SelectedInvoice.InvId);
 
-            StatusMessage = "تم الحذف بنجاح.";
+            // ── إعادة حساب الأرصدة بعد الحذف ──────────────────────────
+
+            // 1) إعادة حساب المخزون لكل صنف متأثر
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // 2) إعادة حساب رصيد مورد الاستيراد
+            await _compositeRepo.RecalcBalanceForImportSupplierAsync(deletedSuppId);
+
+            // 3) إعادة حساب رصيد كل خزينة متأثرة
+            foreach (var cashId in affectedCashIds)
+                await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+            StatusMessage = "تم الحذف بنجاح ✓";
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
             FilteredInvoices = new(Invoices);

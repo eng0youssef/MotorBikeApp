@@ -223,7 +223,26 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(PayMoney) FROM ReSales_Payments WHERE CashId = @CashId), 0)
                 - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashId = @CashId), 0)
                 - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId), 0)
             WHERE Cash_ID = @CashId";
         await db.ExecuteAsync(sql, new { CashId = cashId });
+    }
+
+    // ── Import Supplier Balance Recalculation ────────────────────────────
+
+    /// <summary>
+    /// يعيد حساب رصيد مورد الاستيراد (Bal) من كل الحركات:
+    /// رصيد افتتاحي + إجمالي فواتير الاستيراد (بالعملة المحلية) - مدفوعات فواتير الاستيراد (بالعملة المحلية)
+    /// </summary>
+    public async Task RecalcBalanceForImportSupplierAsync(int suppId)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            UPDATE Import_Suppliers SET Bal = 
+                ISNULL(Credit, 0) - ISNULL(Debit, 0) 
+                + ISNULL((SELECT SUM(InvTotal) FROM Import_Invoice WHERE SuppID = @SuppId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE SuppID = @SuppId), 0)
+            WHERE Supp_ID = @SuppId";
+        await db.ExecuteAsync(sql, new { SuppId = suppId });
     }
 }
