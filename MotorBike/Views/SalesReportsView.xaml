@@ -47,13 +47,19 @@
                 </StackPanel>
 
                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,20,15">
-                    <TextBlock Text="من تاريخ" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                    <DatePicker SelectedDate="{Binding FromDate}" Width="150" Padding="6" FontSize="14"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <CheckBox IsChecked="{Binding IsFromDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="من تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <DatePicker SelectedDate="{Binding FromDate}" IsEnabled="{Binding IsFromDateChecked}" Width="150" Padding="6" FontSize="14"/>
                 </StackPanel>
 
                 <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,20,15">
-                    <TextBlock Text="إلى تاريخ" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                    <DatePicker SelectedDate="{Binding ToDate}" Width="150" Padding="6" FontSize="14"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <CheckBox IsChecked="{Binding IsToDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="إلى تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <DatePicker SelectedDate="{Binding ToDate}" IsEnabled="{Binding IsToDateChecked}" Width="150" Padding="6" FontSize="14"/>
                 </StackPanel>
 
                 <!-- Dynamic elements based on selection -->

@@ -17,7 +17,7 @@ public class ReportGenerator
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public static byte[] GeneratePdf(Company company, string reportTitle, System.Data.DataView dataView)
+    public static byte[] GeneratePdf(Company company, string reportTitle, System.Data.DataView dataView, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
     {
         var dt = dataView.Table;
         var columns = new List<string>();
@@ -37,8 +37,8 @@ public class ReportGenerator
                 // Using a safe Arabic supporting font, default to Arial
                 page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(11).DirectionFromRightToLeft());
 
-                page.Header().Element(c => ComposeHeader(c, company, reportTitle));
-                page.Content().Element(c => ComposeContent(c, columns, dataView));
+                page.Header().Element(c => ComposeHeader(c, company, reportTitle, headerInfo));
+                page.Content().Element(c => ComposeContent(c, columns, dataView, footerTotals));
                 page.Footer().Element(ComposeFooter);
             });
         });
@@ -46,7 +46,7 @@ public class ReportGenerator
         return document.GeneratePdf();
     }
 
-    private static void ComposeHeader(IContainer container, Company company, string reportTitle)
+    private static void ComposeHeader(IContainer container, Company company, string reportTitle, Dictionary<string, string>? headerInfo)
     {
         container.Column(column =>
         {
@@ -91,53 +91,115 @@ public class ReportGenerator
             column.Item().PaddingTop(10).AlignCenter().Text(reportTitle)
                 .FontSize(20).SemiBold().FontColor(Colors.Black);
                 
+            if (headerInfo != null && headerInfo.Count > 0)
+            {
+                column.Item().PaddingTop(10).PaddingBottom(10).Column(col => 
+                {
+                    var items = headerInfo.ToList();
+                    for(int i = 0; i < items.Count; i+=2)
+                    {
+                         col.Item().PaddingBottom(8).AlignCenter().Row(r => 
+                         {
+                             // Right side item (First in RTL)
+                             r.AutoItem().Row(innerR => 
+                             {
+                                 innerR.AutoItem().PaddingLeft(5).Text(items[i].Key + " : ").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken4);
+                                 var targetText1 = innerR.ConstantItem(120).BorderBottom(1).BorderColor(Colors.Teal.Darken2)
+                                     .AlignCenter().Text(items[i].Value).FontSize(12).FontColor(Colors.Black).SemiBold();
+                                     
+                                 if (items[i].Value != null && items[i].Value.Any(c => char.IsDigit(c) && !char.IsLetter(c)) && !items[i].Value.Any(c => c >= 0x0600 && c <= 0x06FF))
+                                     targetText1.DirectionFromLeftToRight();
+                             });
+
+                             // Left side item (Second in RTL) if exists
+                             if(i + 1 < items.Count)
+                             {
+                                 r.ConstantItem(40); // Spacer
+                                 r.AutoItem().Row(innerR => 
+                                 {
+                                     innerR.AutoItem().PaddingLeft(5).Text(items[i+1].Key + " : ").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken4);
+                                     var targetText2 = innerR.ConstantItem(120).BorderBottom(1).BorderColor(Colors.Teal.Darken2)
+                                         .AlignCenter().Text(items[i+1].Value).FontSize(12).FontColor(Colors.Black).SemiBold();
+                                         
+                                     if (items[i+1].Value != null && items[i+1].Value.Any(c => char.IsDigit(c) && !char.IsLetter(c)) && !items[i+1].Value.Any(c => c >= 0x0600 && c <= 0x06FF))
+                                         targetText2.DirectionFromLeftToRight();
+                                 });
+                             }
+                         });
+                    }
+                });
+            }
+
             column.Item().PaddingBottom(15);
         });
     }
 
-    private static void ComposeContent(IContainer container, List<string> columns, System.Data.DataView dataView)
+    private static void ComposeContent(IContainer container, List<string> columns, System.Data.DataView dataView, Dictionary<string, string>? footerTotals)
     {
-        container.PaddingVertical(1).Table(table =>
+        container.PaddingVertical(1).Column(colContainer => 
         {
-            table.ColumnsDefinition(columnsDefinition =>
+            colContainer.Item().Table(table =>
             {
-                foreach (var col in columns)
+                table.ColumnsDefinition(columnsDefinition =>
                 {
-                    columnsDefinition.RelativeColumn();
+                    foreach (var col in columns)
+                    {
+                        columnsDefinition.RelativeColumn();
+                    }
+                });
+
+                // Header Row
+                table.Header(header =>
+                {
+                    foreach (var col in columns)
+                    {
+                        header.Cell().Background("#F1F5F9").BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
+                            .Padding(5).AlignCenter().Text(col).SemiBold();
+                    }
+                });
+
+                // Data Rows
+                foreach (System.Data.DataRowView rowView in dataView)
+                {
+                    var row = rowView.Row;
+                    foreach (var col in columns)
+                    {
+                        var val = row.Table.Columns.Contains(col) && row[col] != DBNull.Value ? row[col].ToString() : "";
+                        var cell = table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(5).AlignCenter();
+                        
+                        // If the text does not contain Arabic characters (is mostly numbers/dates/English), force LTR to avoid reversing like 2026-03 -> 30-6202
+                        bool containsArabic = val?.Any(c => c >= 0x0600 && c <= 0x06FF) ?? false;
+                        
+                        if (!containsArabic && !string.IsNullOrWhiteSpace(val))
+                        {
+                            cell.Text(val).FontSize(10).DirectionFromLeftToRight();
+                        }
+                        else
+                        {
+                            cell.Text(val).FontSize(10);
+                        }
+                    }
                 }
             });
 
-            // Header Row
-            table.Header(header =>
+            if (footerTotals != null && footerTotals.Count > 0)
             {
-                foreach (var col in columns)
+                colContainer.Item().PaddingTop(15).Background("#F1F5F9").Padding(10).Border(1).BorderColor(Colors.Grey.Lighten2).Row(r =>
                 {
-                    header.Cell().Background("#F1F5F9").BorderBottom(1).BorderColor(Colors.Grey.Lighten2)
-                        .Padding(5).AlignCenter().Text(col).SemiBold();
-                }
-            });
-
-            // Data Rows
-            foreach (System.Data.DataRowView rowView in dataView)
-            {
-                var row = rowView.Row;
-                foreach (var col in columns)
-                {
-                    var val = row.Table.Columns.Contains(col) && row[col] != DBNull.Value ? row[col].ToString() : "";
-                    var cell = table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten4).Padding(5).AlignCenter();
-                    
-                    // If the text does not contain Arabic characters (is mostly numbers/dates/English), force LTR to avoid reversing like 2026-03 -> 30-6202
-                    bool containsArabic = val?.Any(c => c >= 0x0600 && c <= 0x06FF) ?? false;
-                    
-                    if (!containsArabic && !string.IsNullOrWhiteSpace(val))
+                    foreach (var kv in footerTotals)
                     {
-                        cell.Text(val).FontSize(10).DirectionFromLeftToRight();
+                        r.RelativeItem().Column(c => 
+                        {
+                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(12).FontColor("#334155");
+                            
+                            bool isNumericOrDate = kv.Value?.Any(ch => char.IsDigit(ch) && !char.IsLetter(ch)) ?? false;
+                            if (isNumericOrDate && !string.IsNullOrWhiteSpace(kv.Value))
+                                c.Item().AlignCenter().Text(kv.Value).FontSize(13).FontColor("#1E293B").DirectionFromLeftToRight();
+                            else
+                                c.Item().AlignCenter().Text(kv.Value).FontSize(13).FontColor("#1E293B");
+                        });
                     }
-                    else
-                    {
-                        cell.Text(val).FontSize(10);
-                    }
-                }
+                });
             }
         });
     }

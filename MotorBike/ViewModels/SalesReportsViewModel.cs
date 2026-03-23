@@ -20,6 +20,9 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private DateTime _fromDate = DateTime.Now.AddMonths(-1);
     [ObservableProperty] private DateTime _toDate = DateTime.Now;
 
+    [ObservableProperty] private bool _isFromDateChecked = true;
+    [ObservableProperty] private bool _isToDateChecked = true;
+
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private Customer? _selectedCustomer;
     
@@ -53,6 +56,9 @@ public partial class SalesReportsViewModel : ObservableObject
         Items = new ObservableCollection<Item>(itms);
     }
 
+    private Dictionary<string, string>? _currentHeaderInfo;
+    private Dictionary<string, string>? _currentFooterTotals;
+
     [ObservableProperty] private string? _statusMessage;
 
     [RelayCommand]
@@ -64,8 +70,12 @@ public partial class SalesReportsViewModel : ObservableObject
             db.Open();
             string sql = "";
             var parameters = new DynamicParameters();
-            parameters.Add("FromDate", FromDate.Date);
-            parameters.Add("ToDate", ToDate.Date.AddDays(1).AddSeconds(-1));
+            
+            DateTime queryFromDate = IsFromDateChecked ? FromDate.Date : new DateTime(1900, 1, 1);
+            DateTime queryToDate = IsToDateChecked ? ToDate.Date.AddDays(1).AddSeconds(-1) : new DateTime(9999, 12, 31);
+            
+            parameters.Add("FromDate", queryFromDate);
+            parameters.Add("ToDate", queryToDate);
             
             if (SelectedReportType == "المبيعات بالشهور")
             {
@@ -128,6 +138,63 @@ public partial class SalesReportsViewModel : ObservableObject
                 dt.Load(reader);
             }
             ReportData = dt.DefaultView;
+            
+            // Generate Totals and Metadata for PDF Report
+            double totalSales = 0, totalReturns = 0;
+            int countSales = 0, countReturns = 0;
+
+            if (SelectedReportType == "المبيعات بالأصناف")
+            {
+                string itemFilterS = SelectedItem != null ? " AND S.ItemId = @ItemId " : "";
+                var salesSum = await db.QueryFirstOrDefaultAsync(
+                    "SELECT COUNT(DISTINCT M.Sales_ID) AS Cnt, ISNULL(SUM(S.Qty * (S.Price - S.Disc)), 0) AS Tot FROM Sales M INNER JOIN Sales_Sub S ON M.Sales_ID = S.SalesId WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate " + itemFilterS, parameters);
+                countSales = salesSum?.Cnt ?? 0;
+                totalSales = salesSum?.Tot ?? 0;
+
+                var resalesSum = await db.QueryFirstOrDefaultAsync(
+                    "SELECT COUNT(DISTINCT M.Sales_ID) AS Cnt, ISNULL(SUM(S.Qty * (S.Price - S.Disc)), 0) AS Tot FROM ReSales M INNER JOIN ReSales_Sub S ON M.Sales_ID = S.SalesId WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate " + itemFilterS, parameters);
+                countReturns = resalesSum?.Cnt ?? 0;
+                totalReturns = resalesSum?.Tot ?? 0;
+            }
+            else
+            {
+                string cusFilter = (SelectedReportType == "مبيعات عميل معين" && SelectedCustomer != null) ? " AND CusId = @CusId " : "";
+                var salesSum = await db.QueryFirstOrDefaultAsync(
+                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate " + cusFilter, parameters);
+                countSales = salesSum?.Cnt ?? 0;
+                totalSales = salesSum?.Tot ?? 0;
+
+                var resalesSum = await db.QueryFirstOrDefaultAsync(
+                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate " + cusFilter, parameters);
+                countReturns = resalesSum?.Cnt ?? 0;
+                totalReturns = resalesSum?.Tot ?? 0;
+            }
+
+            _currentHeaderInfo = new Dictionary<string, string>
+            {
+                { "من تاريخ", queryFromDate.ToString("yyyy/MM/dd") },
+                { "إلى تاريخ", queryToDate.ToString("yyyy/MM/dd") }
+            };
+                
+            if (SelectedReportType == "مبيعات عميل معين" && SelectedCustomer != null)
+                _currentHeaderInfo.Add("اسم العميل", SelectedCustomer.CusName ?? "غير محدد");
+            if (SelectedReportType == "المبيعات بالأصناف" && SelectedItem != null)
+                _currentHeaderInfo.Add("الصنف", SelectedItem.ItemName);
+
+            _currentFooterTotals = new Dictionary<string, string>
+            {
+                { "إجمالي المبيعات", totalSales.ToString("N2") },
+                { "إجمالي المرتجعات", totalReturns.ToString("N2") },
+                { "صافي المبيعات", (totalSales - totalReturns).ToString("N2") },
+                { "عدد الفواتير", countSales.ToString() },
+                { "عدد المرتجعات", countReturns.ToString() }
+            };
+
+            if (SelectedReportType == "المبيعات بالشهور")
+            {
+                _currentFooterTotals.Add("عدد الشهور", dt.Rows.Count.ToString());
+            }
+
             StatusMessage = dt.Rows.Count > 0 ? $"تم العثور على {dt.Rows.Count} سجل" : "⚠️ لا توجد بيانات في الفترة المحددة";
         }
         catch (Exception ex)
@@ -160,7 +227,7 @@ public partial class SalesReportsViewModel : ObservableObject
         {
             try
             {
-                var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData);
+                var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
                 System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
                 System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
@@ -185,7 +252,7 @@ public partial class SalesReportsViewModel : ObservableObject
 
         try
         {
-            var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData);
+            var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
             string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
             System.IO.File.WriteAllBytes(tempFile, pdfBytes);
             MotorBike.Services.ReportGenerator.PrintPdf(tempFile);
