@@ -50,6 +50,14 @@ public partial class MainViewModel : ObservableObject
             "ImportInvoice"  => (services.GetRequiredService<ImportInvoiceViewModel>(),  "فاتورة الاستيراد"),
             "ImportPayments" => (services.GetRequiredService<ImportPaymentsViewModel>(), "مدفوعات الاستيراد"),
 
+            "ReportsData"      => (services.GetRequiredService<ReportsDataViewModel>(),      "التقارير والإحصائيات"),
+            "StoreReports"     => (services.GetRequiredService<StoreReportsViewModel>(),     "تقارير المخازن"),
+            "SalesReports"     => (services.GetRequiredService<SalesReportsViewModel>(),     "تقارير المبيعات"),
+            "PurchasesReports" => (services.GetRequiredService<PurchasesReportsViewModel>(), "تقارير المشتريات"),
+            "ProfitsReports"   => (services.GetRequiredService<ProfitsReportsViewModel>(),   "تقارير الأرباح"),
+            "CarsReports"      => (services.GetRequiredService<CarsReportsViewModel>(),      "تقارير الموتوسيكلات"),
+            "ImportReports"    => (services.GetRequiredService<ImportReportsViewModel>(),    "تقارير الاستيراد"),
+
             "PaymentsData"   => (services.GetRequiredService<PaymentsDataViewModel>(),   "المدفوعات والتحويلات"),
 
             "CusPayments"   => (services.GetRequiredService<CusPaymentsViewModel>(),   "سداد ومقبوضات العملاء"),

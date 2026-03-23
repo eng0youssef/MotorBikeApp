@@ -1,0 +1,170 @@
+<UserControl x:Class="MotorBike.Views.ReportsDataView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1000"
+             FlowDirection="RightToLeft">
+    <UserControl.Resources>
+        <!-- A modern button style for the cards -->
+        <Style x:Key="CardButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="Padding" Value="20"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Margin="6">
+                            <Border x:Name="NormalShadow" Background="White" CornerRadius="16">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="8" ShadowDepth="2" Direction="270" />
+                                </Border.Effect>
+                            </Border>
+                            <Border x:Name="HoverShadow" Background="White" CornerRadius="16" Opacity="0">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#0F172A" Opacity="0.08" BlurRadius="16" ShadowDepth="4" Direction="270" />
+                                </Border.Effect>
+                            </Border>
+                            <Border x:Name="CardBorder" Background="{TemplateBinding Background}" 
+                                    BorderBrush="{TemplateBinding BorderBrush}" 
+                                    BorderThickness="{TemplateBinding BorderThickness}" 
+                                    CornerRadius="16">
+                                <Grid>
+                                    <Border x:Name="HoverGlow" Background="#8B5CF6" Opacity="0" CornerRadius="15"/>
+                                    <Border x:Name="InnerBackground" Background="{TemplateBinding Background}" CornerRadius="15" Margin="1"/>
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="InnerBackground" Property="Background" Value="#FAF5FF"/>
+                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#C4B5FD"/>
+                                <Setter TargetName="HoverGlow" Property="Opacity" Value="0.1"/>
+                                <Setter TargetName="NormalShadow" Property="Opacity" Value="0"/>
+                                <Setter TargetName="HoverShadow" Property="Opacity" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="InnerBackground" Property="Background" Value="#F5F3FF"/>
+                                <Setter TargetName="CardBorder" Property="BorderBrush" Value="#8B5CF6"/>
+                                <Setter TargetName="HoverShadow" Property="Opacity" Value="0"/>
+                                <Setter TargetName="NormalShadow" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="CategoryHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Setter Property="Margin" Value="0,20,0,15"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <Style x:Key="IconBorderStyle" TargetType="Border">
+            <Setter Property="Width" Value="64"/>
+            <Setter Property="Height" Value="64"/>
+            <Setter Property="CornerRadius" Value="32"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+        
+        <Style x:Key="IconTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="30"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        
+        <Style x:Key="TitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#1E293B"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F8FAFC">
+        <StackPanel Margin="40">
+            <!-- Header section -->
+            <StackPanel Margin="0,0,0,20">
+                <TextBlock Text="التقارير والإحصائيات" FontSize="32" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
+                <TextBlock Text="استعراض كافة تقارير وحركات النظام والطباعة والتصدير بتنسيقات مختلفة." FontSize="16" Foreground="#64748B"/>
+            </StackPanel>
+
+            <!-- القوائم العامة -->
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
+                <TextBlock Text="📊" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="تقارير النظام الأساسية" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
+            </StackPanel>
+            
+            <WrapPanel Margin="0,0,0,30">
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="StoreReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#F5F3FF">
+                            <TextBlock Text="📦" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير المخازن" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="حركة الأرصدة والأصناف" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+                
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="SalesReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#ECFDF5">
+                            <TextBlock Text="📈" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير المبيعات" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="مبيعات، عملاء، فترات" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="PurchasesReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FEF2F2">
+                            <TextBlock Text="🛒" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير المشتريات" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="موردين وفواتير شراء" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="ProfitsReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FEF3C7">
+                            <TextBlock Text="💰" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير الأرباح" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="تحليل و أرباح وخسائر" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CarsReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#EFF6FF">
+                            <TextBlock Text="🏍️" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير الموتوسيكلات" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="مبيعات، مشتريات، مخزون" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="ImportReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#FDF2F8">
+                            <TextBlock Text="🌍" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير الاستيراد" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="شحنات ومصروفات خارجية" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

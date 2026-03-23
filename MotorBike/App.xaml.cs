@@ -67,6 +67,14 @@ public partial class App : Application
         services.AddTransient<ImportInvoiceViewModel>();
         services.AddTransient<ImportPaymentsViewModel>();
         
+        services.AddTransient<ReportsDataViewModel>();
+        services.AddTransient<StoreReportsViewModel>();
+        services.AddTransient<SalesReportsViewModel>();
+        services.AddTransient<PurchasesReportsViewModel>();
+        services.AddTransient<ProfitsReportsViewModel>();
+        services.AddTransient<CarsReportsViewModel>();
+        services.AddTransient<ImportReportsViewModel>();
+        
         services.AddTransient<PaymentsDataViewModel>();
 
         services.AddTransient<CusPaymentsViewModel>();
