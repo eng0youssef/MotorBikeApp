@@ -186,7 +186,9 @@ public class CompositeKeyRepository
             UPDATE Customers SET Bal = 
                 ISNULL(Credit, 0) - ISNULL(Debit, 0) 
                 - ISNULL((SELECT SUM(Net) FROM Sales WHERE CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(Total) FROM Sales_Car WHERE CusId = @CusId), 0)
                 + ISNULL((SELECT SUM(sp.PayMoney) FROM Sales_Payments sp INNER JOIN Sales s ON sp.SalesId = s.Sales_ID WHERE s.CusID = @CusId), 0)
+                + ISNULL((SELECT SUM(sc.PayMoney) FROM Sales_Car_Payments sc INNER JOIN Sales_Car ss ON sc.SalesID = ss.Sales_ID WHERE ss.CusId = @CusId), 0)
                 + ISNULL((SELECT SUM(Net) FROM ReSales WHERE CusID = @CusId), 0)
                 - ISNULL((SELECT SUM(rp.PayMoney) FROM ReSales_Payments rp INNER JOIN ReSales rs ON rp.SalesId = rs.Sales_ID WHERE rs.CusID = @CusId), 0)
                 + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
@@ -208,22 +210,21 @@ public class CompositeKeyRepository
         using var db = _connectionFactory.CreateConnection();
         const string sql = @"
             UPDATE Cash SET Bal = 
-                ISNULL(Debit, 0) - ISNULL(Credit, 0)
+                ISNULL(Credit, 0) - ISNULL(Debit, 0) 
                 + ISNULL((SELECT SUM(PayMoney) FROM Sales_Payments WHERE CashID = @CashId), 0)
                 + ISNULL((SELECT SUM(PayMoney) FROM Sales_Car_Payments WHERE CashID = @CashId), 0)
                 + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CashID = @CashId), 0)
                 - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CashID = @CashId), 0)
                 + ISNULL((SELECT SUM(PayMoney) FROM ReBuy_Payments WHERE CashID = @CashId), 0)
                 + ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashTo = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Car_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashId = @CashId), 0)
-                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM Exp_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM ReSales_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashId = @CashId), 0)
-                - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Payments WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Car_Payments WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashID = @CashId), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Exp_Payments WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM ReSales_Payments WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashID = @CashId), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashID = @CashId), 0)
             WHERE Cash_ID = @CashId";
         await db.ExecuteAsync(sql, new { CashId = cashId });
     }

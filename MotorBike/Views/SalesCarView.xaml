@@ -90,7 +90,7 @@
                             <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Cars}" DisplayMemberPath="ChassisNo" SelectedValuePath="CarId" SelectedValue="{Binding FormItem.CarId}" Padding="10,6" FontSize="14"/>
                             <TextBlock Grid.Row="2" Grid.Column="3" Text="كيلومتر" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="6" Text="الإجمالي" Style="{StaticResource FormLabel}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            <TextBlock Grid.Row="2" Grid.Column="6" Text="السعر" Style="{StaticResource FormLabel}" VerticalAlignment="Center" FontWeight="Bold"/>
                             <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.Total, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" FontWeight="Bold" FontSize="16" Foreground="#059669"/>
 
                             <!-- Row 4: Notes -->
