@@ -28,6 +28,14 @@ public partial class SalesView : UserControl
         }
     }
 
+    private void IsTax_Changed(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SalesViewModel vm)
+        {
+            vm.RecalculateTotals();
+        }
+    }
+
     private void Totals_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (DataContext is SalesViewModel vm && sender is TextBox textBox)

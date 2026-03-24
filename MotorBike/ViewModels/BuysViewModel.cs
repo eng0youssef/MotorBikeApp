@@ -479,8 +479,8 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, IsTax, VatTax, Tax, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @IsTax, @VatTax, @Tax, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
                         FormItem, tx);
                 }
                 else
@@ -489,7 +489,7 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax,
+                    UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total,
                     Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
                     EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
                     WHERE Buy_ID = @BuyId",
@@ -851,7 +851,6 @@ public partial class BuysViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
-        // Net is a computed column in DB; calculate locally for display
         FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
         OnPropertyChanged(nameof(FormItem));
         UpdateRemaining();
@@ -908,9 +907,6 @@ public partial class BuysViewModel : ObservableObject
             BuyDate = source.BuyDate,
             SuppId = source.SuppId,
             Total = source.Total,
-            IsTax = source.IsTax,
-            VatTax = source.VatTax,
-            Tax = source.Tax,
             Disc = source.Disc,
             DiscPer = source.DiscPer,
             AddMoney = source.AddMoney,

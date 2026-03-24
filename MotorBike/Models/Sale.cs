@@ -43,6 +43,14 @@ public partial class Sale
 
     public byte[]? RowId { get; set; }
 
+    public bool IsTax { get; set; }
+
+    public double VatTax { get; set; }
+
+    public double Tax { get; set; }
+
+    public string? TaxNo { get; set; }
+
     public virtual Customer Cus { get; set; } = null!;
 
     public virtual ICollection<SalesSub> SalesSubs { get; set; } = new List<SalesSub>();

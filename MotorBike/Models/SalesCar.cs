@@ -20,6 +20,16 @@ public partial class SalesCar
 
     public double Total { get; set; }
 
+    public bool IsTax { get; set; }
+
+    public double VatTax { get; set; }
+
+    public double Tax { get; set; }
+
+    public double Net { get; set; }
+
+    public string? TaxNo { get; set; }
+
     public string? Notes { get; set; }
 
     public int? AddUser { get; set; }

@@ -11,13 +11,13 @@ namespace MotorBike.Models;
 public partial class Buy
 {
     public int BuyId { get; set; }
+    public string TaxNo { get; set; }
 
     public DateTime BuyDate { get; set; }
 
     public int SuppId { get; set; }
 
     public double Total { get; set; }
-
     public bool IsTax { get; set; }
 
     public double VatTax { get; set; }

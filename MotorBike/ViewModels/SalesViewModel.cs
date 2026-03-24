@@ -60,6 +60,8 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
+    [ObservableProperty] private double _netBeforeTax;
+
     partial void OnSubItemQtyChanged(double value)
     {
         if (CurrentSubItem != null) CurrentSubItem.Qty = value;
@@ -178,6 +180,32 @@ public partial class SalesViewModel : ObservableObject
     }
     
     private bool _isUpdatingSubDiscount;
+
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set
+        {
+            if (SetProperty(ref _vatTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set
+        {
+            if (SetProperty(ref _whtTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
 
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
@@ -373,6 +401,8 @@ public partial class SalesViewModel : ObservableObject
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     [RelayCommand]
@@ -413,6 +443,8 @@ public partial class SalesViewModel : ObservableObject
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
         StatusMessage = null;
     }
 
@@ -468,6 +500,19 @@ public partial class SalesViewModel : ObservableObject
 
             try
             {
+                if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                {
+                    var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                        "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM Sales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                        transaction: tx);
+                    int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                    FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                }
+                else if (!FormItem.IsTax)
+                {
+                    FormItem.TaxNo = null;
+                }
+
                 if (_isInsertMode)
                 {
                     FormItem.SalesId = await _saleRepository.GetNextIdAsync();
@@ -476,8 +521,8 @@ public partial class SalesViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -488,7 +533,8 @@ public partial class SalesViewModel : ObservableObject
                     await db.ExecuteAsync(@"
                     UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
                     Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 
@@ -842,7 +888,20 @@ public partial class SalesViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
-        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony;
+        NetBeforeTax = FormItem.Total - FormItem.Disc + FormItem.AddMony;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
         OnPropertyChanged(nameof(FormItem));
         UpdateRemaining();
     }
@@ -902,6 +961,10 @@ public partial class SalesViewModel : ObservableObject
             NetPer = source.NetPer,
             IsCash = source.IsCash,
             Notes = source.Notes,
+            IsTax = source.IsTax,
+            VatTax = source.VatTax,
+            Tax = source.Tax,
+            TaxNo = source.TaxNo,
             AddUser = source.AddUser,
             AddDate = source.AddDate,
             AddPc = source.AddPc
