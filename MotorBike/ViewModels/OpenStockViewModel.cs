@@ -198,7 +198,7 @@ public partial class OpenStockViewModel : ObservableObject
             // إعادة حساب Stock للصنف
             await _compositeRepo.RecalcStockForItemAsync(FormItem.ItemId);
 
-            IsEditing = false;
+            // IsEditing = false; // Retain edit mode so user can save again
             await LoadDataAsync();
         }
         catch (Exception ex)

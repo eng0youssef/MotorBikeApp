@@ -386,7 +386,7 @@ public partial class ReBuyViewModel : ObservableObject
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
-            IsEditing = false;
+            // IsEditing = false; // Retain edit mode so user can save again
             await LoadInvoicesAsync();
         }
         catch (Exception ex)

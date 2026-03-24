@@ -418,7 +418,8 @@ public partial class BuyCarViewModel : ObservableObject
                 }
 
                 tx.Commit();
-                StatusMessage = "تم الحفظ بنجاح ✓";
+                // Retained IsEditing to enable further modifications
+                StatusMessage = "تم حفظ فاتورة الشراء بنجاح ✓ ";
             }
             catch { tx.Rollback(); throw; }
 
@@ -426,7 +427,7 @@ public partial class BuyCarViewModel : ObservableObject
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
-            IsEditing = false;
+            // IsEditing = false; // left true so the user can continue editing
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }
