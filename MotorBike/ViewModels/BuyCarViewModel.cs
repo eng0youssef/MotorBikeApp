@@ -55,6 +55,7 @@ public partial class BuyCarViewModel : ObservableObject
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
+    [ObservableProperty] private double _remaining;
 
     // ── Search ────────────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;

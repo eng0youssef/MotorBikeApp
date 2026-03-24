@@ -40,6 +40,7 @@ public partial class SalesCarViewModel : ObservableObject
     private bool _isInsertMode;
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
+    [ObservableProperty] private double _remaining;
 
     // ── Invoice search ─────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
@@ -265,7 +266,7 @@ public partial class SalesCarViewModel : ObservableObject
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
-                    await db.ExecuteAsync(@"
+                        await db.ExecuteAsync(@"
                         INSERT INTO Sales_Car
                             (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Notes,
                              AddDate, AddPc, AddUser)
