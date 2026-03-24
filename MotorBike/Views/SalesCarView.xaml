@@ -119,14 +119,14 @@
                         <!--  ── Main Info Grid ────────────────────────────────  -->
                         <Grid Grid.Row="2" Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -462,9 +462,9 @@
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />
 
-                            <StackPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
+                            <WrapPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
 
-                                <Button Margin="0,0,12,0" Padding="16,10" Command="{Binding EditSelectedCommand}" Content="✏️ تـعـديـل الفاتورة">
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding EditSelectedCommand}" Content="✏️ تـعـديـل الفاتورة">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Visible" />
@@ -482,7 +482,7 @@
                                     </Button.Style>
                                 </Button>
 
-                                <Button Margin="0,0,12,0" Padding="16,10" Command="{Binding SaveCommand}" Content="💾 حـفـظ الفاتورة">
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding SaveCommand}" Content="💾 حـفـظ الفاتورة">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource PrimaryButton}" TargetType="Button">
                                             <Setter Property="Background" Value="#10B981" />
@@ -496,7 +496,7 @@
                                     </Button.Style>
                                 </Button>
 
-                                <Button Margin="0,0,16,0" Padding="16,10" Command="{Binding CancelEditCommand}" Content="✖ إلـغـاء">
+                                <Button Margin="0,0,16,12" Padding="16,10" Command="{Binding CancelEditCommand}" Content="✖ إلـغـاء">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Collapsed" />
@@ -509,7 +509,7 @@
                                     </Button.Style>
                                 </Button>
 
-                                <Button Padding="16,10" Command="{Binding DeleteCommand}" Content="🗑️ حـذف">
+                                <Button Margin="0,0,0,12" Padding="16,10" Command="{Binding DeleteCommand}" Content="🗑️ حـذف">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource DangerButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Visible" />
@@ -524,7 +524,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                            </StackPanel>
+                            </WrapPanel>
                         </DockPanel>
                     </Grid>
                 </Border>
@@ -560,12 +560,16 @@
                     </DockPanel>
 
                     <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
-                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
+                            <TextBox Grid.Column="1" MaxWidth="460" HorizontalAlignment="Left" MinWidth="200" Padding="12,8" Background="White" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
+                        </Grid>
                     </Border>
 
                     <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">

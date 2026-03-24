@@ -55,6 +55,10 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
         {
             var data = await _repository.GetAllAsync();
             Items = new ObservableCollection<T>(data);
+            
+            // Auto-activate "Add New" mode as requested by user
+            await AddNewAsync();
+            
             StatusMessage = $"تم تحميل {Items.Count} سجل";
         }
         catch (Exception ex)
@@ -126,8 +130,23 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
             await AfterSaveAsync(wasInsert);
 
             _isInsertMode = false;
-            IsEditing = false;
-            await LoadDataAsync();
+            // Retain IsEditing = true so the user can continue editing if they wish
+            
+            // Reload grid data
+            var data = await _repository.GetAllAsync();
+            Items = new ObservableCollection<T>(data);
+
+            // Re-select the saved item to reflect the updated data
+            var savedId = GetEntityId(FormItem);
+            var savedItemConfig = Items.FirstOrDefault(i => GetEntityId(i).Equals(savedId));
+            SelectedItem = savedItemConfig;
+            
+            if (savedItemConfig != null)
+            {
+                FormItem = CloneEntity(savedItemConfig);
+            }
+
+            StatusMessage = wasInsert ? "تم إضافة السجل بنجاح ✓ " : "تم تعديل السجل بنجاح ✓";
         }
         catch (Exception ex)
         {

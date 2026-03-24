@@ -90,7 +90,7 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F8FAFC">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F8FAFC" MinWidth="600" MinHeight="500">
         <StackPanel Margin="40">
             <!-- Header section -->
             <StackPanel Margin="0,0,0,20">

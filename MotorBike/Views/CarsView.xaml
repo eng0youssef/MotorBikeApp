@@ -11,7 +11,7 @@
         <conv:IdToNameConverter x:Key="IdToNameConverter"/>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC">
+    <Grid Background="#F8FAFC" MinWidth="800" MinHeight="500">
         <Border Background="White" CornerRadius="16" Margin="24"
                 BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>

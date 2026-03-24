@@ -33,7 +33,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC">
+    <Grid Background="#F8FAFC" MinWidth="850" MinHeight="500">
         <!-- FORM Section -->
         <Grid Style="{StaticResource FormContainerStyle}">
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
@@ -74,9 +74,9 @@
                         <!-- Main Info -->
                         <Grid Grid.Row="2" IsEnabled="{Binding IsEditing}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
@@ -164,8 +164,8 @@
                                     <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12" Padding="16" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="2*"/> <ColumnDefinition Width="100"/> <ColumnDefinition Width="100"/> 
-                                                <ColumnDefinition Width="80"/> <ColumnDefinition Width="90"/> <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="3*"/> <ColumnDefinition Width="2*"/> <ColumnDefinition Width="2*"/> 
+                                                <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <!-- Smart Item Search -->
                                             <Grid Grid.Column="0" Margin="0,0,8,0">
@@ -210,7 +210,7 @@
                                     </Border>
                                     <DataGrid Grid.Row="1" ItemsSource="{Binding FormItems}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single"
                                               CellEditEnding="DataGrid_CellEditEnding"
-                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" MinHeight="150"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
                                             <DataGridTemplateColumn Header="الصنف" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate>
@@ -264,7 +264,7 @@
 
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="*"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="2*"/> <ColumnDefinition Width="120"/> <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="2*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
                                                 <Grid Grid.Column="0" Margin="0,0,8,0">
                                                     <TextBlock Text="سنة الصنع" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
@@ -292,7 +292,7 @@
                                     </Border>
                                     <DataGrid Grid.Row="1" ItemsSource="{Binding FormCars}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single"
                                               CellEditEnding="DataGrid_CellEditEnding"
-                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" MinHeight="150"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
                                             <DataGridTemplateColumn Header="الموتوسيكل" Width="*" IsReadOnly="True"><DataGridTemplateColumn.CellTemplate><DataTemplate>
@@ -320,7 +320,7 @@
                                     <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12" Padding="16" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="120"/> <ColumnDefinition Width="100"/> <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="2*"/> <ColumnDefinition Width="2*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <Grid Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock Text="بند المصروف" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
@@ -342,7 +342,7 @@
                                         </Grid>
                                     </Border>
                                     <DataGrid Grid.Row="1" ItemsSource="{Binding FormExps}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
-                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" MinHeight="150"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
                                             <DataGridTemplateColumn Header="بند المصروف" Width="*"><DataGridTemplateColumn.CellTemplate><DataTemplate>
@@ -368,7 +368,7 @@
                                     <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12" Padding="16" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="120"/> <ColumnDefinition Width="100"/> <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="2*"/> <ColumnDefinition Width="2*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="1.5*"/> <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <Grid Grid.Column="0" Margin="0,0,8,0">
                                                 <TextBlock Text="ملاحظات الدفعة" Foreground="#64748B" FontSize="11" Margin="2,-16,0,0"/>
@@ -390,7 +390,7 @@
                                         </Grid>
                                     </Border>
                                     <DataGrid Grid.Row="1" ItemsSource="{Binding FormPayments}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
-                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" Height="200"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#E2E8F0" MinHeight="150"
                                               AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="13" HorizontalGridLinesBrush="#F1F5F9" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Header="الملاحظات" Binding="{Binding Notes}" Width="*"/>
@@ -414,9 +414,9 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
-                                    <ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
-                                    <ColumnDefinition Width="110"/><ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                                    <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
                                 <!-- الصف الأول -->
@@ -490,10 +490,14 @@
                         <Button DockPanel.Dock="Right" Content="✖ الـرجـوع للـنمـوذج" Style="{StaticResource SecondaryButton}" Command="{Binding HideSearchPanelCommand}" HorizontalAlignment="Right" Padding="16,8"/>
                     </DockPanel>
                     <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,0,24">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="كلمة البحث (رقم الفاتورة، اسم الفاتورة):" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,16,0"/>
-                            <TextBox Width="460" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Padding="12,8" FontSize="15" Background="White"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="كلمة البحث (رقم الفاتورة، اسم الفاتورة):" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,16,0"/>
+                            <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" HorizontalAlignment="Stretch" Padding="12,8" FontSize="15" Background="White"/>
+                        </Grid>
                     </Border>
                     <Border Grid.Row="2" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
                         <DataGrid ItemsSource="{Binding FilteredInvoices}" SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"

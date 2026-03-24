@@ -321,7 +321,7 @@ public partial class SalesCarViewModel : ObservableObject
             await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
 
             _isInsertMode = false;
-            IsEditing = false;
+            // IsEditing = false; // Retain edit mode so user can save again
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }

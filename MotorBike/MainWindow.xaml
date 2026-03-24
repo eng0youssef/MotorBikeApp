@@ -6,7 +6,7 @@
         xmlns:vm="clr-namespace:MotorBike.ViewModels"
         xmlns:views="clr-namespace:MotorBike.Views"
         mc:Ignorable="d"
-        Title="نظام إدارة وكالة الموتوسيكلات" Height="700" Width="1100"
+        Title="نظام إدارة وكالة الموتوسيكلات" MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         FlowDirection="RightToLeft" FontFamily="Segoe UI" FontSize="14">
 
@@ -58,7 +58,7 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="Auto" MinWidth="220"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 

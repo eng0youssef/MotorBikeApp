@@ -526,7 +526,8 @@ public partial class BuysViewModel : ObservableObject
                 }
 
                 tx.Commit();
-                StatusMessage = "تم الحفظ بنجاح ✓";
+                // Retained IsEditing to enable further modifications
+                StatusMessage = "تم حفظ فاتورة الشراء بنجاح ✓ ";
             }
             catch
             {
@@ -545,7 +546,7 @@ public partial class BuysViewModel : ObservableObject
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
-            IsEditing = false;
+            // IsEditing = false; // left true to allow further edits
             await LoadInvoicesAsync();
         }
         catch (Exception ex)

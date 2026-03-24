@@ -8,7 +8,7 @@
         <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid MinWidth="800" MinHeight="500">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -79,9 +79,9 @@
             <StackPanel>
                 <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
-                        <ColumnDefinition Width="80"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
-                        <ColumnDefinition Width="80"/><ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/><RowDefinition Height="16"/>
@@ -126,13 +126,13 @@
                 </Border>
 
                 <DockPanel>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ رصيد جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تـعـديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حـفـظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حـذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلـغـاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="➕ رصيد جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تـعـديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="💾 حـفـظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="🗑️ حـذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>
+                        <Button Content="✖ إلـغـاء" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    </WrapPanel>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
                 </DockPanel>
             </StackPanel>

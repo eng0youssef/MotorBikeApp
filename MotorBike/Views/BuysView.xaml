@@ -39,7 +39,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC">
+    <Grid Background="#F8FAFC" MinWidth="900" MinHeight="600">
 
         <!--  FORM Section  -->
         <Grid Style="{StaticResource FormContainerStyle}">
@@ -365,7 +365,7 @@
                         </Border>
 
                         <!--  SubItems DataGrid  -->
-                        <Border Grid.Row="4" Height="250" Margin="0,0,0,24" BorderBrush="#E2E8F0" BorderThickness="1"
+                        <Border Grid.Row="4" MinHeight="150" MaxHeight="400" Margin="0,0,0,24" BorderBrush="#E2E8F0" BorderThickness="1"
                                 ClipToBounds="True" CornerRadius="12">
                             <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False"
                                       CellEditEnding="DataGrid_CellEditEnding" ColumnHeaderHeight="46" FontSize="14" Foreground="#1E293B" GridLinesVisibility="Horizontal"
@@ -562,7 +562,7 @@
                                 </Border>
 
                                 <!--  Payments DataGrid  -->
-                                <Border MaxHeight="160" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
+                                <Border MinHeight="150" MaxHeight="250" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
                                     <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False"
                                               ColumnHeaderHeight="40" FontSize="13" Foreground="#1E293B" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
                                               HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
@@ -742,12 +742,16 @@
 
                     <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0"
                             BorderThickness="1" CornerRadius="12">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم المورد):" />
-                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم المورد):" />
+                            <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Padding="12,8" Background="White" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
+                        </Grid>
                     </Border>
 
                     <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">

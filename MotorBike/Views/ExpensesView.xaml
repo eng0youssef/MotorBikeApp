@@ -9,7 +9,7 @@
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
         <conv:HideZeroConverter x:Key="HideZeroConv"/>
     </UserControl.Resources>
-    <Grid>
+    <Grid MinWidth="800" MinHeight="500">
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>
@@ -49,7 +49,11 @@
             </Border.Effect>
             <StackPanel>
                 <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
-                    <Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="32"/><ColumnDefinition Width="80"/></Grid.ColumnDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="16"/><RowDefinition/></Grid.RowDefinitions>
                     
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
@@ -76,13 +80,13 @@
                     <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                 </Grid>
                 <DockPanel>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>
+                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    </WrapPanel>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
                 </DockPanel>
             </StackPanel>
