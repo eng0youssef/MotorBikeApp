@@ -40,7 +40,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC">
+    <Grid Background="#F8FAFC" MinWidth="800" MinHeight="600">
 
         <!-- FORM Section -->
         <Grid Style="{StaticResource FormContainerStyle}">
@@ -88,9 +88,9 @@
                         <!-- Form Matrix -->
                         <Grid Grid.Row="2" IsEnabled="{Binding IsEditing}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/> <ColumnDefinition Width="32"/>
-                                <ColumnDefinition Width="100"/> <ColumnDefinition Width="180"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
@@ -153,8 +153,8 @@
                         <!-- Footer Action Buttons -->
                         <DockPanel Grid.Row="3">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Right"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" MinHeight="45">
-                                <Button Content="✏️ تـعـديـل الكشف" Command="{Binding EditSelectedCommand}" Margin="0,0,12,0" Padding="16,10">
+                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" MinHeight="45">
+                                <Button Content="✏️ تـعـديـل الكشف" Command="{Binding EditSelectedCommand}" Margin="0,0,12,12" Padding="16,10">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                             <Setter Property="Visibility" Value="Visible" />
@@ -172,7 +172,7 @@
                                     </Button.Style>
                                 </Button>
                                 
-                                <Button Content="💾 حـفـظ التـفـاصيـل" Command="{Binding SaveCommand}" Margin="0,0,12,0" Padding="16,10">
+                                <Button Content="💾 حـفـظ التـفـاصيـل" Command="{Binding SaveCommand}" Margin="0,0,12,12" Padding="16,10">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
                                             <Setter Property="Background" Value="#10B981"/>
@@ -186,7 +186,7 @@
                                     </Button.Style>
                                 </Button>
                                 
-                                <Button Content="✖ إلـغـاء" Command="{Binding CancelEditCommand}" Margin="0,0,16,0" Padding="16,10">
+                                <Button Content="✖ إلـغـاء" Command="{Binding CancelEditCommand}" Margin="0,0,16,12" Padding="16,10">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -199,7 +199,7 @@
                                     </Button.Style>
                                 </Button>
 
-                                <Button Content="🗑️ حـذف" Command="{Binding DeleteCommand}" Padding="16,10">
+                                <Button Content="🗑️ حـذف" Command="{Binding DeleteCommand}" Padding="16,10" Margin="0,0,12,12">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
                                             <Setter Property="Visibility" Value="Visible" />
@@ -214,7 +214,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                            </StackPanel>
+                            </WrapPanel>
                         </DockPanel>
                     </Grid>
                 </Border>

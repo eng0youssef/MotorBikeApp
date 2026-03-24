@@ -605,8 +605,8 @@
                                        FontSize="14" FontWeight="SemiBold" Foreground="#10B981"
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />
-                            <StackPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
-                                <Button Margin="0,0,12,0" Padding="16,10"
+                            <WrapPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
+                                <Button Margin="0,0,12,12" Padding="16,10"
                                         Command="{Binding EditSelectedCommand}"
                                         Content="✏️ تـعـديـل الفاتورة">
                                     <Button.Style>
@@ -625,7 +625,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                                <Button Margin="0,0,12,0" Padding="16,10"
+                                <Button Margin="0,0,12,12" Padding="16,10"
                                         Command="{Binding SaveCommand}"
                                         Content="💾 حـفـظ الفاتورة">
                                     <Button.Style>
@@ -640,7 +640,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                                <Button Margin="0,0,16,0" Padding="16,10"
+                                <Button Margin="0,0,16,12" Padding="16,10"
                                         Command="{Binding CancelEditCommand}"
                                         Content="✖ إلـغـاء">
                                     <Button.Style>
@@ -654,7 +654,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                                <Button Padding="16,10"
+                                <Button Margin="0,0,0,12" Padding="16,10"
                                         Command="{Binding DeleteCommand}"
                                         Content="🗑️ حـذف">
                                     <Button.Style>
@@ -671,7 +671,7 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                            </StackPanel>
+                            </WrapPanel>
                         </DockPanel>
                     </Grid>
                 </Border>
@@ -704,12 +704,16 @@
                     </DockPanel>
                     <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0"
                             BorderThickness="1" CornerRadius="12">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
-                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
+                            <TextBox Grid.Column="1" MaxWidth="460" MinWidth="200" HorizontalAlignment="Left" Padding="12,8" Background="White" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
+                        </Grid>
                     </Border>
                     <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
                         <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False"

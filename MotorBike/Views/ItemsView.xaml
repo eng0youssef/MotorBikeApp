@@ -10,7 +10,7 @@
         <conv:HideZeroConverter x:Key="HideZeroConverter" />
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
     </UserControl.Resources>
-    <Grid>
+    <Grid MinWidth="800" MinHeight="500">
         <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>
@@ -74,10 +74,10 @@
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="300">
                     <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/> <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="100"/> <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/> <RowDefinition Height="16"/>
@@ -181,13 +181,13 @@
                 </ScrollViewer>
                 
                 <DockPanel>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>
+                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    </WrapPanel>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
                 </DockPanel>
             </StackPanel>

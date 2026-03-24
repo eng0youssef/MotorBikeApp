@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="MotorBike.Views.UsersView"
+<UserControl x:Class="MotorBike.Views.UsersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              mc:Ignorable="d"
@@ -66,13 +66,13 @@
                 <!-- Form fields: disabled until user clicks New or Edit -->
                 <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="32"/>
-                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="32"/>
-                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition/>
@@ -93,13 +93,13 @@
                 </Grid>
 
                 <DockPanel>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
-                    </StackPanel>
+                    <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                        <Button Content="➕ جديد" Margin="0,0,12,12" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تعديل" Margin="0,0,12,12" Style="{StaticResource SecondaryButton}" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="💾 حفظ" Margin="0,0,12,12" Style="{StaticResource PrimaryButton}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="🗑️ حذف" Margin="0,0,12,12" Style="{StaticResource DangerButton}" Command="{Binding DeleteCommand}"/>
+                        <Button Content="✖ إلغاء" Margin="0,0,0,12" Style="{StaticResource SecondaryButton}" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                    </WrapPanel>
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold"
                                VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
                 </DockPanel>

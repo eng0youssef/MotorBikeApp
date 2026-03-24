@@ -45,7 +45,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC">
+    <Grid Background="#F8FAFC" MinWidth="850" MinHeight="500">
 
         <!--  ════════════════════════════════════════════════════════════════  -->
         <!--  FORM SECTION  -->
@@ -108,14 +108,14 @@
                         <!--  ── Owner / Invoice info grid ────────────────────  -->
                         <Grid Grid.Row="2" Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="32" />
-                                <ColumnDefinition Width="100" />
-                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <!--  Row 0 : Invoice ID | Date | Owner name  -->
@@ -209,14 +209,14 @@
                                     <!--  Row 0: Model | Year | Color  -->
                                     <Grid Grid.Row="0">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80" />
-                                            <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="32" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="100" />
-                                            <ColumnDefinition Width="32" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="200" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="3*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="3*" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
 
@@ -242,17 +242,17 @@
                                     <!--  Row 2: Chassis | Motor | Plate | Notes  -->
                                     <Grid Grid.Row="2">
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80" />
-                                            <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="32" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="32" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="32" />
-                                            <ColumnDefinition Width="60" />
-                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="16" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="2.5*" />
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource SectionLabel}" Text="الشاسيه" />
@@ -281,10 +281,10 @@
                                 <Border Margin="0,0,0,12" Padding="12" Background="#F1F5F9" CornerRadius="8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="140" />
-                                            <ColumnDefinition Width="120" />
-                                            <ColumnDefinition Width="140" />
-                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="1.5*" />
+                                            <ColumnDefinition Width="2*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
@@ -320,7 +320,7 @@
                                 </Border>
 
                                 <!--  Payments DataGrid  -->
-                                <Border MaxHeight="160" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
+                                <Border MinHeight="150" MaxHeight="250" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
                                     <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="40" FontSize="13" Foreground="#1E293B"
                                               GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
                                               ItemsSource="{Binding FormPayments}"
@@ -492,12 +492,16 @@
 
                     <!--  Search bar  -->
                     <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم المالك):" />
-                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم المالك):" />
+                            <TextBox Grid.Column="1" HorizontalAlignment="Stretch" Padding="12,8" Background="White" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </StackPanel>
+                        </Grid>
                     </Border>
 
                     <!--  Search results  -->
