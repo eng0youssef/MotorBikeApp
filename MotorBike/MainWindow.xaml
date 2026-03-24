@@ -58,72 +58,97 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto" MinWidth="220"/>
+            <ColumnDefinition Width="Auto" MinWidth="230"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- القائمة الجانبية -->
-        <Border Grid.Column="0" Background="#0F172A">
+        <!-- ══ Sidebar ══ -->
+        <Border Grid.Column="0" Background="#1A1E2C">
             <Border.Effect>
-                <DropShadowEffect Color="Black" Opacity="0.15" BlurRadius="12" Direction="360" ShadowDepth="4"/>
+                <DropShadowEffect Color="#000000" Opacity="0.2" BlurRadius="16" Direction="0" ShadowDepth="4"/>
             </Border.Effect>
             <DockPanel>
-                <Border DockPanel.Dock="Top" Padding="16" Background="#0B1120">
+                <!-- Logo / Brand -->
+                <Border DockPanel.Dock="Top" Padding="20,22,20,18" Background="#171B28">
                     <StackPanel>
-                        <TextBlock Text="🏍️" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#3B82F6" BlurRadius="10" Opacity="0.5" ShadowDepth="0"/>
-                            </TextBlock.Effect>
-                        </TextBlock>
-                        <TextBlock Text="موتوربايك" FontSize="20" FontWeight="Bold"
-                                   Foreground="White" HorizontalAlignment="Center"/>
-                        <TextBlock Text="نظام إدارة الوكالة" FontSize="12"
-                                   Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                        <Border HorizontalAlignment="Center" Width="52" Height="52" CornerRadius="12" Margin="0,0,0,10">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#E8A54B" Offset="0"/>
+                                    <GradientStop Color="#D4922F" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock Text="🏍️" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock Text="موتوربايك" FontSize="19" FontWeight="Bold"
+                                   Foreground="#ECEEF5" HorizontalAlignment="Center"/>
+                        <TextBlock Text="نظام إدارة الوكالة" FontSize="11"
+                                   Foreground="#6B7490" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
 
+                <!-- Accent divider -->
+                <Border DockPanel.Dock="Top" Height="1" Margin="20,0">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="Transparent" Offset="0"/>
+                            <GradientStop Color="#E8A54B" Offset="0.5"/>
+                            <GradientStop Color="Transparent" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="0,8,0,0">
-                        <TextBlock Text="الأساسيات" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,12,0,4"/>
+                    <StackPanel Margin="0,14,0,16">
+                        <TextBlock Text="الأساسيات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,10,0,6"/>
                         <Button Content="📂  البيانات الأساسية" Command="{Binding NavigateToCommand}" CommandParameter="BasicData" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  الموتوسيكلات" Command="{Binding NavigateToCommand}" CommandParameter="Cars" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="📦  أرصدة أول المدة" Command="{Binding NavigateToCommand}" CommandParameter="OpenStock" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <!-- المدفوعات والتحويلات -->
-                        <TextBlock Text="المدفوعات والتحويلات" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,16,0,4"/>
+                        <TextBlock Text="المدفوعات والتحويلات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="💳   المدفوعات والتحويلات" Command="{Binding NavigateToCommand}" CommandParameter="PaymentsData" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="الفواتير" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,16,0,4"/>
+                        <TextBlock Text="الفواتير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="📄  فاتورة الشراء" Command="{Binding NavigateToCommand}" CommandParameter="Buys" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="📃  فاتورة المبيعات" Command="{Binding NavigateToCommand}" CommandParameter="Sales" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  شراء موتوسيكل" Command="{Binding NavigateToCommand}" CommandParameter="BuyCar" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  بيع موتوسيكل" Command="{Binding NavigateToCommand}" CommandParameter="SalesCar" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="المرتجعات" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,16,0,4"/>
+                        <TextBlock Text="المرتجعات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="↩️  مرتجع المشتريات" Command="{Binding NavigateToCommand}" CommandParameter="ReBuy" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="↩️  مرتجع المبيعات" Command="{Binding NavigateToCommand}" CommandParameter="ReSales" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="الاستيراد" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,16,0,4"/>
+                        <TextBlock Text="الاستيراد" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="🌍  إدارة الاستيراد" Command="{Binding NavigateToCommand}" CommandParameter="ImportData" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="التقارير" Foreground="#64748B" FontSize="11" FontWeight="SemiBold" Margin="16,16,0,4"/>
+                        <TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>
         </Border>
 
-        <!-- المحتوى الرئيسي -->
-        <Border Grid.Column="1" Background="#F8FAFC" ClipToBounds="True">
+        <!-- ══ Main Content Area ══ -->
+        <Border Grid.Column="1" Background="#1E2233" ClipToBounds="True">
             <DockPanel>
-                <Border DockPanel.Dock="Top" Background="White" Padding="24,16"
-                        BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#0F172A" Opacity="0.03" BlurRadius="6" ShadowDepth="2" Direction="270"/>
-                    </Border.Effect>
-                    <TextBlock Text="{Binding CurrentPageTitle}" FontSize="22" FontWeight="Bold" Foreground="#1E293B"/>
+                <!-- Top Bar -->
+                <Border DockPanel.Dock="Top" Padding="28,16" Background="#222738"
+                        BorderBrush="#323848" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <TextBlock Text="{Binding CurrentPageTitle}" FontSize="20" FontWeight="Bold" Foreground="#ECEEF5" VerticalAlignment="Center"/>
+                        <!-- Subtle accent line -->
+                        <Border Height="2" VerticalAlignment="Bottom" Margin="-28,-16,-28,-16" HorizontalAlignment="Stretch">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#E8A54B" Offset="0"/>
+                                    <GradientStop Color="#E8A54B" Offset="0.15"/>
+                                    <GradientStop Color="Transparent" Offset="0.4"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
                 </Border>
-                <ContentControl Content="{Binding CurrentViewModel}" Margin="24"/>
+                <ContentControl Content="{Binding CurrentViewModel}" Margin="0"/>
             </DockPanel>
         </Border>
     </Grid>
