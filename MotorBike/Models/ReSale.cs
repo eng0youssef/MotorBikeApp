@@ -35,6 +35,13 @@ public partial class ReSale
     public double NetPer { get; set; }
 
     public bool IsCash { get; set; }
+    public bool IsTax { get; set; }
+
+    public double VatTax { get; set; }
+
+    public double Tax { get; set; }
+
+    public string? TaxNo { get; set; }
 
     public string? Notes { get; set; }
 

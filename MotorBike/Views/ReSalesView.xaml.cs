@@ -16,6 +16,7 @@ public partial class ReSalesView : UserControl
         }
     }
     private void IsCash_Changed(object sender, RoutedEventArgs e) { if (DataContext is ReSalesViewModel vm) vm.RecalculateTotals(); }
+    private void IsTax_Changed(object sender, RoutedEventArgs e) { if (DataContext is ReSalesViewModel vm) vm.RecalculateTotals(); }
     private void Totals_TextChanged(object sender, TextChangedEventArgs e) { if (DataContext is ReSalesViewModel vm) vm.RecalculateTotals(); }
     private void SearchItem_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {

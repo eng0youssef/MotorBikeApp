@@ -63,6 +63,8 @@ public partial class ReBuyViewModel : ObservableObject
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
+    [ObservableProperty] private double _netBeforeTax;
+
     partial void OnSubItemQtyChanged(double value)
     {
         if (CurrentSubItem != null) CurrentSubItem.Qty = value;
@@ -124,6 +126,20 @@ public partial class ReBuyViewModel : ObservableObject
     }
     private bool _isUpdatingSubDiscount;
 
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set { if (SetProperty(ref _vatTaxPercent, value)) { CalculateTotalsInternal(); } }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set { if (SetProperty(ref _whtTaxPercent, value)) { CalculateTotalsInternal(); } }
+    }
+
 
     public ReBuyViewModel(IDbConnectionFactory dbFactory, IRepository<ReBuy> reBuyRepository, IRepository<Supplier> supplierRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
     {
@@ -171,28 +187,39 @@ public partial class ReBuyViewModel : ObservableObject
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
     [RelayCommand] private void HideSearchPanel() { IsSearchPanelVisible = false; }
 
+    // Add these fields
+    private double _originalVatTax;
+    private double _originalTax;
+
     partial void OnSelectedInvoiceChanged(ReBuy? value)
     {
         if (value is not null)
         {
             IsSearchPanelVisible = false;
             _isInsertMode = false;
-            IsEditing = true;
-            
+            IsEditing = false;
+
             FormItem = CloneInvoice(value);
+
+            _originalVatTax = value.VatTax;
+            _originalTax = value.Tax;
+
             _isUpdatingDiscount = true;
             if (FormItem.IsPer) { DiscountPercentInput = Math.Round(FormItem.DiscPer * 100.0, 2); DiscountValueInput = FormItem.Disc; }
             else { DiscountValueInput = FormItem.Disc; DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0; }
             _isUpdatingDiscount = false;
-            
+
             _isSelectingSupplier = true;
             SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? string.Empty;
             IsSupplierSearchPopupOpen = false;
             _isSelectingSupplier = false;
-            
+
             IsCashPaymentMode = FormItem.IsCash;
-            
-            LoadSubItemsAsync(value.BuyId).ConfigureAwait(false);
+
+            _vatTaxPercent = 0;
+            _whtTaxPercent = 0;
+
+            _ = LoadSubItemsAsync(value.BuyId);
         }
     }
 
@@ -201,14 +228,39 @@ public partial class ReBuyViewModel : ObservableObject
         try
         {
             using var db = _dbFactory.CreateConnection();
-            FormSubItems = new ObservableCollection<ReBuySub>(await db.QueryAsync<ReBuySub>("SELECT * FROM ReBuy_Sub WHERE BuyId = @BuyId", new { BuyId = buyId }));
+            FormSubItems = new ObservableCollection<ReBuySub>(
+                await db.QueryAsync<ReBuySub>("SELECT * FROM ReBuy_Sub WHERE BuyId = @BuyId", new { BuyId = buyId }));
             WireSubItemsCollection();
-            
-            var payments = await db.QueryAsync<ReBuyPayment>("SELECT * FROM ReBuy_Payments WHERE BuyId = @BuyId", new { BuyId = buyId });
+
+            var payments = await db.QueryAsync<ReBuyPayment>(
+                "SELECT * FROM ReBuy_Payments WHERE BuyId = @BuyId", new { BuyId = buyId });
             FormPayments = new ObservableCollection<ReBuyPayment>(payments);
             CalculatePayedTotal();
-            
+
+            // Recalculate totals from loaded sub-items
             CalculateTotals();
+
+            // ✅ Re-infer tax percentages AFTER totals are recalculated
+            if (FormItem.IsTax)
+            {
+                double netBase = NetBeforeTax; // already computed by CalculateTotals()
+                if (netBase > 0)
+                {
+                    _vatTaxPercent = Math.Round((_originalVatTax / netBase) * 100.0, 2);
+                    _whtTaxPercent = Math.Round((_originalTax / netBase) * 100.0, 2);
+                }
+                else
+                {
+                    _vatTaxPercent = 0;
+                    _whtTaxPercent = 0;
+                }
+
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+
+                // Recalculate with correct percentages
+                CalculateTotalsInternal();
+            }
         }
         catch (Exception ex) { StatusMessage = "خطأ في تحميل الأصناف والدفعات: " + ex.Message; }
     }
@@ -234,6 +286,9 @@ public partial class ReBuyViewModel : ObservableObject
         SupplierSearchText = string.Empty;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
+        
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
         
         WireSubItemsCollection();
     }
@@ -268,6 +323,9 @@ public partial class ReBuyViewModel : ObservableObject
         SupplierSearchText = string.Empty;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
+
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     [RelayCommand]
@@ -319,9 +377,23 @@ public partial class ReBuyViewModel : ObservableObject
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
+
+                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                    {
+                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReBuy WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                            transaction: tx);
+                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                    }
+                    else if (!FormItem.IsTax)
+                    {
+                        FormItem.TaxNo = null;
+                    }
+
                     await db.ExecuteAsync(@"
-                    INSERT INTO ReBuy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO ReBuy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
+                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -329,10 +401,25 @@ public partial class ReBuyViewModel : ObservableObject
                     FormItem.EditPc = Environment.MachineName;
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
+
+                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                    {
+                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReBuy WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                            transaction: tx);
+                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                    }
+                    else if (!FormItem.IsTax)
+                    {
+                        FormItem.TaxNo = null;
+                    }
+
                     await db.ExecuteAsync(@"
                     UPDATE ReBuy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total, Disc=@Disc, 
                     AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser 
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
                     WHERE Buy_ID = @BuyId",
                         FormItem, tx);
 
@@ -527,7 +614,22 @@ public partial class ReBuyViewModel : ObservableObject
 
     private void CalculateTotalsInternal() 
     { 
-        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+        NetBeforeTax = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        FormItem.NetPer = FormItem.Total > 0 ? Math.Round(FormItem.Net / FormItem.Total, 4) : 1;
+
         UpdateRemaining();
         if (IsCashPaymentMode)
         {
@@ -607,7 +709,8 @@ public partial class ReBuyViewModel : ObservableObject
     {
         BuyId = s.BuyId, BuyDate = s.BuyDate, SuppId = s.SuppId, Total = s.Total, Disc = s.Disc,
         DiscPer = s.DiscPer, AddMoney = s.AddMoney, Net = s.Net, IsPer = s.IsPer, NetPer = s.NetPer,
-        IsCash = s.IsCash, Notes = s.Notes, AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
+        IsCash = s.IsCash, Notes = s.Notes, IsTax = s.IsTax, VatTax = s.VatTax, Tax = s.Tax, TaxNo = s.TaxNo,
+        AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
     };
 
     private void WireSubItemsCollection()

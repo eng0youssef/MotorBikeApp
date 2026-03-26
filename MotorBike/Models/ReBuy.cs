@@ -37,6 +37,13 @@ public partial class ReBuy
     public bool IsCash { get; set; }
 
     public string? Notes { get; set; }
+    public bool IsTax { get; set; }
+
+    public double VatTax { get; set; }
+
+    public double Tax { get; set; }
+
+    public string? TaxNo { get; set; }
 
     public int? AddUser { get; set; }
 

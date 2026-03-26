@@ -61,6 +61,93 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
+    // ── Proxy Properties for Tax Calculation ───────────────────────────
+    //public double FormTotal
+    //{
+    //    get => FormItem?.Total ?? 0;
+    //    set
+    //    {
+    //        if (FormItem != null && FormItem.Total != value)
+    //        {
+    //            FormItem.Total = value;
+    //            OnPropertyChanged();
+    //            CalculateTotalsInternal();
+    //        }
+    //    }
+    //}
+
+    public bool FormIsTax
+    {
+        get => FormItem?.IsTax ?? false;
+        set
+        {
+            if (FormItem != null && FormItem.IsTax != value)
+            {
+                FormItem.IsTax = value;
+                OnPropertyChanged();
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    // ── Proxy Properties for Tax Calculation ───────────────────────────
+    public double FormTotal
+    {
+        get => FormItem?.Total ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.Total != value)
+            {
+                FormItem.Total = value;
+                OnPropertyChanged();
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    //public bool FormIsTax
+    //{
+    //    get => FormItem?.IsTax ?? false;
+    //    set
+    //    {
+    //        if (FormItem != null && FormItem.IsTax != value)
+    //        {
+    //            FormItem.IsTax = value;
+    //            OnPropertyChanged();
+    //            CalculateTotalsInternal();
+    //        }
+    //    }
+    //}
+
+    // ── Tax ───────────────────────────────────────────────────────────────
+    [ObservableProperty] private double _netBeforeTax;
+
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set
+        {
+            if (SetProperty(ref _vatTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set
+        {
+            if (SetProperty(ref _whtTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
     // ── Constructor ───────────────────────────────────────────────────────
     public BuyCarViewModel(
         IDbConnectionFactory dbFactory,
@@ -138,10 +225,33 @@ public partial class BuyCarViewModel : ObservableObject
     // ── Selected invoice → load form + car details ────────────────────────
     partial void OnSelectedInvoiceChanged(BuyCar? value)
     {
-        if (value is not null && !IsEditing)
+        if (value is not null)
         {
             IsSearchPanelVisible = false;
+            _isInsertMode = false;
+            IsEditing = false; // View mode after selection
+            
             FormItem = CloneInvoice(value);
+
+            // Infer tax percentages from saved amounts
+            double netBefore = FormItem.Total;
+            if (FormItem.IsTax && netBefore > 0)
+            {
+                _vatTaxPercent = Math.Round((FormItem.VatTax / netBefore) * 100.0, 2);
+                _whtTaxPercent = Math.Round((FormItem.Tax / netBefore) * 100.0, 2);
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            else
+            {
+                _vatTaxPercent = 0;
+                _whtTaxPercent = 0;
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            
+            CalculateTotalsInternal();
+
             Task.Run(async () =>
             {
                 await LoadPaymentsAsync(value.BuyId);
@@ -220,6 +330,9 @@ public partial class BuyCarViewModel : ObservableObject
             PayDate = DateTime.Now,
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
+
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     // ── Edit selected ─────────────────────────────────────────────────────
@@ -247,6 +360,8 @@ public partial class BuyCarViewModel : ObservableObject
         CarMotorNo = null;
         CarPlateNo = null;
         StatusMessage = null;
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     // ── Save ──────────────────────────────────────────────────────────────
@@ -280,6 +395,21 @@ public partial class BuyCarViewModel : ObservableObject
             using var tx = db.BeginTransaction();
             try
             {
+                if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                {
+                    var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                        "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM Buy_Car WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                        transaction: tx);
+                    int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                    FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                }
+                else if (!FormItem.IsTax)
+                {
+                    FormItem.TaxNo = null;
+                }
+
+                // Calculate tax values before saving
+                CalculateTotalsInternal();
                 // Initialize common metadata fields early for both records
                 if (_isInsertMode)
                 {
@@ -368,10 +498,12 @@ public partial class BuyCarViewModel : ObservableObject
                     await db.ExecuteAsync(@"
                         INSERT INTO Buy_Car
                             (Buy_ID, BuyDate, OwnerName, OwnerTel, OwnerKawmy, OwnerAdress,
-                             CarID, Mileage, Total, Notes, AddDate, AddPC, AddUser)
+                             CarID, Mileage, Total, Notes, AddDate, AddPC, AddUser,
+                             IsTax, VatTax, Tax, TaxNo)
                         VALUES
                             (@BuyId, @BuyDate, @OwnerName, @OwnerTel, @OwnerKawmy, @OwnerAdress,
-                             @CarId, @Mileage, @Total, @Notes, @AddDate, @AddPc, @AddUser)",
+                             @CarId, @Mileage, @Total, @Notes, @AddDate, @AddPc, @AddUser,
+                             @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -389,7 +521,11 @@ public partial class BuyCarViewModel : ObservableObject
                             Notes        = @Notes,
                             EditDate     = @EditDate,
                             EditPC       = @EditPc,
-                            EditUser     = @EditUser
+                            EditUser     = @EditUser,
+                            IsTax        = @IsTax,
+                            VatTax       = @VatTax,
+                            Tax          = @Tax,
+                            TaxNo        = @TaxNo
                         WHERE Buy_ID    = @BuyId",
                         FormItem, tx);
 
@@ -512,9 +648,38 @@ public partial class BuyCarViewModel : ObservableObject
         CarId = s.CarId,
         Mileage = s.Mileage,
         Total = s.Total,
+        Net = s.Net,
         Notes = s.Notes,
         AddUser = s.AddUser,
         AddDate = s.AddDate,
-        AddPc = s.AddPc
+        AddPc = s.AddPc,
+        IsTax = s.IsTax,
+        VatTax = s.VatTax,
+        Tax = s.Tax,
+        TaxNo = s.TaxNo
     };
+
+    private void CalculateTotalsInternal()
+    {
+        if (FormItem == null) return;
+        NetBeforeTax = FormItem.Total;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        
+        // Notify UI of changes
+        OnPropertyChanged(nameof(FormItem));
+        OnPropertyChanged(nameof(FormTotal));
+        OnPropertyChanged(nameof(FormIsTax));
+    }
 }

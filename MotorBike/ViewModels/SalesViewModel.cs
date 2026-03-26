@@ -318,9 +318,24 @@ public partial class SalesViewModel : ObservableObject
             else
             {
                 DiscountValueInput = FormItem.Disc;
-                DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
+            DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
             }
             _isUpdatingDiscount = false;
+
+            // Infer tax percentages from loaded amounts to prevent them from being reset to 0
+            double netBase = FormItem.Total - FormItem.Disc + FormItem.AddMony;
+            if (netBase > 0)
+            {
+                _vatTaxPercent = Math.Round((FormItem.VatTax / netBase) * 100.0, 2);
+                _whtTaxPercent = Math.Round((FormItem.Tax / netBase) * 100.0, 2);
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            else
+            {
+                VatTaxPercent = 0;
+                WhtTaxPercent = 0;
+            }
 
             // Set customer search text
             _isSelectingCustomer = true;
@@ -868,11 +883,13 @@ public partial class SalesViewModel : ObservableObject
         {
             DiscountValueInput = Math.Round(FormItem.Total * (DiscountPercentInput / 100.0), 2);
             FormItem.Disc = DiscountValueInput;
+            FormItem.DiscPer = DiscountPercentInput / 100.0;
         }
         else
         {
             DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
             DiscountValueInput = FormItem.Disc;
+            FormItem.DiscPer = DiscountPercentInput / 100.0;
         }
         
         CalculateTotalsInternal();
@@ -902,6 +919,7 @@ public partial class SalesViewModel : ObservableObject
         }
 
         FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        FormItem.NetPer = FormItem.Total > 0 ? Math.Round(FormItem.Net / FormItem.Total, 4) : 1;
         OnPropertyChanged(nameof(FormItem));
         UpdateRemaining();
     }

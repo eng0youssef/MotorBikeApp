@@ -58,6 +58,64 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private bool _isCarPopupOpen;
     [ObservableProperty] private string? _selectedCarDisplay;
 
+    // ── Proxy Properties for Tax Calculation ───────────────────────────
+    public double FormTotal
+    {
+        get => FormItem?.Total ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.Total != value)
+            {
+                FormItem.Total = value;
+                OnPropertyChanged();
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    public bool FormIsTax
+    {
+        get => FormItem?.IsTax ?? false;
+        set
+        {
+            if (FormItem != null && FormItem.IsTax != value)
+            {
+                FormItem.IsTax = value;
+                OnPropertyChanged();
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    // ── Tax ───────────────────────────────────────────────────────────────
+    [ObservableProperty] private double _netBeforeTax;
+
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set
+        {
+            if (SetProperty(ref _vatTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set
+        {
+            if (SetProperty(ref _whtTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
     // ── Constructor ────────────────────────────────────────────────────────
     public SalesCarViewModel(
         IDbConnectionFactory dbFactory,
@@ -130,13 +188,37 @@ public partial class SalesCarViewModel : ObservableObject
     // ── Selected invoice ───────────────────────────────────────────────────
     partial void OnSelectedInvoiceChanged(SalesCar? value)
     {
-        if (value is null || IsEditing) return;
+        if (value is not null)
+        {
+            IsSearchPanelVisible = false;
+            _isInsertMode = false;
+            IsEditing = false; // View mode after selection
+            
+            FormItem = CloneInvoice(value);
+            SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
+            SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
 
-        IsSearchPanelVisible = false;
-        FormItem = CloneInvoice(value);
-        SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
-        SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
-        LoadPaymentsAsync(value.SalesId).ConfigureAwait(false);
+            // Infer tax percentages from saved amounts
+            double netBefore = FormItem.Total;
+            if (FormItem.IsTax && netBefore > 0)
+            {
+                _vatTaxPercent = Math.Round((FormItem.VatTax / netBefore) * 100.0, 2);
+                _whtTaxPercent = Math.Round((FormItem.Tax / netBefore) * 100.0, 2);
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            else
+            {
+                _vatTaxPercent = 0;
+                _whtTaxPercent = 0;
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            
+            CalculateTotalsInternal();
+
+            LoadPaymentsAsync(value.SalesId).ConfigureAwait(false);
+        }
     }
 
     private async Task LoadPaymentsAsync(int salesId)
@@ -186,6 +268,9 @@ public partial class SalesCarViewModel : ObservableObject
         // Re-seed popup lists
         FilteredCustomersList = new ObservableCollection<Customer>(Customers);
         FilteredCarsList = new ObservableCollection<Car>(Cars.Where(c => c.Active));
+
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     // ── Edit selected ──────────────────────────────────────────────────────
@@ -220,6 +305,8 @@ public partial class SalesCarViewModel : ObservableObject
         IsCustomerPopupOpen = false;
         IsCarPopupOpen = false;
         StatusMessage = null;
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     // ── Save ───────────────────────────────────────────────────────────────
@@ -255,6 +342,22 @@ public partial class SalesCarViewModel : ObservableObject
             using var tx = db.BeginTransaction();
             try
             {
+                if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                {
+                    var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                        "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM Sales_Car WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                        transaction: tx);
+                    int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                    FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                }
+                else if (!FormItem.IsTax)
+                {
+                    FormItem.TaxNo = null;
+                }
+
+                // Calculate tax values before saving
+                CalculateTotalsInternal();
+
                 // Mark car as sold / inactive
                 await db.ExecuteAsync(
                     "UPDATE Cars SET Active = 0 WHERE Car_ID = @CarId",
@@ -269,10 +372,10 @@ public partial class SalesCarViewModel : ObservableObject
                         await db.ExecuteAsync(@"
                         INSERT INTO Sales_Car
                             (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Notes,
-                             AddDate, AddPc, AddUser)
+                             AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo)
                         VALUES
                             (@SalesId, @SalesDate, @CusId, @CarId, @Mileage, @Total, @Notes,
-                             @AddDate, @AddPc, @AddUser)",
+                             @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -284,7 +387,8 @@ public partial class SalesCarViewModel : ObservableObject
                         UPDATE Sales_Car
                         SET SalesDate = @SalesDate, CusId = @CusId, CarID = @CarId,
                             Mileage   = @Mileage,   Total = @Total,  Notes = @Notes,
-                            EditDate  = @EditDate,  EditPc = @EditPc, EditUser = @EditUser
+                            EditDate  = @EditDate,  EditPc = @EditPc, EditUser = @EditUser,
+                            IsTax = @IsTax, VatTax = @VatTax, Tax = @Tax, TaxNo = @TaxNo
                         WHERE Sales_ID = @SalesId",
                         FormItem, tx);
                     await db.ExecuteAsync(
@@ -495,9 +599,38 @@ public partial class SalesCarViewModel : ObservableObject
         CarId = s.CarId,
         Mileage = s.Mileage,
         Total = s.Total,
+        Net = s.Net,
         Notes = s.Notes,
         AddUser = s.AddUser,
         AddDate = s.AddDate,
-        AddPc = s.AddPc
+        AddPc = s.AddPc,
+        IsTax = s.IsTax,
+        VatTax = s.VatTax,
+        Tax = s.Tax,
+        TaxNo = s.TaxNo
     };
+
+    private void CalculateTotalsInternal()
+    {
+        if (FormItem == null) return;
+        NetBeforeTax = FormItem.Total;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        
+        // Notify UI of changes
+        OnPropertyChanged(nameof(FormItem));
+        OnPropertyChanged(nameof(FormTotal));
+        OnPropertyChanged(nameof(FormIsTax));
+    }
 }

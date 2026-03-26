@@ -66,6 +66,8 @@
                             <RowDefinition Height="Auto" />
                             <!--  Owner info  -->
                             <RowDefinition Height="Auto" />
+                            <!--  Tax section  -->
+                            <RowDefinition Height="Auto" />
                             <!--  Car divider  -->
                             <RowDefinition Height="Auto" />
                             <!--  Car info  -->
@@ -172,7 +174,7 @@
                                        Text="السعر" />
                             <TextBox Grid.Row="4" Grid.Column="1" FontSize="16" FontWeight="Bold" Foreground="#7C3AED"
                                      Style="{StaticResource FormTextBox}"
-                                     Text="{Binding FormItem.Total, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConv}}" />
+                                     Text="{Binding FormTotal, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConv}}" />
 
                             <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
@@ -188,8 +190,79 @@
                                      Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
+                        <!--  ── Tax Section ────────────────────────────────  -->
+                        <Border Grid.Row="3" Margin="0,0,0,16" Padding="16,12" Background="#F0F9FF" BorderBrush="#BFDBFE"
+                                BorderThickness="1" CornerRadius="10" IsEnabled="{Binding IsEditing}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox Grid.Column="0" VerticalAlignment="Center" Content="فاتورة ضريبية"
+                                          FontSize="14" FontWeight="SemiBold" Foreground="#1D4ED8"
+                                          IsChecked="{Binding FormIsTax, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <Grid Grid.Column="2" Visibility="{Binding FormIsTax, Converter={StaticResource BoolToVis}}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="8" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="8" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="8" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="اجمالي الفاتورة" />
+                                    <TextBox Grid.Row="0" Grid.Column="2" MinWidth="160" HorizontalContentAlignment="Center"
+                                             Background="#FFF9C4" FontSize="14" FontWeight="Bold" IsReadOnly="True"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding NetBeforeTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="ض القيمة المضافة" />
+                                    <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
+                                        <TextBox MinWidth="60" HorizontalContentAlignment="Center" FontSize="13"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding VatTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox MinWidth="90" Margin="8,0,0,0" HorizontalContentAlignment="Center"
+                                                 Background="#FFF9C4" FontSize="13" FontWeight="SemiBold" IsReadOnly="True"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.VatTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
+                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="ضريبة أ.ت.ص" />
+                                    <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal">
+                                        <TextBox MinWidth="60" HorizontalContentAlignment="Center" FontSize="13"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding WhtTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox MinWidth="90" Margin="8,0,0,0" HorizontalContentAlignment="Center"
+                                                 Background="#FFF9C4" FontSize="13" FontWeight="SemiBold" IsReadOnly="True"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.Tax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                    </StackPanel>
+
+                                    <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center"
+                                               FontSize="13" FontWeight="Bold" Foreground="#059669" Text="الصافي بعد الضريبة" />
+                                    <TextBox Grid.Row="6" Grid.Column="2" MinWidth="160" HorizontalContentAlignment="Center"
+                                             Background="#ECFDF5" FontSize="15" FontWeight="Bold" Foreground="#059669"
+                                             IsReadOnly="True" Style="{StaticResource FormTextBox}"
+                                             Text="{Binding FormItem.Net, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+
                         <!--  ── Car section divider ──────────────────────────  -->
-                        <Border Grid.Row="3" Margin="0,0,0,16" Padding="16,10" Background="#F5F3FF" BorderBrush="#DDD6FE" BorderThickness="1" CornerRadius="10"
+                        <Border Grid.Row="4" Margin="0,0,0,16" Padding="16,10" Background="#F5F3FF" BorderBrush="#DDD6FE" BorderThickness="1" CornerRadius="10"
                                 IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -272,7 +345,7 @@
                         </Border>
 
                         <!--  ── Payments Section ─────────────────────────────  -->
-                        <Border Grid.Row="5" Margin="0,0,0,24" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="6" Margin="0,0,0,24" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}">
                             <StackPanel>
                                 <TextBlock Margin="0,0,0,12" FontSize="16" FontWeight="Bold" Foreground="#1E293B" Text="💰 المدفوعات" />
@@ -375,14 +448,14 @@
                                     </StackPanel>
                                     <StackPanel>
                                         <TextBlock FontSize="12" Foreground="#64748B" Text="الإجمالي الكلي" />
-                                        <TextBlock FontSize="18" FontWeight="Bold" Foreground="#EF4444" Text="{Binding FormItem.Total, StringFormat=\{0:N2\}}" />
+                                        <TextBlock FontSize="18" FontWeight="Bold" Foreground="#EF4444" Text="{Binding FormItem.Net, StringFormat=\{0:N2\}}" />
                                     </StackPanel>
                                 </StackPanel>
                             </StackPanel>
                         </Border>
 
                         <!--  ── Action Buttons ────────────────────────────────  -->
-                        <DockPanel Grid.Row="6">
+                        <DockPanel Grid.Row="7">
                             <TextBlock MaxWidth="300" Margin="0,0,16,0" HorizontalAlignment="Right" VerticalAlignment="Center" DockPanel.Dock="Right" FontSize="14" FontWeight="SemiBold" Foreground="#10B981"
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />
@@ -550,7 +623,7 @@
                                 <DataGridTextColumn Width="100" Binding="{Binding BuyId}" Header="رقم الفاتورة" />
                                 <DataGridTextColumn Width="100" Binding="{Binding BuyDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
                                 <DataGridTextColumn Width="200" Binding="{Binding OwnerName}" Header="المالك" />
-                                <DataGridTextColumn Width="150" Binding="{Binding Total, StringFormat=\{0:N2\}}" Header="الإجمالي" />
+                                <DataGridTextColumn Width="150" Binding="{Binding Net, StringFormat=\{0:N2\}}" Header="الإجمالي" />
                                 <DataGridTextColumn Width="*" Binding="{Binding Notes}" Header="الملاحظات" />
                             </DataGrid.Columns>
                         </DataGrid>

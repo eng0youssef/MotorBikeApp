@@ -112,6 +112,34 @@ public partial class BuysViewModel : ObservableObject
     
     private bool _isUpdatingDiscount;
 
+    [ObservableProperty] private double _netBeforeTax;
+
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set
+        {
+            if (SetProperty(ref _vatTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set
+        {
+            if (SetProperty(ref _whtTaxPercent, value))
+            {
+                CalculateTotalsInternal();
+            }
+        }
+    }
+
     private double _subItemPrice;
     public double SubItemPrice
     {
@@ -305,6 +333,23 @@ public partial class BuysViewModel : ObservableObject
             // Update cash mode
             IsCashPaymentMode = FormItem.IsCash;
 
+            // Infer tax percentages from saved amounts
+            if (FormItem.IsTax)
+            {
+                double netBefore = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+                _vatTaxPercent = netBefore > 0 ? Math.Round((FormItem.VatTax / netBefore) * 100.0, 2) : 0;
+                _whtTaxPercent = netBefore > 0 ? Math.Round((FormItem.Tax / netBefore) * 100.0, 2) : 0;
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+            else
+            {
+                _vatTaxPercent = 0;
+                _whtTaxPercent = 0;
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+            }
+
             // Load SubItems
             LoadSubItemsAsync(value.BuyId).ConfigureAwait(false);
         }
@@ -376,6 +421,8 @@ public partial class BuysViewModel : ObservableObject
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     [RelayCommand]
@@ -416,6 +463,8 @@ public partial class BuysViewModel : ObservableObject
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
         StatusMessage = null;
     }
 
@@ -471,6 +520,19 @@ public partial class BuysViewModel : ObservableObject
 
             try
             {
+                if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                {
+                    var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                        "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM Buy WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                        transaction: tx);
+                    int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                    FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                }
+                else if (!FormItem.IsTax)
+                {
+                    FormItem.TaxNo = null;
+                }
+
                 if (_isInsertMode)
                 {
                     FormItem.BuyId = await _buyRepository.GetNextIdAsync();
@@ -479,8 +541,8 @@ public partial class BuysViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO Buy (Buy_ID, BuyDate, SuppId, Total, Disc, AddMoney, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
+                    VALUES (@BuyId, @BuyDate, @SuppId, @Total, @Disc, @AddMoney, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -491,7 +553,8 @@ public partial class BuysViewModel : ObservableObject
                     await db.ExecuteAsync(@"
                     UPDATE Buy SET BuyDate=@BuyDate, SuppId=@SuppId, Total=@Total,
                     Disc=@Disc, AddMoney=@AddMoney, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
                     WHERE Buy_ID = @BuyId",
                         FormItem, tx);
 
@@ -851,7 +914,20 @@ public partial class BuysViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
-        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+        NetBeforeTax = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
         OnPropertyChanged(nameof(FormItem));
         UpdateRemaining();
     }
@@ -917,7 +993,11 @@ public partial class BuysViewModel : ObservableObject
             Notes = source.Notes,
             AddUser = source.AddUser,
             AddDate = source.AddDate,
-            AddPc = source.AddPc
+            AddPc = source.AddPc,
+            IsTax = source.IsTax,
+            VatTax = source.VatTax,
+            Tax = source.Tax,
+            TaxNo = source.TaxNo
         };
     }
 }

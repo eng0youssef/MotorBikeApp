@@ -63,6 +63,8 @@ public partial class ReSalesViewModel : ObservableObject
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
+    [ObservableProperty] private double _netBeforeTax;
+
     partial void OnSubItemQtyChanged(double value)
     {
         if (CurrentSubItem != null) CurrentSubItem.Qty = value;
@@ -124,6 +126,20 @@ public partial class ReSalesViewModel : ObservableObject
     }
     private bool _isUpdatingSubDiscount;
 
+    private double _vatTaxPercent;
+    public double VatTaxPercent
+    {
+        get => _vatTaxPercent;
+        set { if (SetProperty(ref _vatTaxPercent, value)) { CalculateTotalsInternal(); } }
+    }
+
+    private double _whtTaxPercent;
+    public double WhtTaxPercent
+    {
+        get => _whtTaxPercent;
+        set { if (SetProperty(ref _whtTaxPercent, value)) { CalculateTotalsInternal(); } }
+    }
+
 
     public ReSalesViewModel(IDbConnectionFactory dbFactory, IRepository<ReSale> reSaleRepository, IRepository<Customer> customerRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
     {
@@ -171,28 +187,47 @@ public partial class ReSalesViewModel : ObservableObject
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
     [RelayCommand] private void HideSearchPanel() { IsSearchPanelVisible = false; }
 
+    private double _originalVatTax;
+    private double _originalTax;
     partial void OnSelectedInvoiceChanged(ReSale? value)
     {
         if (value is not null)
         {
             IsSearchPanelVisible = false;
             _isInsertMode = false;
-            IsEditing = true;
-            
+            IsEditing = false;
+
             FormItem = CloneInvoice(value);
+
+            _originalVatTax = value.VatTax;
+            _originalTax = value.Tax;
+
             _isUpdatingDiscount = true;
-            if (FormItem.IsPer) { DiscountPercentInput = Math.Round(FormItem.DiscPer * 100.0, 2); DiscountValueInput = FormItem.Disc; }
-            else { DiscountValueInput = FormItem.Disc; DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0; }
+            if (FormItem.IsPer)
+            {
+                DiscountPercentInput = Math.Round(FormItem.DiscPer * 100.0, 2);
+                DiscountValueInput = FormItem.Disc;
+            }
+            else
+            {
+                DiscountValueInput = FormItem.Disc;
+                DiscountPercentInput = FormItem.Total > 0
+                    ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2)
+                    : 0;
+            }
             _isUpdatingDiscount = false;
-            
+
             _isSelectingCustomer = true;
             CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
             IsCustomerSearchPopupOpen = false;
             _isSelectingCustomer = false;
-            
+
             IsCashPaymentMode = FormItem.IsCash;
-            
-            LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
+
+            _vatTaxPercent = 0;
+            _whtTaxPercent = 0;
+
+            _ = LoadSubItemsAsync(value.SalesId);
         }
     }
 
@@ -201,16 +236,48 @@ public partial class ReSalesViewModel : ObservableObject
         try
         {
             using var db = _dbFactory.CreateConnection();
-            FormSubItems = new ObservableCollection<ReSalesSub>(await db.QueryAsync<ReSalesSub>("SELECT * FROM ReSales_Sub WHERE SalesId = @SalesId", new { SalesId = salesId }));
+
+            FormSubItems = new ObservableCollection<ReSalesSub>(
+                await db.QueryAsync<ReSalesSub>(
+                    "SELECT * FROM ReSales_Sub WHERE SalesId = @SalesId",
+                    new { SalesId = salesId }));
+
             WireSubItemsCollection();
-            
-            var payments = await db.QueryAsync<ReSalesPayment>("SELECT * FROM ReSales_Payments WHERE SalesId = @SalesId", new { SalesId = salesId });
+
+            var payments = await db.QueryAsync<ReSalesPayment>(
+                "SELECT * FROM ReSales_Payments WHERE SalesId = @SalesId",
+                new { SalesId = salesId });
+
             FormPayments = new ObservableCollection<ReSalesPayment>(payments);
             CalculatePayedTotal();
-            
+
             CalculateTotals();
+
+            if (FormItem.IsTax)
+            {
+                double netBase = NetBeforeTax;
+
+                if (netBase > 0)
+                {
+                    _vatTaxPercent = Math.Round((_originalVatTax / netBase) * 100.0, 2);
+                    _whtTaxPercent = Math.Round((_originalTax / netBase) * 100.0, 2);
+                }
+                else
+                {
+                    _vatTaxPercent = 0;
+                    _whtTaxPercent = 0;
+                }
+
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+
+                CalculateTotalsInternal();
+            }
         }
-        catch (Exception ex) { StatusMessage = "خطأ في تحميل الأصناف والدفعات: " + ex.Message; }
+        catch (Exception ex)
+        {
+            StatusMessage = "خطأ في تحميل الأصناف والدفعات: " + ex.Message;
+        }
     }
 
     [RelayCommand]
@@ -234,6 +301,9 @@ public partial class ReSalesViewModel : ObservableObject
         CustomerSearchText = string.Empty;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+        
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
         
         WireSubItemsCollection();
     }
@@ -268,6 +338,9 @@ public partial class ReSalesViewModel : ObservableObject
         CustomerSearchText = string.Empty;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+
+        VatTaxPercent = 0;
+        WhtTaxPercent = 0;
     }
 
     [RelayCommand]
@@ -319,9 +392,23 @@ public partial class ReSalesViewModel : ObservableObject
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
+
+                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                    {
+                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReSales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                            transaction: tx);
+                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                    }
+                    else if (!FormItem.IsTax)
+                    {
+                        FormItem.TaxNo = null;
+                    }
+
                     await db.ExecuteAsync(@"
-                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -329,10 +416,25 @@ public partial class ReSalesViewModel : ObservableObject
                     FormItem.EditPc = Environment.MachineName;
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
+
+                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                    {
+                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReSales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
+                            transaction: tx);
+                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                    }
+                    else if (!FormItem.IsTax)
+                    {
+                        FormItem.TaxNo = null;
+                    }
+
                     await db.ExecuteAsync(@"
                     UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, 
                     AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser 
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 
@@ -528,7 +630,22 @@ public partial class ReSalesViewModel : ObservableObject
 
     private void CalculateTotalsInternal() 
     { 
-        FormItem.Net = FormItem.Total - FormItem.Disc + FormItem.AddMony; 
+        NetBeforeTax = FormItem.Total - FormItem.Disc + FormItem.AddMony;
+        
+        if (FormItem.IsTax)
+        {
+            FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
+            FormItem.Tax = Math.Round(NetBeforeTax * (WhtTaxPercent / 100.0), 2);
+        }
+        else
+        {
+            FormItem.Tax = 0;
+            FormItem.VatTax = 0;
+        }
+
+        FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        FormItem.NetPer = FormItem.Total > 0 ? Math.Round(FormItem.Net / FormItem.Total, 4) : 1;
+
         UpdateRemaining();
         if (IsCashPaymentMode)
         {
@@ -609,7 +726,8 @@ public partial class ReSalesViewModel : ObservableObject
     {
         SalesId = s.SalesId, SalesDate = s.SalesDate, CusId = s.CusId, Total = s.Total, Disc = s.Disc,
         DiscPer = s.DiscPer, AddMony = s.AddMony, Net = s.Net, IsPer = s.IsPer, NetPer = s.NetPer,
-        IsCash = s.IsCash, Notes = s.Notes, AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
+        IsCash = s.IsCash, Notes = s.Notes, IsTax = s.IsTax, VatTax = s.VatTax, Tax = s.Tax, TaxNo = s.TaxNo,
+        AddUser = s.AddUser, AddDate = s.AddDate, AddPc = s.AddPc
     };
 
     private void WireSubItemsCollection()

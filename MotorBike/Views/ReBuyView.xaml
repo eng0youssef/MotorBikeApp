@@ -292,30 +292,126 @@
                             </DataGrid>
                         </Border>
 
-                        <!-- Totals Section -->
-                        <Border Grid.Row="5" Background="#F8FAFC" CornerRadius="12" Padding="24,16" Margin="0,0,0,24" BorderBrush="#E2E8F0" BorderThickness="1">
-                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                                <StackPanel Margin="0,0,24,8">
-                                    <TextBlock Text="إجمالي" Foreground="#64748B" FontSize="12" FontWeight="Bold"/>
-                                    <TextBox Text="{Binding FormItem.Total, Mode=OneWay, StringFormat=\{0:N2\}}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#EFF6FF" Foreground="#1D4ED8" FontWeight="Bold" FontSize="15" MinWidth="120"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,24,8">
-                                    <TextBlock Text="خصم (%)" Foreground="#64748B" FontSize="12"/>
-                                    <TextBox Text="{Binding DiscountPercentInput, UpdateSourceTrigger=PropertyChanged}" Width="100" Background="White" BorderBrush="#CBD5E1" Style="{StaticResource FormTextBox}" TextChanged="Totals_TextChanged" IsEnabled="{Binding IsEditing}"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,24,8">
-                                    <TextBlock Text="خصم مبلغ" Foreground="#64748B" FontSize="12"/>
-                                    <TextBox Text="{Binding DiscountValueInput, UpdateSourceTrigger=PropertyChanged}" Width="120" Background="White" BorderBrush="#CBD5E1" Style="{StaticResource FormTextBox}" TextChanged="Totals_TextChanged" IsEnabled="{Binding IsEditing}"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,24,8">
-                                    <TextBlock Text="خدمة/إضافة" Foreground="#64748B" FontSize="12"/>
-                                    <TextBox Text="{Binding FormItem.AddMoney, UpdateSourceTrigger=PropertyChanged}" Width="120" Background="White" BorderBrush="#CBD5E1" Style="{StaticResource FormTextBox}" TextChanged="Totals_TextChanged" IsEnabled="{Binding IsEditing}"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,24,8">
-                                    <TextBlock Text="الصافي" Foreground="#64748B" FontSize="12" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding FormItem.Net, StringFormat=\{0:N2\}}" FontSize="22" FontWeight="Bold" Foreground="#10B981" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </WrapPanel>
+                        <!--  Totals Section  -->
+                        <Border Grid.Row="5" Margin="0,0,0,24" Padding="20" Background="#F0F9FF" BorderBrush="#BFDBFE"
+                                BorderThickness="1" CornerRadius="12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <!--  separator  -->
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!--  Left Side: Net, Add, Discounts  -->
+                                <WrapPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <StackPanel Margin="0,0,24,12">
+                                        <TextBlock Margin="0,0,0,4" FontSize="13" FontWeight="Bold" Foreground="#64748B" Text="صافي المرتجع" />
+                                        <TextBox MinWidth="110" HorizontalContentAlignment="Center" Background="#FFF9C4" FontSize="15" FontWeight="Bold"
+                                                 IsReadOnly="True"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.Total, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,24,12">
+                                        <TextBlock Margin="0,0,0,4" HorizontalAlignment="Center" FontSize="13" FontWeight="Bold" Foreground="#64748B"
+                                                   Text="خدمة/إضافة" />
+                                        <TextBox MinWidth="90" HorizontalContentAlignment="Center" FontSize="14"
+                                                 IsEnabled="{Binding IsEditing}"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.AddMoney, UpdateSourceTrigger=PropertyChanged}"
+                                                 TextChanged="Totals_TextChanged" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,28,8">
+                                        <TextBlock FontSize="11" Foreground="#7B84A0" Text="خصم إجمالي (%)" />
+                                        <TextBox Width="70"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 IsEnabled="{Binding IsEditing}"
+                                                 Text="{Binding DiscountPercentInput, UpdateSourceTrigger=PropertyChanged}"
+                                                 TextChanged="Totals_TextChanged" />
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,24,8">
+                                        <TextBlock FontSize="12" FontWeight="Bold" Foreground="#64748B" Text="خصم مبلغ" />
+                                        <TextBox MinWidth="80" FontSize="13"
+                                                 IsEnabled="{Binding IsEditing}"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding DiscountValueInput, UpdateSourceTrigger=PropertyChanged}"
+                                                 TextChanged="Totals_TextChanged" />
+                                    </StackPanel>
+                                    <!--  Tax Toggle CheckBox  -->
+                                    <StackPanel Margin="16,0,0,8" VerticalAlignment="Center">
+                                        <CheckBox Checked="IsTax_Changed" Content="فاتورة ضريبية" FontSize="14" FontWeight="SemiBold"
+                                                  Foreground="#1E293B" IsChecked="{Binding FormItem.IsTax, UpdateSourceTrigger=PropertyChanged}"
+                                                  Unchecked="IsTax_Changed" />
+                                    </StackPanel>
+                                </WrapPanel>
+
+                                <!--  Right Side: Totals & Tax  -->
+                                <Grid Grid.Column="2" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!--  Total Before Tax  -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,0,12" VerticalAlignment="Center" FontSize="14"
+                                               FontWeight="Bold" Foreground="#1E293B" Text="اجمالي المرتجع" />
+                                    <TextBox Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,8"
+                                             HorizontalContentAlignment="Center" Background="#FFF9C4" FontSize="15" FontWeight="Bold" IsReadOnly="True"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding NetBeforeTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+
+                                    <!--  VAT  -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,0,8" VerticalAlignment="Center" FontSize="14"
+                                               FontWeight="Bold" Foreground="#1E293B" Text="ض القيمة المضافة"
+                                               Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,8,8" HorizontalAlignment="Right"
+                                                Orientation="Horizontal"
+                                                Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}">
+                                        <TextBox MinWidth="70" HorizontalContentAlignment="Center" FontSize="14"
+                                                 IsEnabled="{Binding IsEditing}"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding VatTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#FFF9C4" FontSize="14"
+                                                 FontWeight="SemiBold" IsReadOnly="True"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.VatTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                    </StackPanel>
+
+                                    <!--  WHT  -->
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,0,8" VerticalAlignment="Center" FontSize="14"
+                                               FontWeight="Bold" Foreground="#1E293B" Text="ضريبة أ.ت.ص"
+                                               Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
+                                    <StackPanel Grid.Row="2" Grid.Column="2" Grid.ColumnSpan="2" Margin="0,0,8,8" HorizontalAlignment="Right"
+                                                Orientation="Horizontal"
+                                                Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}">
+                                        <TextBox MinWidth="70" HorizontalContentAlignment="Center" FontSize="14"
+                                                 IsEnabled="{Binding IsEditing}"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding WhtTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#FFF9C4" FontSize="14"
+                                                 FontWeight="SemiBold" IsReadOnly="True"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding FormItem.Tax, Mode=OneWay, StringFormat=\{0:N2\}}" />
+                                    </StackPanel>
+
+                                    <!--  Total After Tax  -->
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,0,0" VerticalAlignment="Center" FontSize="14"
+                                               FontWeight="Bold" Foreground="#1E293B" Text="اجمالي بعد الضريبة"
+                                               Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
+                                    <TextBox Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,0"
+                                             HorizontalContentAlignment="Center" Background="#FFF9C4" FontSize="15" FontWeight="Bold" IsReadOnly="True"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding FormItem.Net, Mode=OneWay, StringFormat=\{0:N2\}}"
+                                             Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
+                                </Grid>
+                            </Grid>
                         </Border>
 
                         <!-- Cash Mode Treasury Selector (Only visible in Cash mode) -->
