@@ -5,9 +5,31 @@
         WindowStartupLocation="CenterScreen" 
         FlowDirection="RightToLeft"
         Background="#F8FAFC">
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.6"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
     <Grid>
+        <Grid.Triggers>
+            <EventTrigger RoutedEvent="Grid.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,30,0,-30" To="0" Duration="0:0:0.6">
+                            <ThicknessAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </ThicknessAnimation.EasingFunction>
+                        </ThicknessAnimation>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Grid.Triggers>
         <!-- Background Banner -->
-        <Border Background="#3B82F6" MinHeight="220" VerticalAlignment="Top" />
+        <Border Background="#272C3F" MinHeight="220" VerticalAlignment="Top" />
         
         <Border Background="White" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
             <Border.Effect>
@@ -16,14 +38,14 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="🏍️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
                 <TextBlock Text="تسجيل الدخول" FontSize="22" FontWeight="Bold" Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,32"/>
-                
-                <TextBlock Text="اسم المستخدم" Style="{StaticResource FormLabel}"/>
-                <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Margin="0,0,0,16"/>
-                
-                <TextBlock Text="كلمة المرور" Style="{StaticResource FormLabel}"/>
+
+                <TextBlock Text="اسم المستخدم" Foreground="#272C3F" FontSize="15" Style="{StaticResource FormLabel}" />
+                <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" Foreground="White" Style="{StaticResource FormTextBox}" Margin="0,0,0,16"/>
+
+                <TextBlock Text="كلمة المرور" Foreground="#272C3F" FontSize="15" Style="{StaticResource FormLabel}"/>
                 <!-- Password Box simulated with the same input styling -->
-                <Border BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Background="#F8FAFC" Padding="12,10" Margin="0,0,0,24">
-                    <PasswordBox x:Name="txtPassword" Background="Transparent" BorderThickness="0" FontSize="14" PasswordChanged="txtPassword_PasswordChanged"/>
+                <Border BorderBrush="#CBD5E1"  BorderThickness="1" CornerRadius="8" Background="#272C3F" Padding="12,10" Margin="0,0,0,24">
+                    <PasswordBox x:Name="txtPassword"  Background="Transparent" BorderThickness="0" Foreground="White" FontSize="14" PasswordChanged="txtPassword_PasswordChanged"/>
                 </Border>
                 
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>

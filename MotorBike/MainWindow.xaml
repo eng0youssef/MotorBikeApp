@@ -9,6 +9,16 @@
         Title="نظام إدارة وكالة الموتوسيكلات" MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         FlowDirection="RightToLeft" FontFamily="Segoe UI" FontSize="14">
+    
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.6" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
 
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:CompanyViewModel}"><views:CompanyView/></DataTemplate>
@@ -57,6 +67,19 @@
     </Window.Resources>
 
     <Grid>
+        <Grid.Triggers>
+            <EventTrigger RoutedEvent="Grid.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,20,0,-20" To="0" Duration="0:0:0.6">
+                            <ThicknessAnimation.EasingFunction>
+                                <CubicEase EasingMode="EaseOut"/>
+                            </ThicknessAnimation.EasingFunction>
+                        </ThicknessAnimation>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Grid.Triggers>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" MinWidth="230"/>
             <ColumnDefinition Width="*"/>
@@ -121,8 +144,8 @@
                         <TextBlock Text="الاستيراد" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="🌍  إدارة الاستيراد" Command="{Binding NavigateToCommand}" CommandParameter="ImportData" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
-                        <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>
+                        <!--<TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>-->
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>
