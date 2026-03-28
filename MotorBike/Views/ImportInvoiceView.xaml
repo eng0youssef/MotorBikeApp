@@ -45,6 +45,7 @@
                             <RowDefinition Height="Auto"/> <!-- Separator -->
                             <RowDefinition Height="Auto"/> <!-- Main Info -->
                             <RowDefinition Height="Auto"/> <!-- TabControl for SubItems -->
+                            <RowDefinition Height="Auto"/> <!-- Recalc Button -->
                             <RowDefinition Height="Auto"/> <!-- Totals -->
                             <RowDefinition Height="Auto"/> <!-- Actions -->
                         </Grid.RowDefinitions>
@@ -406,7 +407,24 @@
                         </TabControl>
 
                         <!-- Totals -->
-                        <Border Grid.Row="4" Background="#EEF2FF" CornerRadius="12" Padding="20" Margin="0,0,0,24" BorderBrush="#C7D2FE" BorderThickness="1">
+                        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,8">
+                            <Button Content="🔄 إعادة حساب النسبة % تلقائي" Command="{Binding RecalcAllPercentagesCommand}" Padding="16,8" FontSize="13" FontWeight="SemiBold" ToolTip="يعيد حساب النسبة المئوية لكل الأصناف والموتوسيكلات تلقائياً بناءً على إجمالي كل صنف">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Setter Property="Background" Value="#F59E0B"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="#D97706"/>
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                        <Border Grid.Row="5" Background="#EEF2FF" CornerRadius="12" Padding="20" Margin="0,0,0,24" BorderBrush="#C7D2FE" BorderThickness="1">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
@@ -436,7 +454,7 @@
                         </Border>
 
                         <!-- Footer Action Buttons -->
-                        <DockPanel Grid.Row="5">
+                        <DockPanel Grid.Row="6">
                             <TextBlock DockPanel.Dock="Right" Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Right"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" MinHeight="45">
                                 <Button Content="✏️ تـعـديـل" Command="{Binding EditSelectedCommand}" Margin="0,0,12,0" Padding="16,10">

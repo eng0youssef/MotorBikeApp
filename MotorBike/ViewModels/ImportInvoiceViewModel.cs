@@ -223,7 +223,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         SelectedOmlaId = supplier.OmlaId;
         FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
         OnPropertyChanged(nameof(FormItem));
-        CalculateTotals(false);
+        CalculateTotals();
     }
 
     // ── InvType (FOB / CIF) ────────────────────────────────────────────────
@@ -491,7 +491,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             var payments = await _paymentRepo.GetAllAsync();
             FormPayments = new(payments.Where(x => x.InvId == invId));
 
-            CalculateTotals(false);
+            CalculateTotals();
             StatusMessage = $"تم تحميل الفاتورة رقم {invId}";
             IsEditing = false;
         }
@@ -530,7 +530,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentItemUnits = [];
         _isSelectingItem = false;
 
-        CalculateTotals(true);
+        CalculateTotals(PercentageMode.NewOnly);
     }
 
     [RelayCommand]
@@ -539,7 +539,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (item != null && FormItems.Contains(item))
         {
             FormItems.Remove(item);
-            CalculateTotals(true);
+            CalculateTotals(PercentageMode.None);
         }
     }
 
@@ -557,7 +557,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         FormCars.Add(CurrentSubCar);
         CurrentSubCar = new ImportInvCar();
         if (CarsList.Any()) CurrentSubCar.CarId = CarsList.First().CarId;
-        CalculateTotals(true);
+        CalculateTotals(PercentageMode.NewOnly);
     }
 
     [RelayCommand]
@@ -566,7 +566,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (car != null && FormCars.Contains(car))
         {
             FormCars.Remove(car);
-            CalculateTotals(true);
+            CalculateTotals(PercentageMode.None);
         }
     }
 
@@ -614,7 +614,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         NewCarMileage = 0;
         NewCarTotal = 0;
 
-        CalculateTotals(true);
+        CalculateTotals(PercentageMode.NewOnly);
     }
 
     // ── Adding Sub-Expenses ──────────────────────────────────────────────
@@ -638,7 +638,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentSubExp = new ImportExp { PayDate = DateTime.Now, OmlaRate = 1, CashId = oldCashId };
         if (Omlas.Any()) CurrentSubExp.OmlaId = Omlas.First().OmlaId;
         if (ExpenseTypes.Any()) CurrentSubExp.ExpId = ExpenseTypes.First().ExpId;
-        CalculateTotals(false);
+        CalculateTotals();
     }
 
     [RelayCommand]
@@ -647,7 +647,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (exp != null && FormExps.Contains(exp))
         {
             FormExps.Remove(exp);
-            CalculateTotals(false);
+            CalculateTotals();
         }
     }
 
@@ -683,7 +683,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (Omlas.Any()) CurrentSubPayment.OmlaId = FormItem.OmlaId;
 
         CalculateFrokOmla();
-        CalculateTotals(false);
+        CalculateTotals();
     }
 
     [RelayCommand]
@@ -693,7 +693,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         {
             FormPayments.Remove(payment);
             CalculateFrokOmla();
-            CalculateTotals(false);
+            CalculateTotals();
         }
     }
 
@@ -717,12 +717,33 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
     // ── Calculations ─────────────────────────────────────────────────────
 
-    public void RecalculateTotalsFromGrid(bool isPercentageEdit)
+    /// <summary>أوضاع حساب النسبة المئوية</summary>
+    private enum PercentageMode
     {
-        CalculateTotals(!isPercentageEdit);
+        /// <summary>لا تغيّر أي نسب (تحديث التوتال والتكاليف فقط)</summary>
+        None,
+        /// <summary>احسب النسبة فقط لآخر صنف/موتوسيكل مضاف (بدون المساس بالنسب القائمة)</summary>
+        NewOnly,
+        /// <summary>أعِد حساب كل النسب لكل الأصناف والموتوسيكلات</summary>
+        All
     }
 
-    private void CalculateTotals(bool recalculatePercentages = false)
+    public void RecalculateTotalsFromGrid(bool isPercentageEdit)
+    {
+        CalculateTotals(isPercentageEdit ? PercentageMode.None : PercentageMode.All);
+    }
+
+    /// <summary>
+    /// زرار "إعادة حساب النسبة % تلقائي" — يعيد حساب النسبة لكل الأصناف والموتوسيكلات
+    /// </summary>
+    [RelayCommand]
+    public void RecalcAllPercentages()
+    {
+        CalculateTotals(PercentageMode.All);
+        StatusMessage = "تم إعادة حساب جميع النسب تلقائياً ✓";
+    }
+
+    private void CalculateTotals(PercentageMode percentageMode = PercentageMode.None)
     {
         if (FormItem == null) return;
 
@@ -770,8 +791,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
         double invTotal = FormItem.InvTotal;
         if (invTotal > 0 && totalCost > 0)
         {
-            if (recalculatePercentages)
+            if (percentageMode == PercentageMode.All)
             {
+                // إعادة حساب النسبة لكل الأصناف والموتوسيكلات
                 foreach (var item in FormItems)
                 {
                     item.CostPer = Math.Round((decimal)(item.Total / invTotal) * 100m, 4);
@@ -782,6 +804,34 @@ public partial class ImportInvoiceViewModel : ObservableObject
                     car.CostPer = Math.Round((decimal)(carTotal / invTotal) * 100m, 4);
                 }
             }
+            else if (percentageMode == PercentageMode.NewOnly)
+            {
+                // حساب النسبة فقط لآخر عنصر مضاف (آخر صنف أو آخر موتوسيكل)
+                // بدون تغيير النسب القائمة التي عدّلها المستخدم يدوياً
+                var lastItem = FormItems.LastOrDefault();
+                var lastCar = FormCars.LastOrDefault();
+
+                // نحدد مين اللي اتضاف آخر مرة: لو عدد الأصناف أو الموتوسيكلات اتغير...
+                // هنحسب نسبة آخر صنف لو آخر عنصر مضاف كان صنف
+                // ونحسب نسبة آخر موتوسيكل لو آخر عنصر مضاف كان موتوسيكل
+                // الطريقة: نحسب النسبة لأي عنصر نسبته لسه صفر (جديد)
+                foreach (var item in FormItems)
+                {
+                    if (item.CostPer == 0m)
+                    {
+                        item.CostPer = Math.Round((decimal)(item.Total / invTotal) * 100m, 4);
+                    }
+                }
+                foreach (var car in FormCars)
+                {
+                    if (car.CostPer == 0m)
+                    {
+                        double carTotal = car.Total ?? 0;
+                        car.CostPer = Math.Round((decimal)(carTotal / invTotal) * 100m, 4);
+                    }
+                }
+            }
+            // PercentageMode.None → لا تعدّل أي نسب
 
             foreach (var item in FormItems)
             {
@@ -811,7 +861,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             return;
         }
 
-        CalculateTotals(false); // Only recalculate totals without overriding user's manual CostPer percentages
+        CalculateTotals(); // Only recalculate totals without overriding user's manual CostPer percentages
 
         if (FormItems.Any() || FormCars.Any())
         {
