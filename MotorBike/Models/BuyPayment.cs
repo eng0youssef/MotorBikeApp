@@ -1,21 +1,27 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace MotorBike.Models;
 
 /// <summary>
 /// مدفوعات فواتير المشتريات — جدول Buy_Payments
 /// </summary>
-public partial class BuyPayment
+public partial class BuyPayment : ObservableObject
 {
-    public int PayId { get; set; }
+    private int _payId;
+    public int PayId { get => _payId; set => SetProperty(ref _payId, value); }
 
-    public DateTime PayDate { get; set; }
+    private DateTime _payDate;
+    public DateTime PayDate { get => _payDate; set => SetProperty(ref _payDate, value); }
 
-    public double PayMoney { get; set; }
+    private double _payMoney;
+    public double PayMoney { get => _payMoney; set => SetProperty(ref _payMoney, value); }
 
-    public int CashId { get; set; }
+    private int _cashId;
+    public int CashId { get => _cashId; set => SetProperty(ref _cashId, value); }
 
-    public string? Notes { get; set; }
+    private string? _notes;
+    public string? Notes { get => _notes; set => SetProperty(ref _notes, value); }
 
     public int BuyId { get; set; }
 

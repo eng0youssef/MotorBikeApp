@@ -57,6 +57,7 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private double _totalPayed;
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
+    [ObservableProperty] private bool _isPaymentsPopupOpen;
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
@@ -299,6 +300,18 @@ public partial class BuysViewModel : ObservableObject
         IsSearchPanelVisible = false;
     }
 
+    [RelayCommand]
+    private void OpenPaymentsPopup()
+    {
+        IsPaymentsPopupOpen = true;
+    }
+
+    [RelayCommand]
+    private void ClosePaymentsPopup()
+    {
+        IsPaymentsPopupOpen = false;
+    }
+
     partial void OnSelectedInvoiceChanged(Buy? value)
     {
         if (value is not null)
@@ -366,6 +379,7 @@ public partial class BuysViewModel : ObservableObject
 
             var payments = await db.QueryAsync<BuyPayment>("SELECT * FROM Buy_Payments WHERE BuyId = @BuyId", new { BuyId = buyId });
             FormPayments = new ObservableCollection<BuyPayment>(payments);
+            WirePaymentsCollection();
             CalculatePayedTotal();
 
             CalculateTotals();
@@ -403,6 +417,7 @@ public partial class BuysViewModel : ObservableObject
         FormSubItems.Clear();
         WireSubItemsCollection();
         FormPayments.Clear();
+        WirePaymentsCollection();
         TotalPayed = 0;
         Remaining = 0;
         IsCashPaymentMode = false;
@@ -972,6 +987,40 @@ public partial class BuysViewModel : ObservableObject
         if (e.PropertyName == nameof(BuySub.Total))
         {
             CalculateTotals();
+        }
+    }
+
+    private void WirePaymentsCollection()
+    {
+        FormPayments.CollectionChanged -= OnPaymentsCollectionChanged;
+        FormPayments.CollectionChanged += OnPaymentsCollectionChanged;
+
+        foreach (var p in FormPayments)
+        {
+            p.PropertyChanged -= OnPaymentPropertyChanged;
+            p.PropertyChanged += OnPaymentPropertyChanged;
+        }
+    }
+
+    private void OnPaymentsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (BuyPayment p in e.NewItems)
+            {
+                p.PropertyChanged -= OnPaymentPropertyChanged;
+                p.PropertyChanged += OnPaymentPropertyChanged;
+            }
+
+        if (e.OldItems != null)
+            foreach (BuyPayment p in e.OldItems)
+                p.PropertyChanged -= OnPaymentPropertyChanged;
+    }
+
+    private void OnPaymentPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(BuyPayment.PayMoney))
+        {
+            CalculatePayedTotal();
         }
     }
 

@@ -123,12 +123,12 @@
 
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="0,14,0,16">
-                        <TextBlock Text="الأساسيات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,10,0,6"/>
+                        <TextBlock Text="الأساسيات" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,10,0,6"/>
                         <Button Content="📂  البيانات الأساسية" Command="{Binding NavigateToCommand}" CommandParameter="BasicData" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  الموتوسيكلات" Command="{Binding NavigateToCommand}" CommandParameter="Cars" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="📦  أرصدة أول المدة" Command="{Binding NavigateToCommand}" CommandParameter="OpenStock" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="المدفوعات والتحويلات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <TextBlock Text="المدفوعات والتحويلات" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="💳   المدفوعات والتحويلات" Command="{Binding NavigateToCommand}" CommandParameter="PaymentsData" Style="{StaticResource MenuButtonStyle}"/>
 
                         <TextBlock Text="الفواتير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
@@ -137,11 +137,11 @@
                         <Button Content="🏍️  شراء موتوسيكل" Command="{Binding NavigateToCommand}" CommandParameter="BuyCar" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  بيع موتوسيكل" Command="{Binding NavigateToCommand}" CommandParameter="SalesCar" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="المرتجعات" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <TextBlock Text="المرتجعات" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="↩️  مرتجع المشتريات" Command="{Binding NavigateToCommand}" CommandParameter="ReBuy" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="↩️  مرتجع المبيعات" Command="{Binding NavigateToCommand}" CommandParameter="ReSales" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <TextBlock Text="الاستيراد" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <TextBlock Text="الاستيراد" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="🌍  إدارة الاستيراد" Command="{Binding NavigateToCommand}" CommandParameter="ImportData" Style="{StaticResource MenuButtonStyle}"/>
 
                         <!--<TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>

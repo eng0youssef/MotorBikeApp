@@ -7,19 +7,51 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="FormCard" TargetType="Border">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Background" Value="#272C3F" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#E2E8F0" />
-            <Setter Property="Margin" Value="24" />
-            <Setter Property="Padding" Value="32" />
+            <Setter Property="BorderBrush" Value="#3D4560" />
+            <Setter Property="Margin" Value="20" />
+            <Setter Property="Padding" Value="28" />
         </Style>
 
-        <!--  Car section divider label style  -->
-        <Style x:Key="SectionLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13" />
+        <!--  Dark Column Header  -->
+        <Style x:Key="DarkColumnHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2A3040" />
+            <Setter Property="Foreground" Value="#9BA4B5" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#7C3AED" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="BorderBrush" Value="#3D4560" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+
+        <!--  Dark Row  -->
+        <Style x:Key="DarkRow" TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#C8CEE0" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#323F58" />
+                    <Setter Property="Foreground" Value="#E8A54B" />
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2A3040" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--  Dark Cell  -->
+        <Style x:Key="DarkCell" TargetType="DataGridCell">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Foreground" Value="#C8CEE0" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Foreground" Value="#E8A54B" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <Style x:Key="FormContainerStyle" TargetType="Grid">
@@ -43,9 +75,17 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <!--  Car section divider label style  -->
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#7C3AED" />
+        </Style>
+
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC" MinWidth="850" MinHeight="500">
+    <Grid Background="#2F3549" MinWidth="850" MinHeight="500">
 
         <!--  ════════════════════════════════════════════════════════════════  -->
         <!--  FORM SECTION  -->
@@ -86,11 +126,17 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                <Border Margin="0,0,16,0" Padding="14,12" Background="#F5F3FF" CornerRadius="12">
+                                <Border Margin="0,0,16,0" Padding="14,12" CornerRadius="12">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Offset="0" Color="#E8A54B" />
+                                            <GradientStop Offset="1" Color="#D4922F" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
                                     <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" Text="🏍️" />
                                 </Border>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock FontSize="22" FontWeight="Bold" Foreground="#1E293B" Text="فاتورة شراء موتوسيكل" />
+                                    <TextBlock FontSize="22" FontWeight="Bold" Foreground="White" Text="فاتورة شراء موتوسيكل" />
                                     <TextBlock Margin="0,4,0,0" FontSize="14" Foreground="#64748B" Text="سجل فاتورة شراء موتوسيكل جديدة أو استعلم عن فواتير سابقة" />
                                 </StackPanel>
                             </StackPanel>
@@ -191,7 +237,7 @@
                         </Grid>
 
                         <!--  ── Tax Section ────────────────────────────────  -->
-                        <Border Grid.Row="3" Margin="0,0,0,16" Padding="16,12" Background="#F0F9FF" BorderBrush="#BFDBFE"
+                        <Border Grid.Row="3" Margin="0,0,0,16" Padding="16,12" Background="#272C3F" BorderBrush="#3D4560"
                                 BorderThickness="1" CornerRadius="10" IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -201,7 +247,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <CheckBox Grid.Column="0" VerticalAlignment="Center" Content="فاتورة ضريبية"
-                                          FontSize="14" FontWeight="SemiBold" Foreground="#1D4ED8"
+                                          FontSize="14" FontWeight="SemiBold" Foreground="White"
                                           IsChecked="{Binding FormIsTax, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <Grid Grid.Column="2" Visibility="{Binding FormIsTax, Converter={StaticResource BoolToVis}}">
@@ -221,14 +267,14 @@
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
-                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="اجمالي الفاتورة" />
+                                               FontSize="13" FontWeight="Bold" Foreground="#7B84A0" Text="اجمالي الفاتورة" />
                                     <TextBox Grid.Row="0" Grid.Column="2" MinWidth="160" HorizontalContentAlignment="Center"
                                              Background="#FFF9C4" FontSize="14" FontWeight="Bold" IsReadOnly="True"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding NetBeforeTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
 
                                     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
-                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="ض القيمة المضافة" />
+                                               FontSize="13" FontWeight="Bold" Foreground="#7B84A0" Text="ض القيمة المضافة" />
                                     <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
                                         <TextBox MinWidth="60" HorizontalContentAlignment="Center" FontSize="13"
                                                  Style="{StaticResource FormTextBox}"
@@ -240,7 +286,7 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
-                                               FontSize="13" FontWeight="Bold" Foreground="#1E293B" Text="ضريبة أ.ت.ص" />
+                                               FontSize="13" FontWeight="Bold" Foreground="#7B84A0" Text="ضريبة أ.ت.ص" />
                                     <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal">
                                         <TextBox MinWidth="60" HorizontalContentAlignment="Center" FontSize="13"
                                                  Style="{StaticResource FormTextBox}"
@@ -262,7 +308,7 @@
                         </Border>
 
                         <!--  ── Car section divider ──────────────────────────  -->
-                        <Border Grid.Row="4" Margin="0,0,0,16" Padding="16,10" Background="#F5F3FF" BorderBrush="#DDD6FE" BorderThickness="1" CornerRadius="10"
+                        <Border Grid.Row="4" Margin="0,0,0,16" Padding="16,10" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10"
                                 IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -345,13 +391,13 @@
                         </Border>
 
                         <!--  ── Payments Section ─────────────────────────────  -->
-                        <Border Grid.Row="6" Margin="0,0,0,24" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="6" Margin="0,0,0,24" Padding="16" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}">
                             <StackPanel>
-                                <TextBlock Margin="0,0,0,12" FontSize="16" FontWeight="Bold" Foreground="#1E293B" Text="💰 المدفوعات" />
+                                <TextBlock Margin="0,0,0,12" FontSize="16" FontWeight="Bold" Foreground="White" Text="💰 المدفوعات" />
 
                                 <!--  Payment input row  -->
-                                <Border Margin="0,0,0,12" Padding="12" Background="#F1F5F9" CornerRadius="8">
+                                <Border Margin="0,0,0,12" Padding="12" Background="#272C3F" CornerRadius="8">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="1.5*" />
@@ -393,21 +439,20 @@
                                 </Border>
 
                                 <!--  Payments DataGrid  -->
-                                <Border MinHeight="150" MaxHeight="250" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
-                                    <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="40" FontSize="13" Foreground="#1E293B"
-                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
+                                <Border MinHeight="100" MaxHeight="200" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="10">
+                                    <DataGrid AlternatingRowBackground="#272C3F" AutoGenerateColumns="False" Background="#3D4560" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="40" FontSize="13" Foreground="#1E293B"
+                                              GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#3D4560" IsReadOnly="True"
                                               ItemsSource="{Binding FormPayments}"
                                               RowHeight="36" SelectionMode="Single">
                                         <DataGrid.ColumnHeaderStyle>
-                                            <Style TargetType="DataGridColumnHeader">
-                                                <Setter Property="Background" Value="#F1F5F9" />
-                                                <Setter Property="Foreground" Value="#334155" />
-                                                <Setter Property="FontWeight" Value="SemiBold" />
-                                                <Setter Property="Padding" Value="10,6" />
-                                                <Setter Property="BorderBrush" Value="#E2E8F0" />
-                                                <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                            </Style>
+                                            <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
                                         </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.RowStyle>
+                                            <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                                        </DataGrid.RowStyle>
+                                        <DataGrid.CellStyle>
+                                            <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                                        </DataGrid.CellStyle>
                                         <DataGrid.Columns>
                                             <DataGridTextColumn Width="120" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
                                             <DataGridTextColumn Width="120" Binding="{Binding PayMoney, StringFormat=\{0:N2\}}" FontWeight="SemiBold" Header="المبلغ" />
