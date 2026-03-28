@@ -6,10 +6,24 @@
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1000"
              FlowDirection="RightToLeft">
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="UserControl.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.0" To="1.0" Duration="0:0:0.5" />
+                    <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,30,0,-30" To="0" Duration="0:0:0.5">
+                        <ThicknessAnimation.EasingFunction>
+                            <CubicEase EasingMode="EaseOut"/>
+                        </ThicknessAnimation.EasingFunction>
+                    </ThicknessAnimation>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
     <UserControl.Resources>
         <!-- A modern button style for the cards -->
         <Style x:Key="CardButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="White"/>
+            <Setter Property="Background" Value="#E8A54B"/>
             <Setter Property="Foreground" Value="#1E293B"/>
             <Setter Property="Padding" Value="20"/>
             <Setter Property="BorderThickness" Value="1"/>
@@ -17,10 +31,19 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="0.5" ScaleY="0.5"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Grid Margin="6">
+                        <Grid Margin="6" x:Name="RootGrid" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.RenderTransform>
                             <!-- Normal Shadow -->
                             <Border x:Name="NormalShadow" Background="White" CornerRadius="16">
                                 <Border.Effect>
@@ -31,7 +54,7 @@
                             <!-- Hover Shadow -->
                             <Border x:Name="HoverShadow" Background="White" CornerRadius="16" Opacity="0">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#0F172A" Opacity="0.08" BlurRadius="16" ShadowDepth="4" Direction="270" />
+                                    <DropShadowEffect Color="#0F172A" Opacity="0.1" BlurRadius="20" ShadowDepth="6" Direction="270" />
                                 </Border.Effect>
                             </Border>
 
@@ -40,7 +63,6 @@
                                     BorderThickness="{TemplateBinding BorderThickness}" 
                                     CornerRadius="16">
                                 <Grid>
-                                    <!-- Optional hover background glow -->
                                     <Border x:Name="HoverGlow" Background="#3B82F6" Opacity="0" CornerRadius="15"/>
                                     <Border x:Name="InnerBackground" Background="{TemplateBinding Background}" CornerRadius="15" Margin="1"/>
                                     <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
@@ -48,23 +70,66 @@
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverShadow" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="NormalShadow" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.05" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <QuadraticEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                        <DoubleAnimation Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.05" Duration="0:0:0.2">
+                                            <DoubleAnimation.EasingFunction>
+                                                <QuadraticEase EasingMode="EaseOut"/>
+                                            </DoubleAnimation.EasingFunction>
+                                        </DoubleAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="HoverShadow" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="NormalShadow" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.2"/>
+                                        <DoubleAnimation Storyboard.TargetName="RootGrid" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="InnerBackground" Property="Background" Value="#F8FAFC"/>
                                 <Setter TargetName="CardBorder" Property="BorderBrush" Value="#93C5FD"/>
-                                <Setter TargetName="HoverGlow" Property="Opacity" Value="0.1"/>
-                                <Setter TargetName="NormalShadow" Property="Opacity" Value="0"/>
-                                <Setter TargetName="HoverShadow" Property="Opacity" Value="1"/>
+                                <Setter TargetName="HoverGlow" Property="Opacity" Value="0.05"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="InnerBackground" Property="Background" Value="#F1F5F9"/>
                                 <Setter TargetName="CardBorder" Property="BorderBrush" Value="#3B82F6"/>
-                                <Setter TargetName="HoverShadow" Property="Opacity" Value="0"/>
-                                <Setter TargetName="NormalShadow" Property="Opacity" Value="1"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.8"/>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.8">
+                                <DoubleAnimation.EasingFunction>
+                                    <ElasticEase Oscillations="1" Springiness="4" EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.8">
+                                <DoubleAnimation.EasingFunction>
+                                    <ElasticEase Oscillations="1" Springiness="4" EasingMode="EaseOut"/>
+                                </DoubleAnimation.EasingFunction>
+                            </DoubleAnimation>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
         </Style>
         
         <!-- Style for Category Header -->
@@ -101,18 +166,18 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#F8FAFC" MinWidth="600" MinHeight="400">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#272C3F" MinWidth="600" MinHeight="400">
         <StackPanel Margin="24">
             <!-- Header section -->
             <StackPanel Margin="0,0,0,20">
-                <TextBlock Text="البيانات الأساسية" FontSize="32" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
-                <TextBlock Text="إدارة كافة البيانات الأساسية للنظام من مكان واحد." FontSize="16" Foreground="#64748B"/>
+                <TextBlock Text="البيانات الأساسية" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,0,0,8"/>
+                <TextBlock Text="إدارة كافة البيانات الأساسية للنظام من مكان واحد." FontSize="16" Foreground="LightGray"/>
             </StackPanel>
 
             <!-- بيانات عامة -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                <TextBlock Text="📄" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="بيانات عامة" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
+                <TextBlock Text="📄" FontSize="20" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="بيانات عامة" Foreground="White"   Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
             </StackPanel>
             <WrapPanel Margin="0,0,0,30">
                 <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Company" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
@@ -159,8 +224,8 @@
 
             <!-- المخازن والأصناف -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                <TextBlock Text="📦" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="المخازن والأصناف" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
+                <TextBlock Text="📦" FontSize="20" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="المخازن والأصناف" Foreground="White" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
             </StackPanel>
             <WrapPanel Margin="0,0,0,30">
                 <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Units" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
@@ -199,8 +264,8 @@
 
             <!-- بيانات المركبات -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                <TextBlock Text="🏍️" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="بيانات المركبات" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
+                <TextBlock Text="🏍️" FontSize="20" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="بيانات المركبات" Foreground="White" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
             </StackPanel>
             <WrapPanel Margin="0,0,0,30">
                 <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CarBrands" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
@@ -239,8 +304,8 @@
 
             <!-- البيانات المالية -->
             <StackPanel Orientation="Horizontal" Margin="0,10,0,10">
-                <TextBlock Text="💵" FontSize="20" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                <TextBlock Text="البيانات المالية" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
+                <TextBlock Text="💵" FontSize="20" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                <TextBlock Text="البيانات المالية" Foreground="White" Style="{StaticResource CategoryHeaderStyle}" Margin="0"/>
             </StackPanel>
             <WrapPanel Margin="0,0,0,30">
                 <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="Cash" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
