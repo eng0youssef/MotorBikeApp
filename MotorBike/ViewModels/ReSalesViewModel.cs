@@ -1,12 +1,13 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Dapper;
+using MotorBike.DataAccess;
+using MotorBike.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using MotorBike.DataAccess;
-using MotorBike.Models;
-using Dapper;
+using System.Windows.Input;
 
 namespace MotorBike.ViewModels;
 
@@ -139,6 +140,15 @@ public partial class ReSalesViewModel : ObservableObject
         get => _whtTaxPercent;
         set { if (SetProperty(ref _whtTaxPercent, value)) { CalculateTotalsInternal(); } }
     }
+    private bool _isPaymentsPopupOpen;
+    public bool IsPaymentsPopupOpen
+    {
+        get => _isPaymentsPopupOpen;
+        set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
+    }
+
+    public ICommand OpenPaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = true);
+    public ICommand ClosePaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = false);
 
 
     public ReSalesViewModel(IDbConnectionFactory dbFactory, IRepository<ReSale> reSaleRepository, IRepository<Customer> customerRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
@@ -393,22 +403,9 @@ public partial class ReSalesViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
 
-                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
-                    {
-                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
-                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReSales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
-                            transaction: tx);
-                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
-                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
-                    }
-                    else if (!FormItem.IsTax)
-                    {
-                        FormItem.TaxNo = null;
-                    }
-
                     await db.ExecuteAsync(@"
-                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
+                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
                         FormItem, tx);
                 }
                 else
@@ -417,24 +414,10 @@ public partial class ReSalesViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
 
-                    if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
-                    {
-                        var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
-                            "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReSales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'",
-                            transaction: tx);
-                        int.TryParse(maxTaxNoStr, out int maxTaxNo);
-                        FormItem.TaxNo = (maxTaxNo + 1).ToString();
-                    }
-                    else if (!FormItem.IsTax)
-                    {
-                        FormItem.TaxNo = null;
-                    }
-
                     await db.ExecuteAsync(@"
                     UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, 
                     AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
-                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 

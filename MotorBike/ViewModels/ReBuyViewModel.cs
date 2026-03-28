@@ -1,12 +1,13 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Dapper;
+using MotorBike.DataAccess;
+using MotorBike.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using MotorBike.DataAccess;
-using MotorBike.Models;
-using Dapper;
+using System.Windows.Input;
 
 namespace MotorBike.ViewModels;
 
@@ -140,6 +141,15 @@ public partial class ReBuyViewModel : ObservableObject
         set { if (SetProperty(ref _whtTaxPercent, value)) { CalculateTotalsInternal(); } }
     }
 
+    private bool _isPaymentsPopupOpen;
+    public bool IsPaymentsPopupOpen
+    {
+        get => _isPaymentsPopupOpen;
+        set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
+    }
+
+    public ICommand OpenPaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = true);
+    public ICommand ClosePaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = false);
 
     public ReBuyViewModel(IDbConnectionFactory dbFactory, IRepository<ReBuy> reBuyRepository, IRepository<Supplier> supplierRepository, IRepository<Cash> cashRepository, IRepository<Item> itemRepository, IRepository<Store> storeRepository, IRepository<Unit> unitRepository, CompositeKeyRepository compositeRepo)
     {

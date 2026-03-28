@@ -1,12 +1,13 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Dapper;
+using MotorBike.DataAccess;
+using MotorBike.Models;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using MotorBike.DataAccess;
-using MotorBike.Models;
-using Dapper;
+using System.Windows.Input;
 
 namespace MotorBike.ViewModels;
 
@@ -73,6 +74,15 @@ public partial class SalesCarViewModel : ObservableObject
         }
     }
 
+    private bool _isPaymentsPopupOpen;
+    public bool IsPaymentsPopupOpen
+    {
+        get => _isPaymentsPopupOpen;
+        set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
+    }
+
+    public ICommand OpenPaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = true);
+    public ICommand ClosePaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = false);
     public bool FormIsTax
     {
         get => FormItem?.IsTax ?? false;

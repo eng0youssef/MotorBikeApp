@@ -7,6 +7,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using System.Windows.Media;
 using Color = MotorBike.Models.Color;
 
@@ -61,20 +62,15 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
-    // ── Proxy Properties for Tax Calculation ───────────────────────────
-    //public double FormTotal
-    //{
-    //    get => FormItem?.Total ?? 0;
-    //    set
-    //    {
-    //        if (FormItem != null && FormItem.Total != value)
-    //        {
-    //            FormItem.Total = value;
-    //            OnPropertyChanged();
-    //            CalculateTotalsInternal();
-    //        }
-    //    }
-    //}
+    private bool _isPaymentsPopupOpen;
+    public bool IsPaymentsPopupOpen
+    {
+        get => _isPaymentsPopupOpen;
+        set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
+    }
+
+    public ICommand OpenPaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = true);
+    public ICommand ClosePaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = false);
 
     public bool FormIsTax
     {
