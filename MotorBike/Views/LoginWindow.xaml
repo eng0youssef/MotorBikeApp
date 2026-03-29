@@ -31,7 +31,7 @@
         <!-- Background Banner -->
         <Border Background="#272C3F" MinHeight="220" VerticalAlignment="Top" />
         
-        <Border Background="White" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
+        <Border Background="LightGray" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.08" BlurRadius="24" ShadowDepth="8" Direction="270" />
             </Border.Effect>
@@ -45,7 +45,7 @@
                 <TextBlock Text="كلمة المرور" Foreground="#272C3F" FontSize="15" Style="{StaticResource FormLabel}"/>
                 <!-- Password Box simulated with the same input styling -->
                 <Border BorderBrush="#CBD5E1"  BorderThickness="1" CornerRadius="8" Background="#272C3F" Padding="12,10" Margin="0,0,0,24">
-                    <PasswordBox x:Name="txtPassword"  Background="Transparent" BorderThickness="0" Foreground="White" FontSize="14" PasswordChanged="txtPassword_PasswordChanged"/>
+                    <PasswordBox x:Name="txtPassword" CaretBrush="#E8A54B" SelectionBrush="#E8A54B" Background="Transparent" BorderThickness="0" Foreground="White" FontSize="14" PasswordChanged="txtPassword_PasswordChanged"/>
                 </Border>
                 
                 <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>

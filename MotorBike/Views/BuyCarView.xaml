@@ -393,13 +393,17 @@
                         <Border Grid.Row="6" Margin="0,0,0,24" Padding="18" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#ECEEF5" Text="💰 المدفوعات وتفاصيل السداد" />
-                                <Button Padding="24,12" Command="{Binding OpenPaymentsPopupCommand}" Content="إدارة المدفوعات 💰" Style="{StaticResource PrimaryButton}" />
-                                <StackPanel Margin="24,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
-                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#7B84A0" Text="إجمالي المدفوع: " />
-                                    <TextBlock FontSize="16" FontWeight="Bold" Foreground="#5BAE7C" Text="{Binding TotalPayed, StringFormat=\{0:N2\}}" />
-                                    <TextBlock Margin="16,0,0,0" FontSize="13" FontWeight="SemiBold" Foreground="#7B84A0" Text="الباقي: " />
-                                    <TextBlock FontSize="16" FontWeight="Bold" Foreground="#D9534F" Text="{Binding Remaining, StringFormat=\{0:N2\}}" />
+                                <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#ECEEF5" Text="💰 سداد كاش" />
+
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="SemiBold" Foreground="#ECEEF5" Text="الخزينة: " />
+                                    <ComboBox Width="220" DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}"
+                                              SelectedValue="{Binding SelectedCashId}" SelectedValuePath="CashId" />
+                                </StackPanel>
+
+                                <StackPanel Margin="32,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#7B84A0" Text="المبلغ المطلوب: " />
+                                    <TextBlock FontSize="16" FontWeight="Bold" Foreground="#5BAE7C" Text="{Binding FormItem.Net, StringFormat=\{0:N2\}}" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>
@@ -578,137 +582,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
-                </Grid>
-            </Border>
-        </Grid>
-        <!--  ████████ PAYMENTS POPUP OVERLAY ████████  -->
-        <Grid Panel.ZIndex="100" Background="#B20F172A" Visibility="{Binding IsPaymentsPopupOpen, Converter={StaticResource BoolToVis}}">
-            <Border Width="850" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1E2233" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="32" Direction="270" Opacity="0.3" ShadowDepth="12" Color="#000000" />
-                </Border.Effect>
-                <Grid Margin="24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <!--  Header  -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,20">
-                        <TextBlock VerticalAlignment="Center" DockPanel.Dock="Left" FontSize="20" FontWeight="Bold" Foreground="#ECEEF5" Text="💰 المدفوعات" />
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Command="{Binding ClosePaymentsPopupCommand}"
-                                Content="✖" Cursor="Hand" DockPanel.Dock="Right" FontSize="20" FontWeight="Bold" Foreground="#7B84A0" ToolTip="إغلاق" />
-                    </DockPanel>
-
-                    <!--  Quick Add Payment  -->
-                    <Border Grid.Row="1" Margin="0,0,0,14" Padding="14" Background="#2F3549" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" MinWidth="100" />
-                                <ColumnDefinition Width="*" MinWidth="80" />
-                                <ColumnDefinition Width="*" MinWidth="100" />
-                                <ColumnDefinition Width="2*" MinWidth="100" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <Grid Grid.Column="0" Margin="0,0,10,0">
-                                <TextBlock Style="{StaticResource FloatingLabel}" Text="التاريخ" />
-                                <DatePicker SelectedDate="{Binding CurrentPayment.PayDate, UpdateSourceTrigger=PropertyChanged}" />
-                            </Grid>
-                            <Grid Grid.Column="1" Margin="0,0,10,0">
-                                <TextBlock Style="{StaticResource FloatingLabel}" Text="المبلغ" />
-                                <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CurrentPayment.PayMoney, UpdateSourceTrigger=PropertyChanged}" />
-                            </Grid>
-                            <Grid Grid.Column="2" Margin="0,0,10,0">
-                                <TextBlock Style="{StaticResource FloatingLabel}" Text="الخزينة" />
-                                <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding CurrentPayment.CashId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="CashId" />
-                            </Grid>
-                            <Grid Grid.Column="3" Margin="0,0,10,0">
-                                <TextBlock Style="{StaticResource FloatingLabel}" Text="ملاحظات" />
-                                <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CurrentPayment.Notes, UpdateSourceTrigger=PropertyChanged}" />
-                            </Grid>
-                            <Button Grid.Column="4" Padding="16,10"
-                                    Command="{Binding AddPaymentCommand}"
-                                    Content="➕ إضافة"
-                                    Style="{StaticResource SuccessButton}" />
-                        </Grid>
-                    </Border>
-
-                    <!--  Payments DataGrid  -->
-                    <Border Grid.Row="2" MinHeight="150" MaxHeight="300" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="10">
-                        <DataGrid AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="40" FontSize="13" Foreground="#C8CEE0"
-                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#323848" IsReadOnly="False"
-                                  ItemsSource="{Binding FormPayments}"
-                                  RowHeight="36" SelectionMode="Single">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.RowStyle>
-                                <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
-                            </DataGrid.RowStyle>
-                            <DataGrid.CellStyle>
-                                <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
-                            </DataGrid.CellStyle>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Width="120" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
-                                <DataGridTextColumn Width="120"
-                                                    Binding="{Binding PayMoney, StringFormat=\{0:N2\}}"
-                                                    FontWeight="SemiBold" Foreground="#5BAE7C" Header="المبلغ" />
-                                <DataGridTemplateColumn Width="*" Header="الخزينة">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Padding="4,0" VerticalAlignment="Center">
-                                                <TextBlock.Text>
-                                                    <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CashId,CashName">
-                                                        <Binding Path="CashId" />
-                                                        <Binding Path="DataContext.Cashes" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                                                    </MultiBinding>
-                                                </TextBlock.Text>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                    <DataGridTemplateColumn.CellEditingTemplate>
-                                        <DataTemplate>
-                                            <ComboBox DisplayMemberPath="CashName" IsDropDownOpen="True"
-                                                      ItemsSource="{Binding DataContext.Cashes, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                      SelectedValue="{Binding CashId, UpdateSourceTrigger=PropertyChanged}"
-                                                      SelectedValuePath="CashId" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellEditingTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Width="*" Binding="{Binding Notes}" Header="ملاحظات" />
-                                <DataGridTemplateColumn Width="60">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Background="Transparent" BorderThickness="0"
-                                                    Command="{Binding DataContext.RemovePaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Content="🗑️" Cursor="Hand" FontSize="14" Foreground="#D9534F" ToolTip="حذف الدفعة" />
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Border>
-
-                    <!--  Payment Totals  -->
-                    <StackPanel Grid.Row="3" Margin="0,14,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-                        <Border Margin="0,0,24,0" Padding="16,10" Background="#283830" BorderBrush="#3D7A5A" BorderThickness="1" CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#7B84A0" Text="إجمالي المدفوع" />
-                                <TextBlock FontSize="18" FontWeight="Bold" Foreground="#5BAE7C" Text="{Binding TotalPayed, StringFormat=\{0:N2\}}" />
-                            </StackPanel>
-                        </Border>
-                        <Border Padding="16,10" Background="#3A2828" BorderBrush="#7A3D3D" BorderThickness="1" CornerRadius="8">
-                            <StackPanel>
-                                <TextBlock FontSize="10" FontWeight="SemiBold" Foreground="#7B84A0" Text="الباقي" />
-                                <TextBlock FontSize="18" FontWeight="Bold" Foreground="#D9534F" Text="{Binding Remaining, StringFormat=\{0:N2\}}" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

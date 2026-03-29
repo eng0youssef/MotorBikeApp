@@ -52,4 +52,6 @@ public partial class Inspection
     public virtual Color Color { get; set; } = null!;
 
     public virtual CarModel Model { get; set; } = null!;
+
+    public virtual ICollection<InspectionSub> InspectionSubs { get; set; } = new List<InspectionSub>();
 }

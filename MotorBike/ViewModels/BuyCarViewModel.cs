@@ -57,6 +57,7 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
     [ObservableProperty] private double _remaining;
+    [ObservableProperty] private int _selectedCashId;
 
     // ── Search ────────────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
@@ -69,8 +70,7 @@ public partial class BuyCarViewModel : ObservableObject
         set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
     }
 
-    public ICommand OpenPaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = true);
-    public ICommand ClosePaymentsPopupCommand => new RelayCommand(() => IsPaymentsPopupOpen = false);
+    // Removed manual payments popup commands as it's now Cash only
 
     public bool FormIsTax
     {
@@ -321,10 +321,11 @@ public partial class BuyCarViewModel : ObservableObject
 
         FormPayments.Clear();
         TotalPayed = 0;
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentPayment = new BuyCarPayment
         {
             PayDate = DateTime.Now,
-            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
+            CashId = SelectedCashId
         };
 
         VatTaxPercent = 0;
@@ -403,6 +404,17 @@ public partial class BuyCarViewModel : ObservableObject
                 {
                     FormItem.TaxNo = null;
                 }
+
+                // Forced Cash Mode: Create single payment
+                FormPayments.Clear();
+                FormPayments.Add(new BuyCarPayment
+                {
+                    BuyId = FormItem.BuyId,
+                    PayDate = FormItem.BuyDate,
+                    PayMoney = FormItem.Net,
+                    CashId = SelectedCashId,
+                    Notes = "دفع كاش للفاتورة"
+                });
 
                 // Calculate tax values before saving
                 CalculateTotalsInternal();
@@ -559,6 +571,9 @@ public partial class BuyCarViewModel : ObservableObject
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
+            if (!affectedCashIds.Contains(SelectedCashId))
+                await _compositeRepo.RecalcBalanceForCashAsync(SelectedCashId);
+
             _isInsertMode = false;
             // IsEditing = false; // left true so the user can continue editing
             await LoadInvoicesAsync();
@@ -604,31 +619,8 @@ public partial class BuyCarViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
 
-    // ── Payments ──────────────────────────────────────────────────────────
-    [RelayCommand]
-    private void AddPayment()
-    {
-        if (CurrentPayment.PayMoney <= 0 || CurrentPayment.CashId <= 0) return;
-        FormPayments.Add(CurrentPayment);
-        CalculatePayedTotal();
-        CurrentPayment = new BuyCarPayment
-        {
-            BuyId = FormItem.BuyId,
-            PayDate = DateTime.Now,
-            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
-        };
-    }
-
-    [RelayCommand]
-    private void RemovePayment(BuyCarPayment payment)
-    {
-        if (payment != null && FormPayments.Contains(payment))
-        {
-            FormPayments.Remove(payment);
-            CalculatePayedTotal();
-        }
-    }
-
+    // --- Removed manual payment management commands ---
+    
     private void CalculatePayedTotal() =>
         TotalPayed = FormPayments.Sum(p => p.PayMoney);
 

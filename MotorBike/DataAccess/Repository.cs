@@ -68,6 +68,7 @@ public class Repository<T> : IRepository<T> where T : class
         [typeof(Models.ImportInvoice)] = new("Import_Invoice", "Inv_ID",   "InvId"),
         [typeof(Models.ImportPayment)] = new("Import_Payments","Pay_ID",   "PayId"),
         [typeof(Models.ImportSupplier)]= new("Import_Suppliers","Supp_ID", "SuppId"),
+        [typeof(Models.InspectionSub)]= new("Inspection_Sub","ID",       "Id"),
 
         [typeof(Models.CusPayment)]    = new("Cus_Payments",   "Pay_ID",   "PayId"),
         [typeof(Models.SuppPayment)]   = new("Supp_Payments",  "Pay_ID",   "PayId"),

@@ -42,6 +42,8 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
     [ObservableProperty] private double _remaining;
+    [ObservableProperty] private bool _isCashPaymentMode;
+    [ObservableProperty] private int _selectedCashId;
 
     // ── Invoice search ─────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
@@ -205,6 +207,7 @@ public partial class SalesCarViewModel : ObservableObject
             IsEditing = false; // View mode after selection
             
             FormItem = CloneInvoice(value);
+            IsCashPaymentMode = FormItem.IsCash;
             SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
             SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
 
@@ -258,10 +261,13 @@ public partial class SalesCarViewModel : ObservableObject
         FormItem = new SalesCar
         {
             SalesDate = DateTime.Now,
+            IsCash = true,
             CusId = Customers.FirstOrDefault()?.CusId ?? 0,
             AddPc = Environment.MachineName,
             AddDate = DateTime.Now
         };
+        IsCashPaymentMode = true;
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
 
         FormPayments.Clear();
         TotalPayed = 0;
@@ -293,6 +299,11 @@ public partial class SalesCarViewModel : ObservableObject
         SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == FormItem.CarId)?.ChassisNo;
         _isInsertMode = false;
         IsEditing = true;
+        IsCashPaymentMode = FormItem.IsCash;
+        if (FormItem.IsCash && FormPayments.Any())
+            SelectedCashId = FormPayments.First().CashId;
+        else
+            SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
 
         // Seed popup lists (include current car even if inactive)
         FilteredCustomersList = new ObservableCollection<Customer>(Customers);
@@ -352,6 +363,21 @@ public partial class SalesCarViewModel : ObservableObject
             using var tx = db.BeginTransaction();
             try
             {
+                FormItem.IsCash = IsCashPaymentMode;
+                
+                if (IsCashPaymentMode)
+                {
+                    FormPayments.Clear();
+                    FormPayments.Add(new SalesCarPayment
+                    {
+                        SalesId = FormItem.SalesId,
+                        PayDate = FormItem.SalesDate,
+                        PayMoney = FormItem.Net,
+                        CashId = SelectedCashId,
+                        Notes = "دفع كاش للفاتورة"
+                    });
+                }
+
                 if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
                 {
                     var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
@@ -430,6 +456,9 @@ public partial class SalesCarViewModel : ObservableObject
 
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+            
+            if (IsCashPaymentMode && !affectedCashIds.Contains(SelectedCashId))
+                await _compositeRepo.RecalcBalanceForCashAsync(SelectedCashId);
 
             if (oldCusId.HasValue && oldCusId.Value != FormItem.CusId)
                 await _compositeRepo.RecalcBalanceForCustomerAsync(oldCusId.Value);
@@ -614,6 +643,7 @@ public partial class SalesCarViewModel : ObservableObject
         AddUser = s.AddUser,
         AddDate = s.AddDate,
         AddPc = s.AddPc,
+        IsCash = s.IsCash,
         IsTax = s.IsTax,
         VatTax = s.VatTax,
         Tax = s.Tax,

@@ -1,29 +1,25 @@
-<UserControl x:Class="MotorBike.Views.InspectionsView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:conv="clr-namespace:MotorBike.Converters"
-             Loaded="OnLoaded" FlowDirection="RightToLeft">
+<UserControl x:Class="MotorBike.Views.InspectionsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:conv="clr-namespace:MotorBike.Converters" FlowDirection="RightToLeft" Loaded="OnLoaded">
     <UserControl.Resources>
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="FormCard" TargetType="Border">
-            <Setter Property="Background" Value="White" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Background" Value="#272C3F" />
+            <Setter Property="CornerRadius" Value="14" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="#E2E8F0" />
-            <Setter Property="Margin" Value="24" />
-            <Setter Property="Padding" Value="32" />
+            <Setter Property="BorderBrush" Value="#3D4560" />
+            <Setter Property="Margin" Value="20" />
+            <Setter Property="Padding" Value="28" />
         </Style>
 
-        <!-- Triggers to Show/Hide sections -->
+        <!--  Triggers to Show/Hide sections  -->
         <Style x:Key="FormContainerStyle" TargetType="Grid">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="True">
-                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="False">
-                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Visibility" Value="Visible" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -31,139 +27,552 @@
         <Style x:Key="SearchContainerStyle" TargetType="Grid">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="True">
-                    <Setter Property="Visibility" Value="Visible"/>
+                    <Setter Property="Visibility" Value="Visible" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsSearchPanelVisible}" Value="False">
-                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC" MinWidth="800" MinHeight="600">
+    <Grid MinWidth="800" MinHeight="600" Background="#1E2233">
 
-        <!-- FORM Section -->
+        <!--  FORM Section  -->
         <Grid Style="{StaticResource FormContainerStyle}">
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <Border Style="{StaticResource FormCard}">
-                    <!-- Add Shadow -->
+                    <!--  Add Shadow  -->
                     <Border.Effect>
-                        <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="24" ShadowDepth="4" Direction="270" />
+                        <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
                     </Border.Effect>
 
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/> <!-- Header -->
-                            <RowDefinition Height="Auto"/> <!-- Separator -->
-                            <RowDefinition Height="Auto"/> <!-- Form Fields -->
-                            <RowDefinition Height="Auto"/> <!-- Action Buttons -->
+                            <RowDefinition Height="Auto" />
+                            <!--  Header  -->
+                            <RowDefinition Height="Auto" />
+                            <!--  Separator  -->
+                            <RowDefinition Height="Auto" />
+                            <!--  Form Fields  -->
+                            <RowDefinition Height="Auto" />
+                            <!--  Action Buttons  -->
                         </Grid.RowDefinitions>
 
-                        <!-- Header -->
+                        <!--  Header  -->
                         <Grid Grid.Row="0" Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            
-                            <StackPanel Orientation="Horizontal" Grid.Column="0">
-                                <Border Background="#EEF2FF" CornerRadius="12" Padding="14,12" Margin="0,0,16,0">
-                                    <TextBlock Text="🏍️" FontSize="26" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <Border Margin="0,0,16,0" Padding="14,12" CornerRadius="12">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Offset="0" Color="#E8A54B" />
+                                            <GradientStop Offset="1" Color="#D4922F" />
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="26" Text="🏍️" />
                                 </Border>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="سجل كشوفات الفحص" FontSize="22" FontWeight="Bold" Foreground="#1E293B"/>
-                                    <TextBlock Text="سجل كشف جديد أو استعلم عن كشف سابق" FontSize="14" Foreground="#64748B" Margin="0,4,0,0"/>
+                                    <TextBlock FontSize="22" FontWeight="Bold" Foreground="White" Text="سجل كشوفات الفحص" />
+                                    <TextBlock Margin="0,4,0,0" FontSize="14" Foreground="LightGray" Text="سجل كشف جديد أو استعلم عن كشف سابق" />
                                 </StackPanel>
                             </StackPanel>
 
-                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button Content="🔍 بحث عن كشف قـديم" Style="{StaticResource SecondaryButton}" Command="{Binding ShowSearchPanelCommand}" Margin="0,0,12,0" Padding="16,10"/>
-                                <Button Content="➕ تـسـجيـل كـشف جـديـد" Style="{StaticResource PrimaryButton}" Command="{Binding AddNewCommand}" Padding="16,10"/>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                                <Button Margin="0,0,12,0" Padding="16,10"
+                                        Command="{Binding ShowSearchPanelCommand}"
+                                        Content="🔍 بحث عن كشف قـديم"
+                                        Style="{StaticResource SecondaryButton}" />
+                                <Button Padding="16,10" Command="{Binding AddNewCommand}" Content="➕ تـسـجيـل كـشف جـديـد" Style="{StaticResource PrimaryButton}" />
                             </StackPanel>
                         </Grid>
 
-                        <Rectangle Grid.Row="1" Height="1" Fill="#E2E8F0" Margin="0,8,0,24"/>
+                        <Rectangle Grid.Row="1" Height="1" Margin="0,8,0,24" Fill="#E2E8F0" />
 
-                        <!-- Form Matrix -->
+                        <!--  Form Matrix  -->
                         <Grid Grid.Row="2" IsEnabled="{Binding IsEditing}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/> <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="Auto"/> <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
-                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
-                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
-                                <RowDefinition Height="Auto"/> <RowDefinition Height="20"/>
-                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <!-- Row 0: ID, Date, Total -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="رقم الكشف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.InspId}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F8FAFC" Foreground="#1E293B" FontWeight="Bold"/>
-                            
-                            <TextBlock Grid.Row="0" Grid.Column="3" Text="التاريخ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <DatePicker Grid.Row="0" Grid.Column="4" SelectedDate="{Binding FormItem.InspDate, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type DatePicker}}" BorderBrush="#CBD5E1" BorderThickness="1" Padding="8,6" Background="White"/>
+                            <!--  Basic Fields Group  -->
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="16" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.Column="6" Text="السعر" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.Total, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <!--  Row 0: ID, Date, Total  -->
+                                <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="رقم الكشف" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Background="#F8FAFC" FontWeight="Bold" Foreground="#1E293B" IsReadOnly="True"
+                                         Style="{StaticResource FormTextBox}"
+                                         Text="{Binding FormItem.InspId}" />
 
-                            <!-- Row 2: Seller, Buyer, Cash -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="اسم البائع" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.Seller, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                            
-                            <TextBlock Grid.Row="2" Grid.Column="3" Text="اسم المشتري" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Buyer, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="3" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="التاريخ" />
+                                <DatePicker Grid.Row="0" Grid.Column="4" Padding="8,6" Background="White" BorderBrush="#CBD5E1" BorderThickness="1"
+                                            SelectedDate="{Binding FormItem.InspDate, UpdateSourceTrigger=PropertyChanged}"
+                                            Style="{DynamicResource {x:Type DatePicker}}" />
 
-                            <TextBlock Grid.Row="2" Grid.Column="6" Text="الخزينة/البنك" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Cashes}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormItem.CashId, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type ComboBox}}" VerticalContentAlignment="Center" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                                <TextBlock Grid.Row="0" Grid.Column="6" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="السعر" />
+                                <TextBox Grid.Row="0" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Total, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <!-- Row 4: Model, Color, Year -->
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="الموديل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Models}" DisplayMemberPath="ModelName" SelectedValuePath="ModelId" SelectedValue="{Binding FormItem.ModelId, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type ComboBox}}" VerticalContentAlignment="Center" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                                <!--  Row 2: Seller, Buyer, Cash  -->
+                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="اسم البائع" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Seller, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="3" Text="اللون" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <ComboBox Grid.Row="4" Grid.Column="4" ItemsSource="{Binding Colors}" DisplayMemberPath="ColorName" SelectedValuePath="ColorId" SelectedValue="{Binding FormItem.ColorId, UpdateSourceTrigger=PropertyChanged}" Style="{DynamicResource {x:Type ComboBox}}" VerticalContentAlignment="Center" Padding="8,6" BorderBrush="#CBD5E1" BorderThickness="1" Background="White"/>
+                                <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="اسم المشتري" />
+                                <TextBox Grid.Row="2" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Buyer, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="4" Grid.Column="6" Text="سنة الصنع" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.YearNo, UpdateSourceTrigger=PropertyChanged}" MaxLength="4" Style="{StaticResource FormTextBox}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="6" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="الخزينة/البنك" />
+                                <ComboBox Grid.Row="2" Grid.Column="7" Padding="8,6" VerticalContentAlignment="Center" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="CashName"
+                                          ItemsSource="{Binding Cashes}"
+                                          SelectedValue="{Binding FormItem.CashId, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="CashId"
+                                          Style="{DynamicResource {x:Type ComboBox}}" />
 
-                            <!-- Row 6: Chassis, Motor, Plate -->
-                            <TextBlock Grid.Row="6" Grid.Column="0" Text="رقم الشاسيه" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FormItem.ChassisNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <!--  Row 4: Model, Color, Year  -->
+                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="الموديل" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" Padding="8,6" VerticalContentAlignment="Center" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="ModelName"
+                                          ItemsSource="{Binding Models}"
+                                          SelectedValue="{Binding FormItem.ModelId, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="ModelId"
+                                          Style="{DynamicResource {x:Type ComboBox}}" />
 
-                            <TextBlock Grid.Row="6" Grid.Column="3" Text="رقم الموتور" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="6" Grid.Column="4" Text="{Binding FormItem.MotorNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="اللون" />
+                                <ComboBox Grid.Row="4" Grid.Column="4" Padding="8,6" VerticalContentAlignment="Center" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="ColorName"
+                                          ItemsSource="{Binding Colors}"
+                                          SelectedValue="{Binding FormItem.ColorId, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="ColorId"
+                                          Style="{DynamicResource {x:Type ComboBox}}" />
 
-                            <TextBlock Grid.Row="6" Grid.Column="6" Text="رقم اللوحة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="6" Grid.Column="7" Text="{Binding FormItem.PlateNo, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="سنة الصنع" />
+                                <TextBox Grid.Row="4" Grid.Column="7" MaxLength="4"
+                                         Style="{StaticResource FormTextBox}"
+                                         Text="{Binding FormItem.YearNo, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <!-- Row 8: Mileage, Notes -->
-                            <TextBlock Grid.Row="8" Grid.Column="0" Text="العداد (كم)" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <!--  Row 6: Chassis, Motor, Plate  -->
+                                <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="رقم الشاسيه" />
+                                <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.ChassisNo, UpdateSourceTrigger=PropertyChanged}" />
 
-                            <TextBlock Grid.Row="8" Grid.Column="3" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Row="8" Grid.Column="4" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                <TextBlock Grid.Row="6" Grid.Column="3" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="رقم الموتور" />
+                                <TextBox Grid.Row="6" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.MotorNo, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Grid.Row="6" Grid.Column="6" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="رقم اللوحة" />
+                                <TextBox Grid.Row="6" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.PlateNo, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  Row 8: Mileage, Notes  -->
+                                <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="العداد (كم)" />
+                                <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Grid.Row="8" Grid.Column="3" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="ملاحظات" />
+                                <TextBox Grid.Row="8" Grid.Column="4" Grid.ColumnSpan="4"
+                                         Style="{StaticResource FormTextBox}"
+                                         Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
+                            </Grid>
+                      
+
+                            <StackPanel Grid.Row="1" Margin="0,40,0,0">
+
+                                <!--  Section Header Bar  -->
+                                <Border Padding="20,16" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1,1,1,0" CornerRadius="14,14,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--  Title + Badge  -->
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
+                                            <!--  Icon accent  -->
+                                            <Border Width="40" Height="40" Margin="0,0,14,0" CornerRadius="10">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Offset="0" Color="#E8A54B" />
+                                                        <GradientStop Offset="1" Color="#D4922F" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" Text="🔧" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock FontSize="17" FontWeight="Bold" Foreground="#F1F5F9" Text="بنود الكشف الفني" />
+                                            </StackPanel>
+                                            <!--  Count badge  -->
+                                            <Border Margin="14,0,0,0" Padding="10,3" VerticalAlignment="Center" Background="#1E3A5F" BorderBrush="#2D5A8E" BorderThickness="1" CornerRadius="20">
+                                                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#60A5FA" Text="{Binding FormSubItems.Count, StringFormat='{}{0} بند'}" />
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!--  Add Button  -->
+                                        <Button Grid.Column="1" Padding="18,10" VerticalAlignment="Center" Command="{Binding AddSubItemCommand}">
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Background" Value="#3B82F6" />
+                                                    <Setter Property="Foreground" Value="White" />
+                                                    <Setter Property="FontSize" Value="13" />
+                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                    <Setter Property="BorderThickness" Value="0" />
+                                                    <Setter Property="Cursor" Value="Hand" />
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="Button">
+                                                                <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="10">
+                                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter Property="Background" Value="#2563EB" />
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsPressed" Value="True">
+                                                                        <Setter Property="Background" Value="#1D4ED8" />
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsEnabled" Value="False">
+                                                                        <Setter Property="Opacity" Value="0.4" />
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </Button.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Margin="0,0,6,0" VerticalAlignment="Center" FontSize="18" FontWeight="Bold" Text="+" />
+                                                <TextBlock VerticalAlignment="Center" Text="إضافة بند جديد" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+
+                                <!--  Column Headers Bar  -->
+                                <Border Padding="0" Background="#1A1F31" BorderBrush="#3D4560" BorderThickness="1,0,1,1">
+                                    <Grid Margin="16,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="130" />
+                                            <ColumnDefinition Width="2*" />
+                                            <ColumnDefinition Width="70" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="البند" />
+                                        <TextBlock Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="الحالة" />
+                                        <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="ملاحظات البند" />
+                                        <TextBlock Grid.Column="3" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" Text="حذف" />
+                                    </Grid>
+                                </Border>
+
+                                <!--  Items DataGrid  -->
+                                <Border BorderBrush="#3D4560" BorderThickness="1,0,1,1" ClipToBounds="True" CornerRadius="0,0,14,14">
+
+                                    <DataGrid MinHeight="160" MaxHeight="420" AutoGenerateColumns="False" Background="#1E2233" BorderThickness="0" CanUserAddRows="False" GridLinesVisibility="Horizontal" HeadersVisibility="None"
+                                              HorizontalGridLinesBrush="#2D3450"
+                                              ItemsSource="{Binding FormSubItems}"
+                                              RowHeight="56"
+                                              SelectedItem="{Binding SelectedSubItem}"
+                                              SelectionMode="Single">
+
+                                        <DataGrid.Resources>
+                                            <!--  Row Style  -->
+                                            <Style TargetType="DataGridRow">
+                                                <Setter Property="Background" Value="#1E2233" />
+                                                <Setter Property="Margin" Value="0" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="#1E3A5F" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#252B40" />
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding AlternationIndex, RelativeSource={RelativeSource Self}}" Value="1">
+                                                        <Setter Property="Background" Value="#222840" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                            <!--  Cell Style  -->
+                                            <Style TargetType="DataGridCell">
+                                                <Setter Property="VerticalAlignment" Value="Center" />
+                                                <Setter Property="BorderThickness" Value="0" />
+                                                <Setter Property="Padding" Value="4,0" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="DataGridCell">
+                                                            <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                                                                <ContentPresenter VerticalAlignment="Center" />
+                                                            </Border>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Setter Property="Foreground" Value="#93C5FD" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.Resources>
+
+                                        <DataGrid.Columns>
+
+                                            <!--  Column 1: Item Name  -->
+                                            <DataGridTemplateColumn Width="*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Grid Margin="16,0,8,0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBox Grid.Column="1" Padding="4,6" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" CaretBrush="#60A5FA" FontSize="14" Foreground="#E2E8F0"
+                                                                     Text="{Binding ItemName, UpdateSourceTrigger=PropertyChanged}">
+                                                                <TextBox.Style>
+                                                                    <Style TargetType="TextBox">
+                                                                        <Setter Property="Template">
+                                                                            <Setter.Value>
+                                                                                <ControlTemplate TargetType="TextBox">
+                                                                                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" BorderBrush="#3D4560" BorderThickness="0,0,0,1">
+                                                                                        <ScrollViewer x:Name="PART_ContentHost" />
+                                                                                    </Border>
+                                                                                    <ControlTemplate.Triggers>
+                                                                                        <Trigger Property="IsFocused" Value="True">
+                                                                                            <Setter Property="BorderBrush" Value="#60A5FA" />
+                                                                                            <Setter Property="BorderThickness" Value="0,0,0,2" />
+                                                                                        </Trigger>
+                                                                                    </ControlTemplate.Triggers>
+                                                                                </ControlTemplate>
+                                                                            </Setter.Value>
+                                                                        </Setter>
+                                                                    </Style>
+                                                                </TextBox.Style>
+                                                            </TextBox>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <!--  Column 2: Status toggle  -->
+                                            <DataGridTemplateColumn Width="130">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                            <Border Width="92" Height="32" CornerRadius="16" Cursor="Hand">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#2D3450" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="True">
+                                                                                <Setter Property="Background" Value="#059669" />
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="False">
+                                                                                <Setter Property="Background" Value="DarkRed" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <Grid>
+                                                                    <!--  سليم label  -->
+                                                                    <TextBlock Margin="8,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Foreground="White" Text="سليم ✓">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Status}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                    <!--  غير سليم label  -->
+                                                                    <TextBlock Margin="0,0,8,0" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Foreground="White" Text="غير سليم ✗">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Status}" Value="True">
+                                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                    <!--  Thumb knob  -->
+                                                                    <Border Width="26" Height="26" VerticalAlignment="Center" Background="#E2E8F0" CornerRadius="13">
+                                                                        <Border.Style>
+                                                                            <Style TargetType="Border">
+                                                                                <Setter Property="HorizontalAlignment" Value="Left" />
+                                                                                <Setter Property="Margin" Value="3,0,0,0" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding Status}" Value="True">
+                                                                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                                                                        <Setter Property="Margin" Value="0,0,3,0" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </Border.Style>
+                                                                        <Border.Effect>
+                                                                            <DropShadowEffect BlurRadius="6" Opacity="0.3" ShadowDepth="1" Color="#000" />
+                                                                        </Border.Effect>
+                                                                    </Border>
+                                                                    <!--  Invisible CheckBox  -->
+                                                                    <CheckBox Width="92" Height="32" Cursor="Hand"
+                                                                              IsChecked="{Binding Status, UpdateSourceTrigger=PropertyChanged}"
+                                                                              Opacity="0" />
+                                                                </Grid>
+                                                            </Border>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <!--  Column 3: Notes  -->
+                                            <DataGridTemplateColumn Width="2*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBox Margin="4,0,8,0" Padding="8,6" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" CaretBrush="#60A5FA" FontSize="13" Foreground="#94A3B8"
+                                                                 Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Template">
+                                                                        <Setter.Value>
+                                                                            <ControlTemplate TargetType="TextBox">
+                                                                                <Border Padding="{TemplateBinding Padding}"
+                                                                                        Background="#1A1F31" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8">
+                                                                                    <ScrollViewer x:Name="PART_ContentHost" />
+                                                                                </Border>
+                                                                                <ControlTemplate.Triggers>
+                                                                                    <Trigger Property="IsFocused" Value="True">
+                                                                                        <Setter Property="BorderBrush" Value="#60A5FA" />
+                                                                                        <Setter Property="Background" Value="#1E2844" />
+                                                                                    </Trigger>
+                                                                                </ControlTemplate.Triggers>
+                                                                            </ControlTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                            <!--  Column 4: Delete  -->
+                                            <DataGridTemplateColumn Width="70">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Width="34" Height="34" Margin="4,0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                Command="{Binding DataContext.RemoveSubItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}"
+                                                                ToolTip="حذف البند">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button">
+                                                                    <Setter Property="Background" Value="#3B1A1A" />
+                                                                    <Setter Property="BorderThickness" Value="0" />
+                                                                    <Setter Property="Cursor" Value="Hand" />
+                                                                    <Setter Property="Template">
+                                                                        <Setter.Value>
+                                                                            <ControlTemplate TargetType="Button">
+                                                                                <Border Width="{TemplateBinding Width}"
+                                                                                        Height="{TemplateBinding Height}"
+                                                                                        Background="{TemplateBinding Background}"
+                                                                                        BorderBrush="#5C2626" BorderThickness="1" CornerRadius="10">
+                                                                                    <TextBlock HorizontalAlignment="Center" Foreground="Red" VerticalAlignment="Center" FontSize="15" Text="🗑" />
+                                                                                </Border>
+                                                                            </ControlTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Border>
+
+                                <!--  Empty State  -->
+                                <Border Padding="32" Background="#1A1F31" BorderBrush="#3D4560" BorderThickness="1,0,1,1" CornerRadius="0,0,14,14"
+                                        Visibility="{Binding FormSubItems.Count, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel HorizontalAlignment="Center">
+                                        <TextBlock HorizontalAlignment="Center" FontSize="36" Text="📋" />
+                                        <TextBlock Margin="0,8,0,4" HorizontalAlignment="Center" FontSize="15" FontWeight="SemiBold" Foreground="#475569" Text="لا توجد بنود بعد" />
+                                        <TextBlock HorizontalAlignment="Center" FontSize="12" Foreground="#334155" Text="اضغط «إضافة بند جديد» لبدء إضافة بنود الفحص الفني" />
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+                            <!--  ================================================================ END ================================================================  -->
+
+
                         </Grid>
 
-                        <Rectangle Grid.Row="3" Height="1" Fill="#E2E8F0" Margin="0,32,0,24"/>
+                        <Rectangle Grid.Row="3" Height="1" Margin="0,32,0,24" Fill="#E2E8F0" />
 
-                        <!-- Footer Action Buttons -->
+                        <!--  Footer Action Buttons  -->
                         <DockPanel Grid.Row="3">
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,16,0" TextWrapping="Wrap" MaxWidth="300" HorizontalAlignment="Right"/>
-                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left" MinHeight="45">
-                                <Button Content="✏️ تـعـديـل الكشف" Command="{Binding EditSelectedCommand}" Margin="0,0,12,12" Padding="16,10">
+                            <TextBlock MaxWidth="300" Margin="0,0,16,0" HorizontalAlignment="Right" VerticalAlignment="Center" DockPanel.Dock="Right" FontSize="14" FontWeight="SemiBold" Foreground="#10B981"
+                                       Text="{Binding StatusMessage}"
+                                       TextWrapping="Wrap" />
+                            <WrapPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding EditSelectedCommand}" Content="✏️ تـعـديـل الكشف">
                                     <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Visible" />
                                             <Setter Property="Background" Value="#F59E0B" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
-                                                <!-- Hide if no item is selected and not editing -->
+                                                <!--  Hide if no item is selected and not editing  -->
                                                 <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
@@ -171,37 +580,37 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                                
-                                <Button Content="💾 حـفـظ التـفـاصيـل" Command="{Binding SaveCommand}" Margin="0,0,12,12" Padding="16,10">
+
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding SaveCommand}" Content="💾 حـفـظ ">
                                     <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
-                                            <Setter Property="Background" Value="#10B981"/>
-                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style BasedOn="{StaticResource PrimaryButton}" TargetType="Button">
+                                            <Setter Property="Background" Value="#10B981" />
+                                            <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                                
-                                <Button Content="✖ إلـغـاء" Command="{Binding CancelEditCommand}" Margin="0,0,16,12" Padding="16,10">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Setter Property="Visibility" Value="Visible" />
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Button.Style>
                                 </Button>
 
-                                <Button Content="🗑️ حـذف" Command="{Binding DeleteCommand}" Padding="16,10" Margin="0,0,12,12">
+                                <Button Margin="0,0,16,12" Padding="16,10" Command="{Binding CancelEditCommand}" Content="✖ إلـغـاء">
                                     <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
+                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding DeleteCommand}" Content="🗑️ حـذف">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource DangerButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
@@ -221,82 +630,92 @@
             </ScrollViewer>
         </Grid>
 
-        <!-- SEARCH Section -->
-        <Grid Style="{StaticResource SearchContainerStyle}" Margin="24">
-            <Border Background="White" CornerRadius="16" Padding="32" BorderBrush="#E2E8F0" BorderThickness="1">
+        <!--  SEARCH Section  -->
+        <Grid Margin="24" Style="{StaticResource SearchContainerStyle}">
+            <Border Padding="32" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16">
                 <Border.Effect>
-                    <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="24" ShadowDepth="4" Direction="270" />
+                    <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
                 </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,24">
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                            <Border Background="#F3F4F6" CornerRadius="8" Padding="10" Margin="0,0,12,0">
-                                <TextBlock Text="🔎" FontSize="20"/>
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Border Margin="0,0,12,0" Padding="10" Background="#F3F4F6" CornerRadius="8">
+                                <TextBlock FontSize="20" Text="🔎" />
                             </Border>
-                            <TextBlock Text="البحث في الكشوفات السابقة" FontSize="20" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                            <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#1E293B" Text="البحث في الكشوفات السابقة" />
                         </StackPanel>
-                        <Button DockPanel.Dock="Right" Content="✖ الـرجـوع للـنمـوذج" Style="{StaticResource SecondaryButton}" Command="{Binding HideSearchPanelCommand}" HorizontalAlignment="Right" Padding="16,8"/>
+                        <Button Padding="16,8" HorizontalAlignment="Right"
+                                Command="{Binding HideSearchPanelCommand}"
+                                Content="✖ الـرجـوع للـنمـوذج" DockPanel.Dock="Right"
+                                Style="{StaticResource SecondaryButton}" />
                     </DockPanel>
 
-                    <Border Grid.Row="1" Background="#F8FAFC" CornerRadius="12" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1" Margin="0,0,0,24">
+                    <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="كلمة البحث (رقم الشاسيه، الكشف، الموتور، اللوحة):" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Margin="0,0,16,0"/>
-                            <TextBox Width="460" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Padding="12,8" FontSize="15" Background="White"/>
+                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الشاسيه، الكشف، الموتور، اللوحة):" />
+                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                                     Style="{StaticResource FormTextBox}"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="2" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
-                        <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                                  AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
-                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="48"
-                                  ColumnHeaderHeight="54" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
+                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
+                        <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="54" FontSize="14" Foreground="#1E293B"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
+                                  ItemsSource="{Binding FilteredItems}"
+                                  RowHeight="48"
+                                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                                  SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#F1F5F9"/>
-                                    <Setter Property="Foreground" Value="#334155"/>
-                                    <Setter Property="FontWeight" Value="SemiBold"/>
-                                    <Setter Property="Padding" Value="16,12"/>
-                                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="Background" Value="#F1F5F9" />
+                                    <Setter Property="Foreground" Value="#334155" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Padding" Value="16,12" />
+                                    <Setter Property="BorderBrush" Value="#E2E8F0" />
+                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
                                 </Style>
                             </DataGrid.ColumnHeaderStyle>
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow">
-                                    <Setter Property="Cursor" Value="Hand"/>
+                                    <Setter Property="Cursor" Value="Hand" />
                                     <Style.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#DBEAFE"/>
-                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                            <Setter Property="Background" Value="#DBEAFE" />
+                                            <Setter Property="Foreground" Value="#1D4ED8" />
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Background" Value="#EFF6FF" />
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <!-- Choose Action Column -->
+                                <!--  Choose Action Column  -->
                                 <DataGridTemplateColumn Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Content="✅ اختيار" Style="{StaticResource PrimaryButton}" Margin="8,6" Padding="4" Background="#10B981" Foreground="White" FontSize="12" Command="{Binding DataContext.HideSearchPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                            <Button Margin="8,6" Padding="4" Background="#10B981"
+                                                    Command="{Binding DataContext.HideSearchPanelCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    Content="✅ اختيار" FontSize="12" Foreground="White"
+                                                    Style="{StaticResource PrimaryButton}" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="رقم الكشف" Binding="{Binding InspId}" Width="100"/>
-                                <DataGridTextColumn Header="التاريخ" Binding="{Binding InspDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="100"/>
-                                <DataGridTextColumn Header="البائع" Binding="{Binding Seller}" Width="150"/>
-                                <DataGridTextColumn Header="المشتري" Binding="{Binding Buyer}" Width="150"/>
-                                <DataGridTemplateColumn Header="الموديل" Width="120">
+                                <DataGridTextColumn Width="100" Binding="{Binding InspId}" Header="رقم الكشف" />
+                                <DataGridTextColumn Width="100" Binding="{Binding InspDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
+                                <DataGridTextColumn Width="150" Binding="{Binding Seller}" Header="البائع" />
+                                <DataGridTextColumn Width="150" Binding="{Binding Buyer}" Header="المشتري" />
+                                <DataGridTemplateColumn Width="120" Header="الموديل">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <TextBlock VerticalAlignment="Center" Padding="4,0">
+                                            <TextBlock Padding="4,0" VerticalAlignment="Center">
                                                 <TextBlock.Text>
                                                     <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="ModelId,ModelName">
                                                         <Binding Path="ModelId" />
@@ -307,10 +726,10 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="الشاسيه" Binding="{Binding ChassisNo}" Width="150"/>
-                                <DataGridTextColumn Header="الموتور" Binding="{Binding MotorNo}" Width="120"/>
-                                <DataGridTextColumn Header="اللوحة" Binding="{Binding PlateNo}" Width="120"/>
-                                <DataGridTextColumn Header="السعر" Binding="{Binding Total}" Width="100"/>
+                                <DataGridTextColumn Width="150" Binding="{Binding ChassisNo}" Header="الشاسيه" />
+                                <DataGridTextColumn Width="120" Binding="{Binding MotorNo}" Header="الموتور" />
+                                <DataGridTextColumn Width="120" Binding="{Binding PlateNo}" Header="اللوحة" />
+                                <DataGridTextColumn Width="100" Binding="{Binding Total}" Header="السعر" />
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>

@@ -11,9 +11,9 @@
         <conv:IdToNameConverter x:Key="IdToNameConverter"/>
     </UserControl.Resources>
 
-    <Grid Background="#F8FAFC" MinWidth="800" MinHeight="500">
-        <Border Background="White" CornerRadius="16" Margin="24"
-                BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+    <Grid Background="#2F3549" MinWidth="800" MinHeight="500">
+        <Border Background="#2F3549"  CornerRadius="16" Margin="24"
+                BorderBrush="#2F3549" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.04"
                                   BlurRadius="24" ShadowDepth="4" Direction="270"/>
@@ -41,26 +41,33 @@
 
                     <!-- Icon + title -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal">
-                        <Border Background="#EDE9FE" CornerRadius="12"
+                        <Border  CornerRadius="12"
                                 Padding="14,12" Margin="0,0,16,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0" Color="#E8A54B" />
+                                    <GradientStop Offset="1" Color="#D4922F" />
+                                </LinearGradientBrush>
+                            </Border.Background>
                             <TextBlock Text="🏍️" FontSize="26"
                                        VerticalAlignment="Center"
                                        HorizontalAlignment="Center"/>
                         </Border>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="قائمة الموتوسيكلات"
+                                       
                                        FontSize="22" FontWeight="Bold"
-                                       Foreground="#1E293B"/>
+                                       Foreground="White"/>
                             <TextBlock Text="{Binding FilteredCars.Count,
                                                StringFormat='إجمالي \{0\} موتوسيكل في النتائج'}"
-                                       FontSize="13" Foreground="#64748B"
+                                       FontSize="13" Foreground="LightGray"
                                        Margin="0,4,0,0"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- Filter and Search -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <TextBlock Text="الحالة:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#64748B" FontSize="13" FontWeight="SemiBold"/>
+                        <TextBlock Text="الحالة:" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="White" FontSize="13" FontWeight="SemiBold"/>
                         <ComboBox Width="140" Margin="0,0,16,0" 
                                   SelectedIndex="{Binding ActiveFilter}"
                                   Padding="8,6" VerticalAlignment="Center"
@@ -70,7 +77,7 @@
                             <ComboBoxItem Content="مباع " Foreground="#EF4444" FontWeight="Bold"/>
                         </ComboBox>
 
-                        <Border Background="#F8FAFC"
+                        <Border Background="LightGray"
                                 CornerRadius="10" BorderBrush="#E2E8F0"
                                 BorderThickness="1" Padding="12,0">
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -121,6 +128,7 @@
 
                 <!-- ═══ DATA GRID ════════════════════════════════════════════ -->
                 <DataGrid Grid.Row="2"
+                          BorderBrush="#E2E8F0"
                           ItemsSource="{Binding FilteredCars}"
                           SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                           AutoGenerateColumns="False" IsReadOnly="True"
@@ -129,14 +137,13 @@
                           HeadersVisibility="Column"
                           BorderThickness="0" RowHeight="46"
                           ColumnHeaderHeight="50"
-                          AlternatingRowBackground="#F8FAFC"
-                          Background="White" Foreground="#1E293B"
+                          Background="#2F3549" Foreground="#1E293B"
                           FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
 
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background"   Value="#F1F5F9"/>
-                            <Setter Property="Foreground"   Value="#334155"/>
+                            <Setter Property="Background"   Value="#2F3549"/>
+                            <Setter Property="Foreground"   Value="White"/>
                             <Setter Property="FontWeight"   Value="SemiBold"/>
                             <Setter Property="Padding"      Value="16,12"/>
                             <Setter Property="BorderBrush"  Value="#E2E8F0"/>
@@ -146,14 +153,19 @@
 
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
+                            <Setter Property="Background" Value="#2F3549"/>
+                            <!-- normal row -->
+                            <Setter Property="Foreground" Value="White"/>
                             <Setter Property="Cursor" Value="Hand"/>
+
                             <Style.Triggers>
                                 <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#DBEAFE"/>
-                                    <Setter Property="Foreground" Value="#1D4ED8"/>
+                                    <Setter Property="Background" Value="#1E40AF"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </Trigger>
+
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Background" Value="#EFF6FF"/>
+                                    <Setter Property="Background" Value="#3B425A"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>
@@ -163,10 +175,11 @@
 
                         <!-- Highlight matched row indicator -->
                         <DataGridTextColumn Header="كود"
+                                            
                                             Binding="{Binding CarId}"
-                                            Width="70"/>
+                                            Width="80"/>
 
-                        <DataGridTemplateColumn Header="الموديل" Width="160">
+                        <DataGridTemplateColumn Header="الموديل" Width="200">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Center" Padding="6,0">
@@ -174,7 +187,7 @@
                                             <MultiBinding Converter="{StaticResource IdToNameConverter}"
                                                           ConverterParameter="ModelId,ModelName">
                                                 <Binding Path="ModelId"/>
-                                                <Binding Path="DataContext.CarModels"
+                                                <Binding Path="DataContext.CarModels"                                                       
                                                          RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                                             </MultiBinding>
                                         </TextBlock.Text>
@@ -185,25 +198,25 @@
 
                         <DataGridTextColumn Header="السنة"
                                             Binding="{Binding YearNo}"
-                                            Width="80"/>
+                                            Width="100"/>
 
                         <DataGridTextColumn Header="رقم الشاسيه"
                                             Binding="{Binding ChassisNo}"
-                                            Width="*"/>
+                                            Width="160"/>
 
                         <DataGridTextColumn Header="رقم الموتور"
                                             Binding="{Binding MotorNo}"
-                                            Width="*"/>
+                                            Width="160"/>
 
                         <DataGridTextColumn Header="رقم اللوحة"
                                             Binding="{Binding PlateNo}"
-                                            Width="110"/>
+                                            Width="140"/>
 
                         <DataGridTextColumn Header="كيلومتر"
                                             Binding="{Binding Mileage}"
-                                            Width="90"/>
+                                            Width="140"/>
 
-                        <DataGridTemplateColumn Header="اللون" Width="110">
+                        <DataGridTemplateColumn Header="اللون" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Center" Padding="6,0">
@@ -220,7 +233,7 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn Header="نشط" Width="70">
+                        <DataGridTemplateColumn Header="في المخزن" Width="100">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <CheckBox IsChecked="{Binding Active, Mode=OneWay}"
@@ -238,7 +251,7 @@
                 </DataGrid>
 
                 <!-- ═══ STATUS STRIP ════════════════════════════════════════ -->
-                <Border Grid.Row="3" Background="#F8FAFC"
+                <Border Grid.Row="3" Background="#2F3549"
                         BorderBrush="#E2E8F0" BorderThickness="0,1,0,0"
                         Padding="24,10">
                     <TextBlock Text="{Binding StatusMessage}"

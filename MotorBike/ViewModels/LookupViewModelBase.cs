@@ -100,7 +100,7 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     }
 
     [RelayCommand]
-    public async Task SaveAsync()
+    public virtual async Task SaveAsync()
     {
         if (FormItem is null) return;
 
@@ -155,7 +155,7 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     }
 
     [RelayCommand]
-    public async Task DeleteAsync()
+    public virtual async Task DeleteAsync()
     {
         if (SelectedItem is null) return;
 
@@ -285,9 +285,11 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
 
     partial void OnSelectedItemChanged(T? value)
     {
-        if (value is not null && !IsEditing)
+        if (value is not null)
         {
             FormItem = CloneEntity(value);
+            _isInsertMode = false;
+            IsEditing = false;
         }
     }
 }

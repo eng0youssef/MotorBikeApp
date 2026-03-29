@@ -11,6 +11,8 @@ public partial class SalesCar
     public int SalesId { get; set; }
 
     public DateTime SalesDate { get; set; }
+    
+    public bool IsCash { get; set; }
 
     public int CusId { get; set; }
 
