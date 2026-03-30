@@ -10,12 +10,34 @@
         <conv:HideZeroConverter x:Key="HideZeroConv"/>
     </UserControl.Resources>
     <Grid MinWidth="600" MinHeight="400">
-        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <Border Grid.Row="0" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Search Bar  -->
+        <Border Grid.Row="0" Margin="0,0,0,12" Padding="12,8" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10">
+            <Border.Effect><DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.04" ShadowDepth="2" Color="#0F172A" /></Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="16" Text="🔍" />
+                <TextBox Grid.Column="1" FontSize="14" Style="{StaticResource FormTextBox}"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Tag="ابحث عن مدينة..." />
+                <Button Grid.Column="2" Margin="8,0,0,0" Padding="8,4" VerticalAlignment="Center"
+                        Command="{Binding ClearSearchCommand}" Content="✖" FontSize="12" Style="{StaticResource SecondaryButton}"
+                        Visibility="{Binding SearchText, Converter={StaticResource StringToVisibilityConverter}}" />
+            </Grid>
+        </Border>
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Margin="0,0,0,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
             </Border.Effect>
-            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+            <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                       AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
                       GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="44"
                       ColumnHeaderHeight="48" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
@@ -29,7 +51,7 @@
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
-        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="24" BorderBrush="#E2E8F0" BorderThickness="1">
+        <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="24" BorderBrush="#E2E8F0" BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
             </Border.Effect>

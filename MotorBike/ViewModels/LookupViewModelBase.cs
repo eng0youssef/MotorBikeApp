@@ -22,6 +22,63 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     [ObservableProperty]
     private ObservableCollection<T> _items = [];
 
+    /// <summary>Search/filter text - filters the grid in real-time.</summary>
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    partial void OnSearchTextChanged(string value) => RefreshFilteredItems();
+
+    partial void OnItemsChanged(ObservableCollection<T> value) => RefreshFilteredItems();
+
+    /// <summary>Filtered collection bound to the DataGrid.</summary>
+    [ObservableProperty]
+    private ObservableCollection<T> _filteredItems = [];
+
+    /// <summary>Filters Items based on SearchText across all string properties.</summary>
+    private void RefreshFilteredItems()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredItems = new ObservableCollection<T>(Items);
+        }
+        else
+        {
+            var lower = SearchText.Trim().ToLower();
+
+            // String properties
+            var stringProps = typeof(T).GetProperties()
+                .Where(p => p.CanRead && p.PropertyType == typeof(string))
+                .ToArray();
+
+            // Numeric properties (int, long, decimal, double, float) → converted to string for search
+            var numericTypes = new HashSet<Type>
+            {
+                typeof(int), typeof(long), typeof(decimal),
+                typeof(double), typeof(float),
+                typeof(int?), typeof(long?), typeof(decimal?),
+                typeof(double?), typeof(float?)
+            };
+            var numericProps = typeof(T).GetProperties()
+                .Where(p => p.CanRead && numericTypes.Contains(p.PropertyType))
+                .ToArray();
+
+            var filtered = Items.Where(item =>
+                stringProps.Any(p =>
+                {
+                    var val = p.GetValue(item) as string;
+                    return val != null && val.ToLower().Contains(lower);
+                })
+                ||
+                numericProps.Any(p =>
+                {
+                    var val = p.GetValue(item);
+                    return val != null && val.ToString()!.Contains(lower);
+                }));
+
+            FilteredItems = new ObservableCollection<T>(filtered);
+        }
+    }
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveCommand))]
     [NotifyCanExecuteChangedFor(nameof(DeleteCommand))]
@@ -66,6 +123,9 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
             StatusMessage = $"خطأ في التحميل: {ex.Message}";
         }
     }
+
+    [RelayCommand]
+    public void ClearSearch() => SearchText = string.Empty;
 
     [RelayCommand]
     public async Task AddNewAsync()

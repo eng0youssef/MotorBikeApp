@@ -1,8 +1,8 @@
-﻿<UserControl x:Class="MotorBike.Views.ProfitsReportsView"
+<UserControl x:Class="MotorBike.Views.ProfitsReportsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              FlowDirection="RightToLeft">
     <Grid>
-        <TextBlock Text="صفحة ProfitsReports" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <TextBlock Text="???? ProfitsReports" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
     </Grid>
 </UserControl>
