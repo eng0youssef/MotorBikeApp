@@ -1,4 +1,4 @@
-<UserControl x:Class="MotorBike.Views.CompanyView"
+﻿<UserControl x:Class="MotorBike.Views.CompanyView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -14,10 +14,9 @@
     </UserControl.Resources>
 
     <Grid Background="Transparent" MinWidth="600" MinHeight="500">
-        <Border Background="White" CornerRadius="12" Margin="16"
-                BorderBrush="#E2E8F0" BorderThickness="1">
+        <Border Style="{StaticResource FormCard}">
             <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270" />
+                <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="4" Color="#000000" />
             </Border.Effect>
 
             <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="32">
@@ -30,12 +29,12 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="بيانات الشركة" FontSize="24" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,8"/>
-                            <TextBlock Text="يرجى إدخال تفاصيل ومعلومات الشركة هنا" FontSize="14" Foreground="#64748B"/>
+                            <TextBlock Text="بيانات الشركة" FontSize="24" FontWeight="Bold" Foreground="#ECEEF5" Margin="0,0,0,8"/>
+                            <TextBlock Text="يرجى إدخال تفاصيل ومعلومات الشركة هنا" FontSize="14" Foreground="#7B84A0"/>
                         </StackPanel>
                         
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Border Width="100" Height="100" CornerRadius="50" BorderBrush="#E2E8F0" BorderThickness="1" Background="#F8FAFC" Margin="0,0,16,0" ClipToBounds="True">
+                            <Border Width="100" Height="100" CornerRadius="50" BorderBrush="#3D4560" BorderThickness="1" Background="#2A3040" Margin="0,0,16,0" ClipToBounds="True">
                                 <Border.Effect>
                                     <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="4" ShadowDepth="2"/>
                                 </Border.Effect>
@@ -135,11 +134,11 @@
                     </Grid>
 
                     <!-- Actions -->
-                    <Border Background="#F8FAFC" CornerRadius="8" Padding="16" BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Border Background="#2A3040" CornerRadius="8" Padding="16" BorderBrush="#3D4560" BorderThickness="1">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Button Content="💾 حفظ البيانات" Style="{StaticResource PrimaryButton}"
                                     Command="{Binding SaveCommand}" Padding="32,12" FontSize="14"/>
-                            <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#10B981" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding StatusMessage}" FontSize="13" Foreground="#5BAE7C" FontWeight="SemiBold"
                                        VerticalAlignment="Center" Margin="16,0,0,0"/>
                         </StackPanel>
                     </Border>
