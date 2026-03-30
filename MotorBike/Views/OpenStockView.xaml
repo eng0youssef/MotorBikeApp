@@ -6,9 +6,58 @@
     <UserControl.Resources>
         <conv:IdToNameConverter x:Key="IdToNameConverter"/>
         <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+
+        <!--  Card style  -->
+        <Style x:Key="FormCard" TargetType="Border">
+            <Setter Property="Background" Value="#272C3F" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#3D4560" />
+            <Setter Property="Margin" Value="24,0,24,16" />
+            <Setter Property="Padding" Value="28" />
+        </Style>
+
+        <!--  Dark Column Header  -->
+        <Style x:Key="DarkColumnHeader" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2A3040" />
+            <Setter Property="Foreground" Value="#9BA4B5" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Padding" Value="14,10" />
+            <Setter Property="BorderBrush" Value="#3D4560" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+        </Style>
+
+        <!--  Dark Row  -->
+        <Style x:Key="DarkRow" TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#C8CEE0" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#323F58" />
+                    <Setter Property="Foreground" Value="#E8A54B" />
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2A3040" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!--  Dark Cell  -->
+        <Style x:Key="DarkCell" TargetType="DataGridCell">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,4" />
+            <Setter Property="Foreground" Value="#C8CEE0" />
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Foreground" Value="#E8A54B" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
-    <Grid MinWidth="800" MinHeight="500">
+    <Grid MinWidth="800" MinHeight="500" Background="#1E2233">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -18,34 +67,38 @@
         <!-- Header -->
         <Grid Grid.Row="0" Margin="24,24,24,16">
             <StackPanel Orientation="Horizontal">
-                <Border Background="#E0F2FE" CornerRadius="12" Padding="14,12" Margin="0,0,16,0">
-                    <TextBlock Text="📦" FontSize="26" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                <Border Width="48" Height="48" Margin="0,0,14,0" CornerRadius="12">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Offset="0" Color="#E8A54B" />
+                            <GradientStop Offset="1" Color="#D4922F" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="22" Text="📦" />
                 </Border>
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Text="أرصدة أول المدة" FontSize="22" FontWeight="Bold" Foreground="#1E293B"/>
-                    <TextBlock Text="إضافة وتعديل الأرصدة الافتتاحية للأصناف في المخازن." FontSize="14" Foreground="#64748B" Margin="0,4,0,0"/>
+                    <TextBlock Text="أرصدة أول المدة" FontSize="20" FontWeight="Bold" Foreground="#ECEEF5"/>
+                    <TextBlock Text="إضافة وتعديل الأرصدة الافتتاحية للأصناف في المخازن." FontSize="12" Foreground="#7B84A0" Margin="0,3,0,0"/>
                 </StackPanel>
             </StackPanel>
         </Grid>
 
         <!-- DataGrid Card -->
-        <Border Grid.Row="1" Background="White" CornerRadius="12" Margin="24,0,24,16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True">
-            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270"/></Border.Effect>
+        <Border Grid.Row="1" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="12" Margin="24,0,24,16">
+            <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="4" Color="#000000" /></Border.Effect>
             <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
-                      GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="44"
-                      ColumnHeaderHeight="48" AlternatingRowBackground="#F8FAFC" Background="White" Foreground="#1E293B" FontSize="14" HorizontalGridLinesBrush="#F1F5F9">
-                <DataGrid.ColumnHeaderStyle><Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#F8FAFC"/><Setter Property="Foreground" Value="#475569"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="16,12"/>
-                    <Setter Property="BorderBrush" Value="#E2E8F0"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
-                </Style></DataGrid.ColumnHeaderStyle>
-                <DataGrid.RowStyle><Style TargetType="DataGridRow"><Setter Property="Cursor" Value="Hand"/>
-                    <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#E0F2FE"/><Setter Property="Foreground" Value="#0369A1"/></Trigger>
-                        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#F0F9FF"/></Trigger>
-                    </Style.Triggers>
-                </Style></DataGrid.RowStyle>
+                      AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False"
+                      ColumnHeaderHeight="44" FontSize="13" Foreground="#C8CEE0" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                      HorizontalGridLinesBrush="#323848" IsReadOnly="True" RowHeight="42" SelectionMode="Single">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.RowStyle>
+                    <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                </DataGrid.RowStyle>
+                <DataGrid.CellStyle>
+                    <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                </DataGrid.CellStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="التاريخ" Binding="{Binding OpenDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="100"/>
                     <DataGridTemplateColumn Header="المخزن" Width="180"><DataGridTemplateColumn.CellTemplate><DataTemplate>
@@ -68,19 +121,21 @@
                     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                     <DataGridTextColumn Header="الكمية" Binding="{Binding Qty}" Width="80"/>
                     <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat=\{0:N2\}}" Width="100"/>
-                    <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="*" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="*" FontWeight="SemiBold" Foreground="#5BAE7C"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
 
         <!-- Form Card -->
-        <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="24" Margin="24,0,24,24" BorderBrush="#E2E8F0" BorderThickness="1">
-            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.04" BlurRadius="12" ShadowDepth="4" Direction="270"/></Border.Effect>
+        <Border Grid.Row="2" Style="{StaticResource FormCard}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="6" Color="#000000" />
+            </Border.Effect>
             <StackPanel>
                 <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/>
                         <ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
@@ -90,50 +145,100 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="المخزن" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Stores}" DisplayMemberPath="StoreName" SelectedValuePath="StoreId" SelectedValue="{Binding FormItem.StoreId}" Padding="10,6" FontSize="14" IsEditable="True"/>
+                    <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Stores}" DisplayMemberPath="StoreName" SelectedValuePath="StoreId" SelectedValue="{Binding FormItem.StoreId}" IsEditable="True"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" Text="الصنف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding ItemList}" DisplayMemberPath="ItemName" SelectedItem="{Binding SelectedFormItem, Mode=TwoWay}" Padding="10,6" FontSize="14" IsEditable="True"/>
+                    <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding ItemList}" DisplayMemberPath="ItemName" SelectedItem="{Binding SelectedFormItem, Mode=TwoWay}" IsEditable="True"/>
                     <TextBlock Grid.Row="0" Grid.Column="6" Text="التاريخ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <DatePicker Grid.Row="0" Grid.Column="7" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
+                    <DatePicker Grid.Row="0" Grid.Column="7" SelectedDate="{Binding FormItem.OpenDate}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="الوحدة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding FormUnits}" DisplayMemberPath="UnitName" SelectedItem="{Binding SelectedFormUnit, Mode=TwoWay}" Padding="10,6" FontSize="14"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding FormUnits}" DisplayMemberPath="UnitName" SelectedItem="{Binding SelectedFormUnit, Mode=TwoWay}"/>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="الكمية" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Qty, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Row="2" Grid.Column="6" Text="السعر" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="2" Grid.Column="7" Text="{Binding FormItem.Price, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="خصم مبلغ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="مبلغ الخصم" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FormItem.Disc, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Row="4" Grid.Column="3" Text="نسبة الخصم" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="4" Grid.Column="4" Text="{Binding FormItem.DiscPer, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
-                    <TextBlock Grid.Row="4" Grid.Column="6" Text="الوحدة فيها كام قطعه" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.UnitQty, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#64748B"/>
+                    <TextBlock Grid.Row="4" Grid.Column="6" Text="معامل الوحدة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.UnitQty, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" IsReadOnly="True" />
                 </Grid>
 
-                <!-- Error Banner: يظهر فقط عند وجود رسالة خطأ -->
-                <Border CornerRadius="8" Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1"
-                        Padding="14,10" Margin="0,0,0,14"
+                <!-- Error Banner -->
+                <Border CornerRadius="8" Background="#3D2929" BorderBrush="#5C3636" BorderThickness="1"
+                        Padding="14,10" Margin="0,0,0,16"
                         Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
                     <StackPanel Orientation="Horizontal">
-                        <Border Background="#EF4444" CornerRadius="50" Width="22" Height="22" Margin="0,0,10,0">
+                        <Border Background="#D9534F" CornerRadius="50" Width="22" Height="22" Margin="0,0,10,0">
                             <TextBlock Text="✕" Foreground="White" FontSize="11" FontWeight="Bold"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#B91C1C"
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#E4A0A0"
                                    FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
 
                 <DockPanel>
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#5BAE7C" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Right" DockPanel.Dock="Right" Margin="24,0,0,0"/>
                     <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                        <Button Content="➕ رصيد جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
-                        <Button Content="✏️ تـعـديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
-                        <Button Content="💾 حـفـظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
-                        <Button Content="🗑️ حـذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>
-                        <Button Content="✖ إلـغـاء" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>
+                        <Button Content="➕ رصيد جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,10,0" Command="{Binding AddNewCommand}"/>
+                        <Button Content="✏️ تعديل" Margin="0,0,10,0" Command="{Binding EditSelectedCommand}">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource WarningButton}" TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="💾 حفظ" Margin="0,0,10,0" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource SuccessButton}" TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="✖ إلغاء" Margin="0,0,10,0" Command="{Binding CancelEditCommand}">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Content="🗑️ حذف" Command="{Binding DeleteCommand}">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource DangerButton}" TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </WrapPanel>
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="#10B981" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="24,0,0,0"/>
                 </DockPanel>
             </StackPanel>
         </Border>
