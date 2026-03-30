@@ -12,4 +12,11 @@ public partial class SalesCarView : UserControl
     {
         if (DataContext is SalesCarViewModel vm) vm.LoadRelatedDataCommand.Execute(null);
     }
+    private void IsCash_Changed(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is SalesCarViewModel vm)
+        {
+            vm.HandleCashModeChanged();
+        }
+    }
 }

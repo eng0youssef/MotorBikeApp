@@ -4,7 +4,7 @@
         Title="تسجيل الدخول" MinHeight="680" MinWidth="450"
         WindowStartupLocation="CenterScreen" 
         FlowDirection="RightToLeft"
-        Background="#F8FAFC">
+        Background="LightGray">
     <Window.Triggers>
         <EventTrigger RoutedEvent="Window.Loaded">
             <BeginStoryboard>
@@ -31,7 +31,7 @@
         <!-- Background Banner -->
         <Border Background="#272C3F" MinHeight="220" VerticalAlignment="Top" />
         
-        <Border Background="LightGray" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
+        <Border Background="White" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.08" BlurRadius="24" ShadowDepth="8" Direction="270" />
             </Border.Effect>

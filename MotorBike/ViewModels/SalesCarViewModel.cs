@@ -537,8 +537,41 @@ public partial class SalesCarViewModel : ObservableObject
         }
     }
 
-    private void CalculatePayedTotal() =>
+    private void CalculatePayedTotal()
+    {
         TotalPayed = FormPayments.Sum(p => p.PayMoney);
+        UpdateRemaining();
+    }
+
+    private void UpdateRemaining()
+    {
+        Remaining = (FormItem?.Net ?? 0) - TotalPayed;
+    }
+
+    public void HandleCashModeChanged()
+    {
+        if (FormItem == null) return;
+        IsCashPaymentMode = FormItem.IsCash;
+
+        if (FormItem.IsCash)
+        {
+            FormPayments.Clear();
+            FormPayments.Add(new SalesCarPayment
+            {
+                SalesId = FormItem.SalesId,
+                PayDate = DateTime.Now,
+                PayMoney = FormItem.Net,
+                CashId = SelectedCashId,
+                Notes = "سداد كامل (كاش)"
+            });
+            CalculatePayedTotal();
+        }
+        else
+        {
+            FormPayments.Clear();
+            CalculatePayedTotal();
+        }
+    }
 
     // ── Customer popup commands ────────────────────────────────────────────
 
@@ -654,7 +687,7 @@ public partial class SalesCarViewModel : ObservableObject
     {
         if (FormItem == null) return;
         NetBeforeTax = FormItem.Total;
-        
+
         if (FormItem.IsTax)
         {
             FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
@@ -667,7 +700,17 @@ public partial class SalesCarViewModel : ObservableObject
         }
 
         FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
-        
+
+        if (IsCashPaymentMode && FormPayments.Any())
+        {
+            FormPayments[0].PayMoney = FormItem.Net;
+            CalculatePayedTotal();
+        }
+        else
+        {
+            UpdateRemaining();
+        }
+
         // Notify UI of changes
         OnPropertyChanged(nameof(FormItem));
         OnPropertyChanged(nameof(FormTotal));
