@@ -40,8 +40,8 @@
 
         <!--  Floating label  -->
         <Style x:Key="FloatingLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10" />
-            <Setter Property="Foreground" Value="#7B84A0" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="Margin" Value="4,-14,0,0" />
         </Style>
 

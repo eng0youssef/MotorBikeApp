@@ -440,7 +440,7 @@
                         </Grid>
 
                         <!--  ── Cash Mode Treasury ──────────────────────────  -->
-                        <Border Grid.Row="3" Margin="0,0,0,24" Padding="22" Background="#283830" BorderBrush="#3D7A5A" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="4" Margin="0,0,0,24" Padding="22" Background="#283830" BorderBrush="#3D7A5A" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}"
                                 Visibility="{Binding IsCashPaymentMode, Converter={StaticResource BoolToVis}}">
                             <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
@@ -453,7 +453,7 @@
                         </Border>
 
                         <!--  ── Tax Section ────────────────────────────────  -->
-                        <Border Grid.Row="4" Margin="0,0,0,24" Padding="16,12" Background="#2F3549" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="10"
+                        <Border Grid.Row="3" Margin="0,0,0,24" Padding="16,12" Background="#2F3549" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="10"
                                 IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -521,7 +521,7 @@
 
                         <!--  ── Payments Section ─────────────────────────────  -->
                         <!--  ══════ PAYMENTS SECTION (TRIGGER) ══════  -->
-                        <Border Grid.Row="5" Margin="0,0,0,24" Padding="18" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="4" Margin="0,0,0,24" Padding="18" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}"
                                 Visibility="{Binding IsCashPaymentMode, Converter={StaticResource InverseBoolToVis}}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">

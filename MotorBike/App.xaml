@@ -404,7 +404,9 @@
                 </EventTrigger>
             </Style.Triggers>
         </Style>
-
+        
+        <SolidColorBrush x:Key="SectionBg" Color="#2F3549" />
+        <SolidColorBrush x:Key="SectionBorder" Color="#3D4560" />
 
         <!--  ═══ Form TextBox ═══  -->
         <Style x:Key="FormTextBox" TargetType="TextBox">
@@ -453,9 +455,15 @@
             </Setter>
         </Style>
 
+        <Style x:Key="FloatingLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Margin" Value="4,-14,0,0" />
+        </Style>
+
         <!--  ═══ Form Label ═══  -->
         <Style x:Key="FormLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="14" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Margin" Value="0,0,0,4" />
