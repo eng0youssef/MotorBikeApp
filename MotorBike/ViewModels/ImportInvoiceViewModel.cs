@@ -592,7 +592,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             Mileage = NewCarMileage,
             ColorId = NewCarColorId,
             Notes = NewCarNotes,
-            Active = true
+            IsStock = true
         };
         CarsList.Add(newCar);
 
@@ -929,8 +929,24 @@ public partial class ImportInvoiceViewModel : ObservableObject
                     car.Car.AddDate = DateTime.Now;
                     car.Car.AddPc = Environment.MachineName;
                     car.Car.AddUser = AppSession.CurrentUserId ?? 1;
+                    car.Car.SupplierId = FormItem.SuppId;
+                    car.Car.IsLocalSupplier = false;
+                    car.Car.IsFromCustomer = false;
+                    car.Car.SourceCustomerId = null;
+                    car.Car.StatusId = 1;
+                    car.Car.OwnerId = null;
+                    car.Car.PurchasePrice = (double)(car.CostTotal ?? 0);
                     await _carsLookupRepo.InsertAsync(car.Car);
                     car.CarId = car.Car.CarId;
+                }
+                else if (car.CarId > 0 && car.Car != null && (car.Car.IsLocalSupplier == false))
+                {
+                    // Update the final local cost for an existing imported car
+                    car.Car.PurchasePrice = (double)(car.CostTotal ?? 0);
+                    car.Car.EditDate = DateTime.Now;
+                    car.Car.EditPc = Environment.MachineName;
+                    car.Car.EditUser = AppSession.CurrentUserId ?? 1;
+                    await _carsLookupRepo.UpdateAsync(car.Car);
                 }
 
                 car.InvId = FormItem.InvId;

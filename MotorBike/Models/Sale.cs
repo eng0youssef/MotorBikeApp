@@ -27,6 +27,9 @@ public partial class Sale
 
     public bool IsCash { get; set; }
 
+    /// <summary>الموتوسيكل المرتبط بالفاتورة (اختياري)</summary>
+    public int? CarId { get; set; }
+
     public string? Notes { get; set; }
 
     public int? AddUser { get; set; }

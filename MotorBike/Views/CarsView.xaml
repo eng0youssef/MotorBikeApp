@@ -73,8 +73,9 @@
                                   Padding="8,6" VerticalAlignment="Center"
                                   Background="White">
                             <ComboBoxItem Content="الكل" FontWeight="SemiBold"/>
-                            <ComboBoxItem Content="متاح بالمخزن " Foreground="#10B981" FontWeight="Bold"/>
-                            <ComboBoxItem Content="مباع " Foreground="#EF4444" FontWeight="Bold"/>
+                            <ComboBoxItem Content="في المخزن" Foreground="#10B981" FontWeight="Bold"/>
+                            <ComboBoxItem Content="مباع لعميل" Foreground="#EF4444" FontWeight="Bold"/>
+                            <ComboBoxItem Content="صيانة خارجية" Foreground="#F59E0B" FontWeight="Bold"/>
                         </ComboBox>
 
                         <Border Background="LightGray"
@@ -173,13 +174,11 @@
 
                     <DataGrid.Columns>
 
-                        <!-- Highlight matched row indicator -->
                         <DataGridTextColumn Header="كود"
-                                            
                                             Binding="{Binding CarId}"
-                                            Width="80"/>
+                                            Width="70"/>
 
-                        <DataGridTemplateColumn Header="الموديل" Width="200">
+                        <DataGridTemplateColumn Header="الموديل" Width="160">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Center" Padding="6,0">
@@ -198,25 +197,21 @@
 
                         <DataGridTextColumn Header="السنة"
                                             Binding="{Binding YearNo}"
+                                            Width="70"/>
+
+                        <DataGridTextColumn Header="الشاسيه"
+                                            Binding="{Binding ChassisNo}"
+                                            Width="130"/>
+
+                        <DataGridTextColumn Header="الموتور"
+                                            Binding="{Binding MotorNo}"
+                                            Width="130"/>
+
+                        <DataGridTextColumn Header="اللوحة"
+                                            Binding="{Binding PlateNo}"
                                             Width="100"/>
 
-                        <DataGridTextColumn Header="رقم الشاسيه"
-                                            Binding="{Binding ChassisNo}"
-                                            Width="160"/>
-
-                        <DataGridTextColumn Header="رقم الموتور"
-                                            Binding="{Binding MotorNo}"
-                                            Width="160"/>
-
-                        <DataGridTextColumn Header="رقم اللوحة"
-                                            Binding="{Binding PlateNo}"
-                                            Width="140"/>
-
-                        <DataGridTextColumn Header="كيلومتر"
-                                            Binding="{Binding Mileage}"
-                                            Width="140"/>
-
-                        <DataGridTemplateColumn Header="اللون" Width="120">
+                        <DataGridTemplateColumn Header="اللون" Width="90">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Center" Padding="6,0">
@@ -233,13 +228,69 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <DataGridTemplateColumn Header="في المخزن" Width="100">
+                        <!-- المالك -->
+                        <DataGridTemplateColumn Header="المالك" Width="130">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <CheckBox IsChecked="{Binding Active, Mode=OneWay}"
-                                              Style="{StaticResource ToggleSwitchStyle}"
-                                              IsEnabled="False"
-                                              HorizontalAlignment="Center"/>
+                                    <TextBlock VerticalAlignment="Center" Padding="6,0">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource IdToNameConverter}"
+                                                          ConverterParameter="CusId,CusName">
+                                                <Binding Path="OwnerId"/>
+                                                <Binding Path="DataContext.Customers"
+                                                         RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- سعر الشراء -->
+                        <DataGridTextColumn Header="سعر الشراء"
+                                            Binding="{Binding PurchasePrice, StringFormat=\{0:N2\}}"
+                                            Width="110"/>
+
+                        <!-- الحالة -->
+                        <DataGridTemplateColumn Header="الحالة" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="8" Padding="6,3" HorizontalAlignment="Center">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#6B7280"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding StatusId}" Value="1">
+                                                        <Setter Property="Background" Value="#059669"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusId}" Value="2">
+                                                        <Setter Property="Background" Value="#DC2626"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusId}" Value="3">
+                                                        <Setter Property="Background" Value="#D97706"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Foreground="White" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="—"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusId}" Value="1">
+                                                            <Setter Property="Text" Value="مخزن"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StatusId}" Value="2">
+                                                            <Setter Property="Text" Value="مباع"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StatusId}" Value="3">
+                                                            <Setter Property="Text" Value="صيانة"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
