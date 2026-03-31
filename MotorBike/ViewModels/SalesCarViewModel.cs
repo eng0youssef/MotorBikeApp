@@ -159,7 +159,7 @@ public partial class SalesCarViewModel : ObservableObject
             Cashes = new ObservableCollection<Cash>(cashes);
 
             var cars = await _carRepository.GetAllAsync();
-            var activeCars = cars.Where(c => c.Active).ToList();
+            var activeCars = cars.Where(c => c.IsStock).ToList();
             Cars = new ObservableCollection<Car>(activeCars);
             FilteredCarsList = new ObservableCollection<Car>(activeCars);
 
@@ -283,7 +283,7 @@ public partial class SalesCarViewModel : ObservableObject
 
         // Re-seed popup lists
         FilteredCustomersList = new ObservableCollection<Customer>(Customers);
-        FilteredCarsList = new ObservableCollection<Car>(Cars.Where(c => c.Active));
+        FilteredCarsList = new ObservableCollection<Car>(Cars.Where(c => c.IsStock));
 
         VatTaxPercent = 0;
         WhtTaxPercent = 0;
@@ -308,7 +308,7 @@ public partial class SalesCarViewModel : ObservableObject
         // Seed popup lists (include current car even if inactive)
         FilteredCustomersList = new ObservableCollection<Customer>(Customers);
         FilteredCarsList = new ObservableCollection<Car>(
-            Cars.Where(c => c.Active || c.CarId == FormItem.CarId));
+            Cars.Where(c => c.IsStock || c.CarId == FormItem.CarId));
     }
 
     // ── Cancel ─────────────────────────────────────────────────────────────
@@ -356,6 +356,18 @@ public partial class SalesCarViewModel : ObservableObject
                 oldCusId = await dbPre.QueryFirstOrDefaultAsync<int?>(
                     "SELECT CusId FROM Sales_Car WHERE Sales_ID = @SalesId",
                     new { SalesId = FormItem.SalesId });
+
+                var oldCarId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT CarID FROM Sales_Car WHERE Sales_ID = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                
+                // If car changed, revert the old car
+                if (oldCarId.HasValue && oldCarId.Value != FormItem.CarId)
+                {
+                    await dbPre.ExecuteAsync(
+                        "UPDATE Cars SET IsStock = 1, StatusID = 1, OwnerID = NULL WHERE Car_ID = @OldCarId",
+                        new { OldCarId = oldCarId.Value });
+                }
             }
 
             using var db = _dbFactory.CreateConnection();
@@ -396,8 +408,8 @@ public partial class SalesCarViewModel : ObservableObject
 
                 // Mark car as sold / inactive
                 await db.ExecuteAsync(
-                    "UPDATE Cars SET Active = 0 WHERE Car_ID = @CarId",
-                    new { CarId = FormItem.CarId }, tx);
+                    "UPDATE Cars SET IsStock = 0, StatusID = 2, OwnerID = @CusId WHERE Car_ID = @CarId",
+                    new { CarId = FormItem.CarId, CusId = FormItem.CusId }, tx);
 
                 if (_isInsertMode)
                 {
@@ -491,6 +503,12 @@ public partial class SalesCarViewModel : ObservableObject
                 await db.ExecuteAsync(
                     "DELETE FROM Sales_Car WHERE Sales_ID = @SalesId",
                     new { SalesId = SelectedInvoice.SalesId }, tx);
+                
+                // Revert car back to inventory
+                await db.ExecuteAsync(
+                    "UPDATE Cars SET IsStock = 1, StatusID = 1, OwnerID = NULL WHERE Car_ID = @CarId",
+                    new { CarId = SelectedInvoice.CarId }, tx);
+                    
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }
@@ -623,7 +641,7 @@ public partial class SalesCarViewModel : ObservableObject
         IsCustomerPopupOpen = false;   // close customer popup if open
         CarSearchText = string.Empty;
         FilteredCarsList = new ObservableCollection<Car>(
-            Cars.Where(c => c.Active || c.CarId == FormItem.CarId));
+            Cars.Where(c => c.IsStock || c.CarId == FormItem.CarId));
         IsCarPopupOpen = true;
     }
 
@@ -648,7 +666,7 @@ public partial class SalesCarViewModel : ObservableObject
 
     partial void OnCarSearchTextChanged(string value)
     {
-        var pool = Cars.Where(c => c.Active || c.CarId == FormItem.CarId);
+        var pool = Cars.Where(c => c.IsStock || c.CarId == FormItem.CarId);
         if (string.IsNullOrWhiteSpace(value))
             FilteredCarsList = new ObservableCollection<Car>(pool);
         else

@@ -1,0 +1,43 @@
+-- ═══════════════════════════════════════════════════════════════
+-- Migration: ربط الموتوسيكلات بالعملاء والموردين
+-- Run this script against the MotorBike database
+-- ═══════════════════════════════════════════════════════════════
+
+-- 1. Cars: أعمدة جديدة
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='OwnerID')
+    ALTER TABLE Cars ADD OwnerID int NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='StatusID')
+    ALTER TABLE Cars ADD StatusID tinyint NOT NULL DEFAULT 1;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='IsLocalSupplier')
+    ALTER TABLE Cars ADD IsLocalSupplier bit NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='SupplierID')
+    ALTER TABLE Cars ADD SupplierID int NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='IsFromCustomer')
+    ALTER TABLE Cars ADD IsFromCustomer bit NOT NULL DEFAULT 0;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='SourceCustomerID')
+    ALTER TABLE Cars ADD SourceCustomerID int NULL;
+
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='PurchasePrice')
+    ALTER TABLE Cars ADD PurchasePrice float NOT NULL DEFAULT 0;
+
+IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Cars' AND COLUMN_NAME='Active')
+    EXEC sp_rename 'Cars.Active', 'IsStock', 'COLUMN';
+
+-- 2. Sales: ربط الفاتورة بموتوسيكل
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Sales' AND COLUMN_NAME='CarID')
+    ALTER TABLE Sales ADD CarID int NULL;
+
+-- 3. Customers: الرقم القومي
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Customers' AND COLUMN_NAME='Kawmy')
+    ALTER TABLE Customers ADD Kawmy nvarchar(28) NULL;
+
+-- 4. Suppliers: الرقم القومي
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='Suppliers' AND COLUMN_NAME='Kawmy')
+    ALTER TABLE Suppliers ADD Kawmy nvarchar(28) NULL;
+
+PRINT 'Migration completed successfully!'

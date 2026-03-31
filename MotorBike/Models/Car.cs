@@ -25,7 +25,28 @@ public partial class Car
 
     public string? Notes { get; set; }
 
-    public bool Active { get; set; }
+    public bool IsStock { get; set; }
+
+    /// <summary>مالك الموتوسيكل — FK → Customers.Cus_ID (NULL = ملك الوكالة/مخزن)</summary>
+    public int? OwnerId { get; set; }
+
+    /// <summary>الحالة: 1=مخزن، 2=مباع لعميل، 3=صيانة خارجية</summary>
+    public byte StatusId { get; set; } = 1;
+
+    /// <summary>هل تم شراؤه من مورد محلي (true) أم استيراد (false)</summary>
+    public bool? IsLocalSupplier { get; set; }
+
+    /// <summary>كود المورد الذي تم الشراء منه</summary>
+    public int? SupplierId { get; set; }
+
+    /// <summary>هل المصدر عميل (true) أم مورد (false)</summary>
+    public bool IsFromCustomer { get; set; }
+
+    /// <summary>كود العميل المصدر (إذا كان المصدر عميل)</summary>
+    public int? SourceCustomerId { get; set; }
+
+    /// <summary>سعر الشراء/الاستيراد</summary>
+    public double PurchasePrice { get; set; }
 
     public int? AddUser { get; set; }
 

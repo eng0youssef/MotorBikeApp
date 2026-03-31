@@ -15,11 +15,15 @@ public partial class CarsViewModel : LookupViewModelBase<Car>
     private readonly IRepository<Car> _carRepo;
     private readonly IRepository<CarModel> _carModelRepository;
     private readonly IRepository<Color> _colorRepository;
+    private readonly IRepository<Customer> _customerRepository;
+    private readonly IRepository<Supplier> _supplierRepository;
 
     private List<Car> _allCars = [];
 
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private ObservableCollection<Color> _colors = [];
+    [ObservableProperty] private ObservableCollection<Customer> _customers = [];
+    [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
 
     // Filtered list bound to the DataGrid
     [ObservableProperty] private ObservableCollection<Car> _filteredCars = [];
@@ -27,17 +31,21 @@ public partial class CarsViewModel : LookupViewModelBase<Car>
     // Search text — auto-filters on change
     [ObservableProperty] private string _searchText = string.Empty;
 
-    // Filter by Active status: 0=All, 1=Active, 2=Inactive
+    // Filter by StatusId: 0=All, 1=مخزن, 2=مباع, 3=صيانة
     [ObservableProperty] private int _activeFilter = 0;
 
     public CarsViewModel(
         IRepository<Car> repository,
         IRepository<CarModel> carModelRepository,
-        IRepository<Color> colorRepository) : base(repository)
+        IRepository<Color> colorRepository,
+        IRepository<Customer> customerRepository,
+        IRepository<Supplier> supplierRepository) : base(repository)
     {
         _carRepo = repository;
         _carModelRepository = carModelRepository;
         _colorRepository = colorRepository;
+        _customerRepository = customerRepository;
+        _supplierRepository = supplierRepository;
     }
 
     [RelayCommand]
@@ -50,6 +58,12 @@ public partial class CarsViewModel : LookupViewModelBase<Car>
 
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors.Where(c => c.Active));
+
+            var customers = await _customerRepository.GetAllAsync();
+            Customers = new ObservableCollection<Customer>(customers);
+
+            var suppliers = await _supplierRepository.GetAllAsync();
+            Suppliers = new ObservableCollection<Supplier>(suppliers);
 
             var cars = await _carRepo.GetAllAsync();
             _allCars = cars.ToList();
@@ -69,11 +83,9 @@ public partial class CarsViewModel : LookupViewModelBase<Car>
     {
         IEnumerable<Car> query = _allCars;
 
-        // Apply Active Filter
-        if (ActiveFilter == 1) // Active only
-            query = query.Where(c => c.Active);
-        else if (ActiveFilter == 2) // Inactive only
-            query = query.Where(c => !c.Active);
+        // Apply Status Filter: 0=All, 1=مخزن, 2=مباع, 3=صيانة
+        if (ActiveFilter >= 1 && ActiveFilter <= 3)
+            query = query.Where(c => c.StatusId == ActiveFilter);
 
         // Apply Search Text
         if (!string.IsNullOrWhiteSpace(SearchText))

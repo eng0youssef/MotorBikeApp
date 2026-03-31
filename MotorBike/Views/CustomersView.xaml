@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="MotorBike.Views.CustomersView"
+<UserControl x:Class="MotorBike.Views.CustomersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              mc:Ignorable="d" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,6 +8,8 @@
     <UserControl.Resources>
         <conv:CashTypeConverter x:Key="TypeConverter" />
         <conv:HideZeroConverter x:Key="HideZeroConv"/>
+        <conv:IdToNameConverter x:Key="IdToNameConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
     <Grid MinWidth="800" MinHeight="500" Background="#1E2233">
         <Grid.RowDefinitions>
@@ -56,6 +58,7 @@
                     <DataGridTextColumn Header="كود العميل" Binding="{Binding CusId}" Width="100"/>
                     <DataGridTextColumn Header="اسم العميل" Binding="{Binding CusName}" Width="2*"/>
                     <DataGridTextColumn Header="التليفون" Binding="{Binding Tel}" Width="*"/>
+                    <DataGridTextColumn Header="الرقم القومي" Binding="{Binding Kawmy}" Width="*"/>
                     <DataGridTextColumn Header="الرصيد" Binding="{Binding Bal}" Width="*"/>
                     <DataGridTemplateColumn Header="نشط" Width="100">
                         <DataGridTemplateColumn.CellTemplate>
@@ -93,6 +96,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="16"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="16"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Row 0: ID, Name, Phone -->
@@ -105,38 +110,220 @@
                     <TextBlock Grid.Row="0" Grid.Column="6" Text="التليفون" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.Tel, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                    <!-- Row 2: Address, City, Date -->
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="العنوان" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.Adress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <!-- Row 2: Kawmy, Address, City -->
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="الرقم القومي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding FormItem.Kawmy, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="3" Text="المدينة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="4" ItemsSource="{Binding Cities}" DisplayMemberPath="CityName" SelectedValuePath="CityId" SelectedValue="{Binding FormItem.CityId}" Padding="10,6" FontSize="14"/>
+                    <TextBlock Grid.Row="2" Grid.Column="3" Text="العنوان" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="2" Grid.Column="4" Text="{Binding FormItem.Adress, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="6" Text="تاريخ التعامل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <DatePicker Grid.Row="2" Grid.Column="7" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
+                    <TextBlock Grid.Row="2" Grid.Column="6" Text="المدينة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding Cities}" DisplayMemberPath="CityName" SelectedValuePath="CityId" SelectedValue="{Binding FormItem.CityId}" Padding="10,6" FontSize="14"/>
 
-                    <!-- Row 4: Debit, Credit, Balance -->
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="مدين افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox x:Name="txtDebit" Grid.Row="4" Grid.Column="1" Text="{Binding FormItem.Debit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
+                    <!-- Row 4: Date, Debit, Credit -->
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="تاريخ التعامل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <DatePicker Grid.Row="4" Grid.Column="1" SelectedDate="{Binding FormItem.OpenDate}" Padding="10,4" FontSize="14"/>
 
-                    <TextBlock Grid.Row="4" Grid.Column="3" Text="دائن افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox x:Name="txtCredit" Grid.Row="4" Grid.Column="4" Text="{Binding FormItem.Credit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
+                    <TextBlock Grid.Row="4" Grid.Column="3" Text="مدين افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtDebit" Grid.Row="4" Grid.Column="4" Text="{Binding FormItem.Debit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
 
-                    <TextBlock Grid.Row="4" Grid.Column="6" Text="الرصيد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox x:Name="txtBal" Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.Bal, Mode=OneWay}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#1D4ED8" FontWeight="Bold"/>
+                    <TextBlock Grid.Row="4" Grid.Column="6" Text="دائن افتتاحي" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtCredit" Grid.Row="4" Grid.Column="7" Text="{Binding FormItem.Credit, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" TextChanged="txtDebitCredit_TextChanged"/>
 
-                    <!-- Row 6: Notes, Active -->
-                    <TextBlock Grid.Row="6" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <!-- Row 6: Balance, Notes, Active -->
+                    <TextBlock Grid.Row="6" Grid.Column="0" Text="الرصيد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtBal" Grid.Row="6" Grid.Column="1" Text="{Binding FormItem.Bal, Mode=OneWay}" Style="{StaticResource FormTextBox}" IsReadOnly="True" Background="#F1F5F9" Foreground="#1D4ED8" FontWeight="Bold"/>
+
+                    <TextBlock Grid.Row="6" Grid.Column="3" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="6" Grid.Column="4" Grid.ColumnSpan="2" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
                     <CheckBox Grid.Row="6" Grid.Column="7" Style="{StaticResource ToggleSwitchStyle}" Content="نشط" IsChecked="{Binding FormItem.Active}" VerticalAlignment="Center" FontSize="14"/>
                 </Grid>
+
+                <!-- ══════ Customer Motorcycles Section ══════ -->
+                <Popup IsOpen="{Binding IsCarsPopupOpen}" Placement="Center" AllowsTransparency="True" StaysOpen="True" PopupAnimation="Fade">
+                <Border Margin="0,0,0,16" Padding="16,12" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10" Width="800">
+                    <StackPanel>
+                        <!-- Section Header -->
+                        <Grid Margin="0,0,0,12">
+                            <TextBlock FontSize="15" FontWeight="Bold" Foreground="#E8A54B" Text="🏍️  موتوسيكلات العميل" VerticalAlignment="Center"/>
+                            <Button HorizontalAlignment="Left" Content="✖" Foreground="#F472B6" Background="Transparent" BorderThickness="0"
+                                    FontSize="16" FontWeight="Bold" Cursor="Hand" VerticalAlignment="Center"
+                                    Command="{Binding CloseCarsPopupCommand}"/>
+                        </Grid>
+
+                        <!-- Cars DataGrid -->
+                        <DataGrid ItemsSource="{Binding CustomerCars}" AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserAddRows="False" SelectionMode="Single" MaxHeight="200"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="38"
+                                  ColumnHeaderHeight="40" Background="#242940" Foreground="#C8CEE0" FontSize="12" HorizontalGridLinesBrush="#323848"
+                                  Margin="0,0,0,12">
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
+                            </DataGrid.ColumnHeaderStyle>
+                            <DataGrid.RowStyle>
+                                <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                            </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                            </DataGrid.CellStyle>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="كود" Binding="{Binding CarId}" Width="60"/>
+                                <DataGridTemplateColumn Header="الموديل" Width="140">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock VerticalAlignment="Center" Padding="4,0">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource IdToNameConverter}"
+                                                                  ConverterParameter="ModelId,ModelName">
+                                                        <Binding Path="ModelId"/>
+                                                        <Binding Path="DataContext.CarModels"
+                                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="السنة" Binding="{Binding YearNo}" Width="60"/>
+                                <DataGridTextColumn Header="الشاسيه" Binding="{Binding ChassisNo}" Width="120"/>
+                                <DataGridTextColumn Header="الموتور" Binding="{Binding MotorNo}" Width="120"/>
+                                <DataGridTextColumn Header="اللوحة" Binding="{Binding PlateNo}" Width="90"/>
+                                <DataGridTemplateColumn Header="اللون" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock VerticalAlignment="Center" Padding="4,0">
+                                                <TextBlock.Text>
+                                                    <MultiBinding Converter="{StaticResource IdToNameConverter}"
+                                                                  ConverterParameter="ColorId,ColorName">
+                                                        <Binding Path="ColorId"/>
+                                                        <Binding Path="DataContext.Colors"
+                                                                 RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="إجراء" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Button Content="✏️" FontSize="12" Padding="6,3" Margin="0,0,4,0"
+                                                        Command="{Binding DataContext.EditCarForCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource SecondaryButton}"/>
+                                                <Button Content="🗑️" FontSize="12" Padding="6,3"
+                                                        Command="{Binding DataContext.RemoveCarFromCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource DangerButton}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- Add New Car Controls -->
+                        <Border Padding="12,10" Background="#272C3F" CornerRadius="8" BorderBrush="#3D4560" BorderThickness="1"
+                                IsEnabled="{Binding IsEditing}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="8"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Row 0: Model, Year, Color -->
+                                <Grid Grid.Row="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="2*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="الموديل" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox Grid.Column="1" Padding="6,4" FontSize="12" DisplayMemberPath="ModelName"
+                                              ItemsSource="{Binding CarModels}" SelectedValue="{Binding NewCarModelId}" SelectedValuePath="ModelId"/>
+                                    <TextBlock Grid.Column="3" Text="السنة" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="4" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarYearNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Grid.Column="6" Text="اللون" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <ComboBox Grid.Column="7" Padding="6,4" FontSize="12" DisplayMemberPath="ColorName"
+                                              ItemsSource="{Binding Colors}" SelectedValue="{Binding NewCarColorId}" SelectedValuePath="ColorId"/>
+                                </Grid>
+
+                                <!-- Row 2: Chassis, Motor, Plate, Mileage -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="2*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="1.5*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="الشاسيه" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="1" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarChassisNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Grid.Column="3" Text="الموتور" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="4" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMotorNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Grid.Column="6" Text="اللوحة" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="7" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarPlateNo, UpdateSourceTrigger=PropertyChanged}"/>
+                                    <TextBlock Grid.Column="9" Text="الممشى" FontSize="12" Foreground="#9BA4B5" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                    <TextBox Grid.Column="10" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMileage, UpdateSourceTrigger=PropertyChanged}"/>
+                                </Grid>
+
+                                <!-- Row 4: Action Buttons -->
+                                <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Left">
+                                    <Button Padding="12,6" FontSize="12"
+                                            Command="{Binding AddCarToCustomerCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                                <Setter Property="Content" Value="💾 حفظ التعديل"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding EditingCarId}" Value="0">
+                                                        <Setter Property="Content" Value="➕ إضافة موتوسيكل"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Content="❌ إلغاء التعديل" Padding="12,6" FontSize="12" Margin="0,0,8,0"
+                                            Command="{Binding CancelEditCarCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding EditingCarId}" Value="0">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+                </Popup>
 
                 <DockPanel>
                     <!-- Action Buttons -->
                     <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
                         <Button Content="➕ جديد" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
                         <Button Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
+                        <Button Content="🏍️ موتوسيكلات العميل" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding OpenCarsPopupCommand}"/>
                         <Button Content="💾 حفظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
                         <Button Content="🗑️ حذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>
                         <Button Content="✖ إلغاء" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding CancelEditCommand}" IsEnabled="{Binding IsEditing}"/>

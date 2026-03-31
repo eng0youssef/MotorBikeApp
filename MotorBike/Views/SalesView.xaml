@@ -170,6 +170,8 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="16" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="16" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <!--  Row 0: ID, Date, Customer  -->
@@ -231,12 +233,31 @@
                                 </Popup>
                             </Grid>
 
-                            <!--  Row 2: Toggle, Notes  -->
+                            <!--  Row 2: Motorcycle Selection (optional) -->
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+                                       Style="{StaticResource FormLabel}"
+                                       Text="الموتوسيكل" />
+                            <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Padding="8,5" FontSize="13"
+                                      ItemsSource="{Binding CustomerCars}"
+                                      SelectedValue="{Binding FormItem.CarId}"
+                                      SelectedValuePath="CarId">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock>
+                                            <Run Text="{Binding ChassisNo, Mode=OneWay}"/>
+                                            <Run Text=" — " Foreground="#64748B"/>
+                                            <Run Text="{Binding MotorNo, Mode=OneWay}" Foreground="#94A3B8"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <!--  Row 4: Toggle, Notes  -->
+                            <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
                                        Text="طريقة السداد" />
                             <!--  Slide Toggle: أجل / كاش  -->
-                            <ToggleButton Grid.Row="2" Grid.Column="1" Height="38" HorizontalAlignment="Stretch" VerticalAlignment="Center" Checked="IsCash_Changed" Cursor="Hand"
+                            <ToggleButton Grid.Row="4" Grid.Column="1" Height="38" HorizontalAlignment="Stretch" VerticalAlignment="Center" Checked="IsCash_Changed" Cursor="Hand"
                                           IsChecked="{Binding FormItem.IsCash, UpdateSourceTrigger=PropertyChanged}"
                                           Unchecked="IsCash_Changed">
                                 <ToggleButton.Template>
@@ -266,15 +287,15 @@
                                     </ControlTemplate>
                                 </ToggleButton.Template>
                             </ToggleButton>
-                            <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
                                        Text="ملاحظات" />
-                            <TextBox Grid.Row="2" Grid.Column="4" Grid.ColumnSpan="4"
+                            <TextBox Grid.Row="4" Grid.Column="4" Grid.ColumnSpan="4"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
 
                             <!--  Row 4: Tax Checkbox and Tax Details  -->
-                            <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Checked="IsTax_Changed"
+                            <CheckBox Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Checked="IsTax_Changed"
                                     Content="فاتورة ضريبية" FontSize="14" FontWeight="SemiBold" Foreground="White" Style="{StaticResource DarkCheckBox}"
                                     IsChecked="{Binding FormItem.IsTax, UpdateSourceTrigger=PropertyChanged}"
                                     Unchecked="IsTax_Changed" />

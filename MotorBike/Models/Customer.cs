@@ -15,6 +15,9 @@ public partial class Customer
 
     public string? Tel { get; set; }
 
+    /// <summary>الرقم القومي</summary>
+    public string? Kawmy { get; set; }
+
     public string? Adress { get; set; }
 
     public int CityId { get; set; }

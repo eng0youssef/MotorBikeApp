@@ -4,6 +4,7 @@
     <UserControl.Resources>
         <conv:HideZeroConverter x:Key="HideZeroConv" />
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
+        <conv:InverseBoolConverter x:Key="InverseBoolConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
 
         <Style x:Key="FormCard" TargetType="Border">
@@ -305,9 +306,132 @@
                             </Grid>
                         </Border>
 
-                        <!--  ── Car section divider ──────────────────────────  -->
-                        <Border Grid.Row="4" Margin="0,0,0,16" Padding="16,10" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10"
+                        <!-- ── Source Selection Section ──────────────────────────── -->
+                        <Border Grid.Row="4" Margin="0,0,0,16" Padding="16,12" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10"
                                 IsEnabled="{Binding IsEditing}">
+                            <StackPanel>
+                                <TextBlock Margin="0,0,0,10" FontSize="15" FontWeight="Bold" Foreground="#E8A54B" Text="📋  مصدر الشراء"/>
+
+                                <!-- Row 1: Source Type Radio Buttons -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <RadioButton Content="شراء من مورد محلي" IsChecked="{Binding IsFromCustomer, Converter={StaticResource InverseBoolConverter}}"
+                                                 Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,24,0" GroupName="SourceType"/>
+                                    <RadioButton Content="شراء من عميل" IsChecked="{Binding IsFromCustomer}"
+                                                 Foreground="White" FontSize="13" FontWeight="SemiBold" GroupName="SourceType"/>
+                                </StackPanel>
+
+                                <!-- Supplier Smart Search (visible when NOT IsFromCustomer) -->
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsFromCustomer}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="المورد:" Foreground="#9BA4B5" FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Grid Grid.Column="1">
+                                        <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Popup IsOpen="{Binding IsSupplierSearchPopupOpen}" StaysOpen="False"
+                                               PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
+                                               Placement="Bottom" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}">
+                                            <Border Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8" MaxHeight="200">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding FilteredSuppliersList}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Content="{Binding SuppName}" HorizontalContentAlignment="Right"
+                                                                        FontSize="13" Foreground="#C8CEE0" Background="Transparent"
+                                                                        BorderThickness="0" Padding="12,8" Cursor="Hand"
+                                                                        Command="{Binding DataContext.SelectSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- Customer Smart Search (visible when IsFromCustomer) -->
+                                <Grid Margin="0,0,0,8" Visibility="{Binding IsFromCustomer, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="العميل:" Foreground="#9BA4B5" FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Grid Grid.Column="1">
+                                        <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}"/>
+                                        <Popup IsOpen="{Binding IsCustomerSearchPopupOpen}" StaysOpen="False"
+                                               PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
+                                               Placement="Bottom" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}">
+                                            <Border Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8" MaxHeight="200">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                    <ItemsControl ItemsSource="{Binding FilteredCustomersList}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Button Content="{Binding CusName}" HorizontalContentAlignment="Right"
+                                                                        FontSize="13" Foreground="#C8CEE0" Background="Transparent"
+                                                                        BorderThickness="0" Padding="12,8" Cursor="Hand"
+                                                                        Command="{Binding DataContext.SelectCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </ScrollViewer>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Grid>
+
+                                <!-- Existing/New Car Toggle -->
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,4"
+                                            Visibility="{Binding IsFromCustomer, Converter={StaticResource BoolToVis}}">
+                                    <RadioButton Content="موتوسيكل جديد" IsChecked="{Binding IsExistingCar, Converter={StaticResource InverseBoolConverter}}"
+                                                 Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,24,0" GroupName="CarType"/>
+                                    <RadioButton Content="موتوسيكل موجود" IsChecked="{Binding IsExistingCar}"
+                                                 Foreground="White" FontSize="13" FontWeight="SemiBold" GroupName="CarType"/>
+                                </StackPanel>
+
+                                <!-- Existing Car ComboBox (visible when IsExistingCar) -->
+                                <Grid Margin="0,8,0,0" Visibility="{Binding IsExistingCar, Converter={StaticResource BoolToVis}}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="اختر الموتوسيكل:" Foreground="#9BA4B5" FontSize="13" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <ComboBox Grid.Column="1" Padding="8,5" FontSize="13"
+                                              ItemsSource="{Binding SourceCars}"
+                                              SelectedValue="{Binding SelectedExistingCarId}"
+                                              SelectedValuePath="CarId">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Run Text="{Binding ChassisNo, Mode=OneWay}"/>
+                                                    <Run Text=" — " Foreground="#7B84A0"/>
+                                                    <Run Text="{Binding MotorNo, Mode=OneWay}" Foreground="#9BA4B5"/>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!--  ── Car section divider ──────────────────────────  -->
+                        <Border Grid.Row="5" Margin="0,0,0,16" Padding="16,10" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10"
+                                IsEnabled="{Binding IsEditing}"
+                                Visibility="{Binding IsExistingCar, Converter={StaticResource InverseBoolConverter}}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -351,9 +475,6 @@
                                                   ItemsSource="{Binding Colors}"
                                                   SelectedValue="{Binding CarColorId}"
                                                   SelectedValuePath="ColorId" />
-
-                                        <!--<CheckBox Grid.Column="8" HorizontalAlignment="Right" VerticalAlignment="Center" Content="نشط" FontSize="13" FontWeight="SemiBold" Foreground="#6D28D9"
-                                                  IsChecked="{Binding CarActive}" />-->
                                     </Grid>
 
                                     <!--  Row 2: Chassis | Motor | Plate | Notes  -->

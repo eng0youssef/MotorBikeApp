@@ -7,8 +7,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using System.Windows.Media;
 using Color = MotorBike.Models.Color;
 
 namespace MotorBike.ViewModels;
@@ -22,12 +20,16 @@ public partial class BuyCarViewModel : ObservableObject
     private readonly IRepository<Car> _carRepository;
     private readonly IRepository<CarModel> _carModelRepository;
     private readonly IRepository<Color> _colorRepository;
+    private readonly IRepository<Supplier> _supplierRepository;
+    private readonly IRepository<Customer> _customerRepository;
     private readonly CompositeKeyRepository _compositeRepo;
 
     // ── Lookup collections ────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private ObservableCollection<Color> _colors = [];
+    [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
+    [ObservableProperty] private ObservableCollection<Customer> _customers = [];
 
     // ── Invoice lists ─────────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<BuyCar> _invoices = [];
@@ -45,6 +47,28 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string? _carPlateNo;
     [ObservableProperty] private string? _carNotes;
     [ObservableProperty] private bool _carActive = true;
+
+    // ── Source selection ──────────────────────────────────────────────────
+    [ObservableProperty] private bool _isFromCustomer;      // true = عميل, false = مورد محلي
+    [ObservableProperty] private bool _isExistingCar;       // true = موتوسيكل موجود, false = جديد
+
+    // Smart search — Supplier
+    [ObservableProperty] private string _supplierSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Supplier> _filteredSuppliersList = [];
+    [ObservableProperty] private bool _isSupplierSearchPopupOpen;
+    private bool _isSelectingSupplier;
+    [ObservableProperty] private int _selectedSupplierId;
+
+    // Smart search — Customer (as source)
+    [ObservableProperty] private string _customerSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
+    [ObservableProperty] private bool _isCustomerSearchPopupOpen;
+    private bool _isSelectingCustomer;
+    [ObservableProperty] private int _selectedSourceCustomerId;
+
+    // Existing car selection
+    [ObservableProperty] private ObservableCollection<Car> _sourceCars = [];
+    [ObservableProperty] private int _selectedExistingCarId;
 
     // ── Payments ──────────────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<BuyCarPayment> _formPayments = [];
@@ -152,6 +176,8 @@ public partial class BuyCarViewModel : ObservableObject
         IRepository<Car> carRepository,
         IRepository<CarModel> carModelRepository,
         IRepository<Color> colorRepository,
+        IRepository<Supplier> supplierRepository,
+        IRepository<Customer> customerRepository,
         CompositeKeyRepository compositeRepo)
     {
         _dbFactory = dbFactory;
@@ -160,6 +186,8 @@ public partial class BuyCarViewModel : ObservableObject
         _carRepository = carRepository;
         _carModelRepository = carModelRepository;
         _colorRepository = colorRepository;
+        _supplierRepository = supplierRepository;
+        _customerRepository = customerRepository;
         _compositeRepo = compositeRepo;
     }
 
@@ -177,6 +205,12 @@ public partial class BuyCarViewModel : ObservableObject
 
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors.Where(c => c.Active));
+
+            var suppliers = await _supplierRepository.GetAllAsync();
+            Suppliers = new ObservableCollection<Supplier>(suppliers);
+
+            var customers = await _customerRepository.GetAllAsync();
+            Customers = new ObservableCollection<Customer>(customers);
 
             // Set defaults for the car ComboBoxes
             CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
@@ -274,7 +308,7 @@ public partial class BuyCarViewModel : ObservableObject
             CarMotorNo = car.MotorNo;
             CarPlateNo = car.PlateNo;
             CarNotes = car.Notes;
-            CarActive = car.Active;
+            CarActive = car.IsStock;
         }
         catch (Exception ex) { StatusMessage = "خطأ في تحميل بيانات الموتوسيكل: " + ex.Message; }
     }
@@ -319,6 +353,24 @@ public partial class BuyCarViewModel : ObservableObject
         CarNotes = null;
         CarActive = true;
 
+        // Reset source selection
+        IsFromCustomer = false;
+        IsExistingCar = false;
+        SelectedSupplierId = 0;
+        SelectedSourceCustomerId = 0;
+        SelectedExistingCarId = 0;
+        SourceCars.Clear();
+
+        _isSelectingSupplier = true;
+        SupplierSearchText = string.Empty;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
+
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+
         FormPayments.Clear();
         TotalPayed = 0;
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
@@ -356,6 +408,24 @@ public partial class BuyCarViewModel : ObservableObject
         CarChassisNo = null;
         CarMotorNo = null;
         CarPlateNo = null;
+
+        IsFromCustomer = false;
+        IsExistingCar = false;
+        SelectedSupplierId = 0;
+        SelectedSourceCustomerId = 0;
+        SelectedExistingCarId = 0;
+        SourceCars.Clear();
+
+        _isSelectingSupplier = true;
+        SupplierSearchText = string.Empty;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
+
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+
         StatusMessage = null;
         VatTaxPercent = 0;
         WhtTaxPercent = 0;
@@ -435,32 +505,74 @@ public partial class BuyCarViewModel : ObservableObject
                 // ── 1. Car record ────────────────────────────────────────
                 if (_isInsertMode)
                 {
-                    // Create a brand-new Car row
-                    int carId = await _carRepository.GetNextIdAsync();
-                    await db.ExecuteAsync(@"
-                        INSERT INTO Cars
-                            (Car_ID, ModelID, YearNo, ChassisNo, MotorNo, PlateNo,
-                             Mileage, ColorID, Active, Notes, AddDate, AddPC, AddUser)
-                        VALUES
-                            (@CarId, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo,
-                             @Mileage, @ColorId, @Active, @Notes, @AddDate, @AddPc, @AddUser)",
-                        new
-                        {
-                            CarId = carId,
-                            ModelId = CarModelId,
-                            YearNo = CarYearNo,
-                            ChassisNo = CarChassisNo,
-                            MotorNo = CarMotorNo,
-                            PlateNo = CarPlateNo,
-                            Mileage = FormItem.Mileage,
-                            ColorId = CarColorId,
-                            Active = CarActive,
-                            Notes = CarNotes,
-                            AddDate = FormItem.AddDate,
-                            AddPc = FormItem.AddPc,
-                            AddUser = FormItem.AddUser
-                        }, tx);
-
+                    int carId;
+                    if (IsExistingCar && SelectedExistingCarId > 0)
+                    {
+                        // Use existing car — update its fields
+                        carId = SelectedExistingCarId;
+                        await db.ExecuteAsync(@"
+                            UPDATE Cars
+                            SET StatusID = 1, OwnerID = NULL, IsStock = 1,
+                                IsLocalSupplier = @IsLocalSupplier,
+                                SupplierID = @SupplierId,
+                                IsFromCustomer = @IsFromCustomer,
+                                SourceCustomerID = @SourceCustomerId,
+                                PurchasePrice = @PurchasePrice,
+                                Mileage = @Mileage,
+                                EditDate = @EditDate, EditPC = @EditPc, EditUser = @EditUser
+                            WHERE Car_ID = @CarId",
+                            new
+                            {
+                                CarId = carId,
+                                IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
+                                SupplierId = IsFromCustomer ? (int?)null : (SelectedSupplierId > 0 ? SelectedSupplierId : (int?)null),
+                                IsFromCustomer = IsFromCustomer,
+                                SourceCustomerId = IsFromCustomer ? (SelectedSourceCustomerId > 0 ? SelectedSourceCustomerId : (int?)null) : (int?)null,
+                                PurchasePrice = FormItem.Net,
+                                Mileage = FormItem.Mileage,
+                                EditDate = DateTime.Now,
+                                EditPc = Environment.MachineName,
+                                EditUser = AppSession.CurrentUserId ?? 1
+                            }, tx);
+                    }
+                    else
+                    {
+                        // Create a brand-new Car row
+                        carId = await _carRepository.GetNextIdAsync();
+                        await db.ExecuteAsync(@"
+                            INSERT INTO Cars
+                                (Car_ID, ModelID, YearNo, ChassisNo, MotorNo, PlateNo,
+                                 Mileage, ColorID, IsStock, Notes,
+                                 OwnerID, StatusID, IsLocalSupplier, SupplierID,
+                                 IsFromCustomer, SourceCustomerID, PurchasePrice,
+                                 AddDate, AddPC, AddUser)
+                            VALUES
+                                (@CarId, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo,
+                                 @Mileage, @ColorId, 1, @Notes,
+                                 NULL, 1, @IsLocalSupplier, @SupplierId,
+                                 @IsFromCustomer, @SourceCustomerId, @PurchasePrice,
+                                 @AddDate, @AddPc, @AddUser)",
+                            new
+                            {
+                                CarId = carId,
+                                ModelId = CarModelId,
+                                YearNo = CarYearNo,
+                                ChassisNo = CarChassisNo,
+                                MotorNo = CarMotorNo,
+                                PlateNo = CarPlateNo,
+                                Mileage = FormItem.Mileage,
+                                ColorId = CarColorId,
+                                Notes = CarNotes,
+                                IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
+                                SupplierId = IsFromCustomer ? (int?)null : (SelectedSupplierId > 0 ? SelectedSupplierId : (int?)null),
+                                IsFromCustomer = IsFromCustomer,
+                                SourceCustomerId = IsFromCustomer ? (SelectedSourceCustomerId > 0 ? SelectedSourceCustomerId : (int?)null) : (int?)null,
+                                PurchasePrice = FormItem.Net,
+                                AddDate = FormItem.AddDate,
+                                AddPc = FormItem.AddPc,
+                                AddUser = FormItem.AddUser
+                            }, tx);
+                    }
                     FormItem.CarId = carId;
                 }
                 else
@@ -475,8 +587,15 @@ public partial class BuyCarViewModel : ObservableObject
                             PlateNo   = @PlateNo,
                             Mileage   = @Mileage,
                             ColorID   = @ColorId,
-                            Active    = @Active,
+                            IsStock   = 1,
                             Notes     = @Notes,
+                            StatusID  = 1,
+                            OwnerID   = NULL,
+                            IsLocalSupplier = @IsLocalSupplier,
+                            SupplierID = @SupplierId,
+                            IsFromCustomer = @IsFromCustomer,
+                            SourceCustomerID = @SourceCustomerId,
+                            PurchasePrice = @PurchasePrice,
                             EditDate  = @EditDate,
                             EditPC    = @EditPc,
                             EditUser  = @EditUser
@@ -491,8 +610,12 @@ public partial class BuyCarViewModel : ObservableObject
                             PlateNo = CarPlateNo,
                             Mileage = FormItem.Mileage,
                             ColorId = CarColorId,
-                            Active = CarActive,
                             Notes = CarNotes,
+                            IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
+                            SupplierId = IsFromCustomer ? (int?)null : (SelectedSupplierId > 0 ? SelectedSupplierId : (int?)null),
+                            IsFromCustomer = IsFromCustomer,
+                            SourceCustomerId = IsFromCustomer ? (SelectedSourceCustomerId > 0 ? SelectedSourceCustomerId : (int?)null) : (int?)null,
+                            PurchasePrice = FormItem.Net,
                             EditDate = FormItem.EditDate,
                             EditPc = FormItem.EditPc,
                             EditUser = FormItem.EditUser
@@ -617,6 +740,159 @@ public partial class BuyCarViewModel : ObservableObject
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
+    }
+
+    // ── Smart search — Supplier ────────────────────────────────────────────
+    partial void OnSupplierSearchTextChanged(string value)
+    {
+        if (_isSelectingSupplier) return;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredSuppliersList = new ObservableCollection<Supplier>(Suppliers);
+            IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+            return;
+        }
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Suppliers.Where(s =>
+        {
+            var name = s.SuppName?.ToLower() ?? string.Empty;
+            var tel = s.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+        FilteredSuppliersList = new ObservableCollection<Supplier>(filtered);
+        IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectSupplier(Supplier supplier)
+    {
+        if (supplier == null) return;
+        _isSelectingSupplier = true;
+        SelectedSupplierId = supplier.SuppId;
+        SupplierSearchText = supplier.SuppName ?? string.Empty;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
+
+        // Auto-fill owner info from supplier
+        FormItem.OwnerName = supplier.SuppName;
+        FormItem.OwnerTel = supplier.Tel;
+        FormItem.OwnerKawmy = supplier.Kawmy;
+        FormItem.OwnerAdress = supplier.Adress;
+        OnPropertyChanged(nameof(FormItem));
+
+        // Load supplier's cars
+        LoadSourceCarsAsync().ConfigureAwait(false);
+    }
+
+    // ── Smart search — Customer (as source) ────────────────────────────────
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        if (_isSelectingCustomer) return;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+            IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+            return;
+        }
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Customers.Where(c =>
+        {
+            var name = c.CusName?.ToLower() ?? string.Empty;
+            var tel = c.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+        FilteredCustomersList = new ObservableCollection<Customer>(filtered);
+        IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectCustomer(Customer customer)
+    {
+        if (customer == null) return;
+        _isSelectingCustomer = true;
+        SelectedSourceCustomerId = customer.CusId;
+        CustomerSearchText = customer.CusName ?? string.Empty;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+
+        // Auto-fill owner info from customer
+        FormItem.OwnerName = customer.CusName;
+        FormItem.OwnerTel = customer.Tel;
+        FormItem.OwnerKawmy = customer.Kawmy;
+        FormItem.OwnerAdress = customer.Adress;
+        OnPropertyChanged(nameof(FormItem));
+
+        // Load customer's cars
+        LoadSourceCarsAsync().ConfigureAwait(false);
+    }
+
+    // ── Load cars owned by selected source ─────────────────────────────────
+    private async Task LoadSourceCarsAsync()
+    {
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            IEnumerable<Car> cars;
+            if (IsFromCustomer && SelectedSourceCustomerId > 0)
+            {
+                cars = await db.QueryAsync<Car>(
+                    @"SELECT * FROM Cars WHERE OwnerID = @CusId",
+                    new { CusId = SelectedSourceCustomerId });
+            }
+            else if (!IsFromCustomer && SelectedSupplierId > 0)
+            {
+                // Cars where source is this supplier
+                cars = await db.QueryAsync<Car>(
+                    @"SELECT * FROM Cars
+                      WHERE OwnerID IS NULL AND IsLocalSupplier = 1 AND SupplierID = @SuppId AND StatusID = 1",
+                    new { SuppId = SelectedSupplierId });
+            }
+            else
+            {
+                cars = [];
+            }
+            SourceCars = new ObservableCollection<Car>(cars);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"خطأ في تحميل الموتوسيكلات: {ex.Message}";
+        }
+    }
+
+    // ── When selecting an existing car, auto-fill car fields ───────────────
+    partial void OnSelectedExistingCarIdChanged(int value)
+    {
+        if (value <= 0) return;
+        var car = SourceCars.FirstOrDefault(c => c.CarId == value);
+        if (car == null) return;
+        CarModelId = car.ModelId;
+        CarYearNo = car.YearNo;
+        CarColorId = car.ColorId;
+        CarChassisNo = car.ChassisNo;
+        CarMotorNo = car.MotorNo;
+        CarPlateNo = car.PlateNo;
+        CarNotes = car.Notes;
+    }
+
+    // When IsFromCustomer changes, clear the other search and reload
+    partial void OnIsFromCustomerChanged(bool value)
+    {
+        if (value)
+        {
+            _isSelectingSupplier = true;
+            SupplierSearchText = string.Empty;
+            SelectedSupplierId = 0;
+            _isSelectingSupplier = false;
+        }
+        else
+        {
+            _isSelectingCustomer = true;
+            CustomerSearchText = string.Empty;
+            SelectedSourceCustomerId = 0;
+            _isSelectingCustomer = false;
+        }
+        SourceCars.Clear();
+        IsExistingCar = false;
     }
 
     // --- Removed manual payment management commands ---

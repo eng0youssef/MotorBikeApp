@@ -29,6 +29,9 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
     [ObservableProperty] private ObservableCollection<Unit> _currentItemUnits = [];
 
+    // ── Customer car selection (optional) ────────────────────────────────
+    [ObservableProperty] private ObservableCollection<Car> _customerCars = [];
+
     [ObservableProperty] private ObservableCollection<Sale> _invoices = [];
     [ObservableProperty] private ObservableCollection<Sale> _filteredInvoices = [];
 
@@ -360,6 +363,10 @@ public partial class SalesViewModel : ObservableObject
             IsCashPaymentMode = FormItem.IsCash;
 
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
+            if (FormItem.CusId > 0)
+                LoadCustomerCarsAsync(FormItem.CusId).ConfigureAwait(false);
+            else
+                CustomerCars.Clear();
         }
     }
 
@@ -430,6 +437,9 @@ public partial class SalesViewModel : ObservableObject
         CustomerSearchText = string.Empty;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+
+        // Reset car selection
+        CustomerCars.Clear();
 
         VatTaxPercent = 0;
         WhtTaxPercent = 0;
@@ -551,8 +561,8 @@ public partial class SalesViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
+                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo, CarID) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo, @CarId)",
                         FormItem, tx);
                 }
                 else
@@ -564,7 +574,7 @@ public partial class SalesViewModel : ObservableObject
                     UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
                     Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
                     EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
-                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo, CarID=@CarId
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 
@@ -715,6 +725,25 @@ public partial class SalesViewModel : ObservableObject
         CustomerSearchText = customer.CusName;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+
+        // Load this customer's motorcycles
+        LoadCustomerCarsAsync(customer.CusId).ConfigureAwait(false);
+    }
+
+    private async Task LoadCustomerCarsAsync(int cusId)
+    {
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var cars = await db.QueryAsync<Car>(
+                @"SELECT * FROM Cars WHERE OwnerID = @CusId",
+                new { CusId = cusId });
+            CustomerCars = new ObservableCollection<Car>(cars);
+        }
+        catch
+        {
+            CustomerCars.Clear();
+        }
     }
 
     // --- Sub Items Management ---
@@ -1032,6 +1061,7 @@ public partial class SalesViewModel : ObservableObject
             VatTax = source.VatTax,
             Tax = source.Tax,
             TaxNo = source.TaxNo,
+            CarId = source.CarId,
             AddUser = source.AddUser,
             AddDate = source.AddDate,
             AddPc = source.AddPc
