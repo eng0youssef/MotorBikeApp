@@ -35,8 +35,8 @@ public class CompositeKeyRepository
     public async Task<int> InsertOpenStockAsync(OpenStock entity)
     {
         const string sql = @"
-            INSERT INTO [Open_Stock] ([StoreID],[ItemID],[OpenDate],[UnitID],[Qty],[Price],[Disc],[DiscPer],[UnitQty],[QtyAll])
-            VALUES (@StoreId,@ItemId,@OpenDate,@UnitId,@Qty,@Price,@Disc,@DiscPer,@UnitQty,@QtyAll)";
+            INSERT INTO [Open_Stock] ([StoreID],[ItemID],[OpenDate],[UnitID],[Qty],[Price],[Disc],[DiscPer],[UnitQty])
+            VALUES (@StoreId,@ItemId,@OpenDate,@UnitId,@Qty,@Price,@Disc,@DiscPer,@UnitQty)";
 
         using var db = _connectionFactory.CreateConnection();
         var result = await db.ExecuteAsync(sql, entity);
@@ -52,7 +52,7 @@ public class CompositeKeyRepository
         const string sql = @"
             UPDATE [Open_Stock]
             SET [OpenDate]=@OpenDate,[UnitID]=@UnitId,[Qty]=@Qty,[Price]=@Price,
-                [Disc]=@Disc,[DiscPer]=@DiscPer,[UnitQty]=@UnitQty,[QtyAll]=@QtyAll
+                [Disc]=@Disc,[DiscPer]=@DiscPer,[UnitQty]=@UnitQty
             WHERE [StoreID]=@StoreId AND [ItemID]=@ItemId";
 
         using var db = _connectionFactory.CreateConnection();
