@@ -1,4 +1,4 @@
-<UserControl x:Class="MotorBike.Views.ImportDataView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" d:DesignHeight="800" d:DesignWidth="1000" FlowDirection="RightToLeft"
+﻿<UserControl x:Class="MotorBike.Views.ImportDataView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" d:DesignHeight="800" d:DesignWidth="1000" FlowDirection="RightToLeft"
              mc:Ignorable="d">
     <UserControl.Triggers>
         <EventTrigger RoutedEvent="UserControl.Loaded">
@@ -65,7 +65,7 @@
                         CommandParameter="ImportSuppliers"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#F5F3FF" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#3F2259" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🌍" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="موردين الاستيراد" />
@@ -76,7 +76,7 @@
                         CommandParameter="ImportExpenses"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#FEF2F2" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#5C2B29" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🧾" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="بنود مصروفات الاستيراد" />
@@ -95,7 +95,7 @@
                         CommandParameter="ImportInvoice"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#ECFDF5" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#1C5E46" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="📄" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="فاتورة الاستيراد" />
@@ -106,7 +106,7 @@
                         CommandParameter="ImportPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#FEF3C7" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#6B5300" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="💰" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="مدفوعات الاستيراد" />

@@ -41,7 +41,7 @@
         <Style x:Key="TitleTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="#1E293B" />
+            <Setter Property="Foreground" Value="White" />
             <Setter Property="HorizontalAlignment" Value="Center" />
         </Style>
     </UserControl.Resources>
@@ -65,7 +65,7 @@
                         CommandParameter="CusPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#DBEAFE" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#1F3A5F" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="👥" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="سداد العملاء" />
@@ -76,7 +76,7 @@
                         CommandParameter="SuppPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#FEE2E2" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#5C2B29" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🏭" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="سداد الموردين" />
@@ -95,7 +95,7 @@
                         CommandParameter="ExpPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#F3E8FF" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#3F2259" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🧾" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="صرف المصروفات" />
@@ -106,7 +106,7 @@
                         CommandParameter="CashTransfers"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#ECFEFF" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="#18414A" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🔄" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="تحويلات الخزينة" />
