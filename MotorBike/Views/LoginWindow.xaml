@@ -1,56 +1,116 @@
 <Window x:Class="MotorBike.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="تسجيل الدخول" MinHeight="680" MinWidth="450"
+        Title="تسجيل الدخول" Height="500" Width="750"
         WindowStartupLocation="CenterScreen" 
         FlowDirection="RightToLeft"
-        Background="LightGray">
-    <Window.Triggers>
-        <EventTrigger RoutedEvent="Window.Loaded">
-            <BeginStoryboard>
-                <Storyboard>
-                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="2" Duration="0:0:1"/>
-                </Storyboard>
-            </BeginStoryboard>
-        </EventTrigger>
-    </Window.Triggers>
-    <Grid>
-        <Grid.Triggers>
-            <EventTrigger RoutedEvent="Grid.Loaded">
-                <BeginStoryboard>
-                    <Storyboard>
-                        <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,30,0,-30" To="0" Duration="0:0:0.6">
-                            <ThicknessAnimation.EasingFunction>
-                                <CubicEase EasingMode="EaseOut"/>
-                            </ThicknessAnimation.EasingFunction>
-                        </ThicknessAnimation>
-                    </Storyboard>
-                </BeginStoryboard>
-            </EventTrigger>
-        </Grid.Triggers>
-        <!-- Background Banner -->
-        <Border Background="#272C3F" MinHeight="220" VerticalAlignment="Top" />
+        Background="#1E2233"
+        ResizeMode="NoResize">
+    
+    <Window.Resources>
+        <!--  Header style  -->
+        <Style x:Key="LoginHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="FontWeight" Value="ExtraBold" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
         
-        <Border Background="White" CornerRadius="16" Margin="32,48,32,32" Padding="32" VerticalAlignment="Center">
-            <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.08" BlurRadius="24" ShadowDepth="8" Direction="270" />
-            </Border.Effect>
+        <Style x:Key="LoginSubHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="#7B84A0" />
+            <Setter Property="Margin" Value="0,0,0,32" />
+        </Style>
+
+        <Style x:Key="SidePanelText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Opacity" Value="0.8" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="300" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left Accent Panel -->
+        <Border Grid.Column="0">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Offset="0" Color="#E8A54B" />
+                    <GradientStop Offset="1" Color="#D4922F" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid>
+                <!-- Decorative Elements -->
+                <Ellipse Width="400" Height="400" Margin="-200,-100,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Fill="White" Opacity="0.05" />
+                <Ellipse Width="200" Height="200" Margin="0,0,-100,-50" HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="Black" Opacity="0.1" />
+                
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="20">
+                    <Border Width="80" Height="80" CornerRadius="20" Background="White" Opacity="0.9" Margin="0,0,0,20">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="15" Opacity="0.1" ShadowDepth="4" />
+                        </Border.Effect>
+                        <TextBlock Text="🏍️" FontSize="42" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="Motor Bike" FontSize="20" FontWeight="Bold" Foreground="White"  Margin="0,-4,0,16" HorizontalAlignment="Center" />
+                    <Border Height="3" Width="50" Background="White" Opacity="0.5" CornerRadius="1.5" Margin="0,0,0,24" />
+                    <TextBlock Text=" إدارة المبيعات والمخازن بكفاءة " Style="{StaticResource SidePanelText}" TextWrapping="Wrap" />
+                </StackPanel>
+
+            </Grid>
+        </Border>
+
+        <!-- Right Login Form -->
+        <Border Grid.Column="1" Background="#1E2233" Padding="50,0">
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="🏍️" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                <TextBlock Text="تسجيل الدخول" FontSize="22" FontWeight="Bold" Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,32"/>
+                <TextBlock Text="تسجيل الدخول" Style="{StaticResource LoginHeader}" />
+                <TextBlock Text="الرجاء إدخال بيانات المستخدم للبدء" Style="{StaticResource LoginSubHeader}" />
 
-                <TextBlock Text="اسم المستخدم" Foreground="#272C3F" FontSize="15" Style="{StaticResource FormLabel}" />
-                <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" Foreground="White" Style="{StaticResource FormTextBox}" Margin="0,0,0,16"/>
+                <!-- Username Input -->
+                <StackPanel Margin="0,0,0,24">
+                    <TextBlock Text="اسم المستخدم" Style="{StaticResource FormLabel}" Foreground="#9BA4B5" Margin="0,0,0,8" />
+                    <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource FormTextBox}" 
+                             VerticalContentAlignment="Center"
+                             Height="58" />
+                </StackPanel>
 
-                <TextBlock Text="كلمة المرور" Foreground="#272C3F" FontSize="15" Style="{StaticResource FormLabel}"/>
-                <!-- Password Box simulated with the same input styling -->
-                <Border BorderBrush="#CBD5E1"  BorderThickness="1" CornerRadius="8" Background="#272C3F" Padding="12,10" Margin="0,0,0,24">
-                    <PasswordBox x:Name="txtPassword" CaretBrush="#E8A54B" SelectionBrush="#E8A54B" Background="Transparent" BorderThickness="0" Foreground="White" FontSize="14" PasswordChanged="txtPassword_PasswordChanged"/>
+                <!-- Password Input -->
+                <StackPanel Margin="0,0,0,32">
+                    <TextBlock Text="كلمة المرور" Style="{StaticResource FormLabel}" Foreground="#9BA4B5" Margin="0,0,0,8" />
+                    <Border BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8" Background="#272C3F" Height="48">
+                        <Grid>
+                            <PasswordBox x:Name="txtPassword" 
+                                         CaretBrush="#E8A54B" 
+                                         SelectionBrush="#E8A54B" 
+                                         Background="Transparent" 
+                                         BorderThickness="0" 
+                                         Foreground="#ECEEF5" 
+                                         FontSize="14" 
+                                         Padding="12,0"
+                                         VerticalContentAlignment="Center"
+                                         PasswordChanged="txtPassword_PasswordChanged"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- Error Message -->
+                <Border Height="40" Margin="0,-10,0,10" Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVisibilityConverter}}">
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#D9534F" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </Border>
-                
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="#EF4444" FontSize="13" Margin="0,0,0,16" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
-                
-                <Button Content="دخول" Style="{StaticResource PrimaryButton}" Command="{Binding LoginCommand}" FontSize="15" Padding="0,14"/>
+
+                <!-- Action Button -->
+                <Button Content="تسجيل دخول " 
+                        Style="{StaticResource PrimaryButton}" 
+                        Command="{Binding LoginCommand}" 
+                        Height="48" 
+                        FontSize="15" 
+                        FontWeight="Bold" />
+
             </StackPanel>
         </Border>
     </Grid>

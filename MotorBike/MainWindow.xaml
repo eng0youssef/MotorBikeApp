@@ -105,8 +105,6 @@
                         </Border>
                         <TextBlock Text="موتوربايك" FontSize="19" FontWeight="Bold"
                                    Foreground="#ECEEF5" HorizontalAlignment="Center"/>
-                        <TextBlock Text="نظام إدارة الوكالة" FontSize="11"
-                                   Foreground="#6B7490" HorizontalAlignment="Center" Margin="0,3,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -127,7 +125,6 @@
                         <Button Content="📂  البيانات الأساسية" Command="{Binding NavigateToCommand}" CommandParameter="BasicData" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🏍️  الموتوسيكلات" Command="{Binding NavigateToCommand}" CommandParameter="Cars" Style="{StaticResource MenuButtonStyle}"/>
                         <Button Content="🔍  الكشف الفني" Command="{Binding NavigateToCommand}" CommandParameter="Inspections" Style="{StaticResource MenuButtonStyle}"/>
-                        <Button Content="📦  أرصدة أول المدة" Command="{Binding NavigateToCommand}" CommandParameter="OpenStock" Style="{StaticResource MenuButtonStyle}"/>
 
                         <TextBlock Text="المدفوعات والتحويلات" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="💳   المدفوعات والتحويلات" Command="{Binding NavigateToCommand}" CommandParameter="PaymentsData" Style="{StaticResource MenuButtonStyle}"/>

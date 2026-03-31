@@ -35,11 +35,16 @@ public class CompositeKeyRepository
     public async Task<int> InsertOpenStockAsync(OpenStock entity)
     {
         const string sql = @"
-            INSERT INTO [Open_Stock] ([StoreID],[ItemID],[OpenDate],[UnitID],[Qty],[Price],[Disc],[DiscPer],[UnitQty])
-            VALUES (@StoreId,@ItemId,@OpenDate,@UnitId,@Qty,@Price,@Disc,@DiscPer,@UnitQty)";
+            INSERT INTO [Open_Stock] ([StoreID],[ItemID],[OpenDate],[UnitID],[Qty],[Price],[Disc],[DiscPer],[UnitQty],[QtyAll])
+            VALUES (@StoreId,@ItemId,@OpenDate,@UnitId,@Qty,@Price,@Disc,@DiscPer,@UnitQty,@QtyAll)";
 
         using var db = _connectionFactory.CreateConnection();
-        return await db.ExecuteAsync(sql, entity);
+        var result = await db.ExecuteAsync(sql, entity);
+        
+        // Auto-recalculate stock for this item
+        await RecalcStockForItemAsync(entity.ItemId);
+        
+        return result;
     }
 
     public async Task<bool> UpdateOpenStockAsync(OpenStock entity)
@@ -47,19 +52,29 @@ public class CompositeKeyRepository
         const string sql = @"
             UPDATE [Open_Stock]
             SET [OpenDate]=@OpenDate,[UnitID]=@UnitId,[Qty]=@Qty,[Price]=@Price,
-                [Disc]=@Disc,[DiscPer]=@DiscPer,[UnitQty]=@UnitQty
+                [Disc]=@Disc,[DiscPer]=@DiscPer,[UnitQty]=@UnitQty,[QtyAll]=@QtyAll
             WHERE [StoreID]=@StoreId AND [ItemID]=@ItemId";
 
         using var db = _connectionFactory.CreateConnection();
-        return await db.ExecuteAsync(sql, entity) > 0;
+        var result = await db.ExecuteAsync(sql, entity) > 0;
+
+        if (result)
+            await RecalcStockForItemAsync(entity.ItemId);
+
+        return result;
     }
 
     public async Task<bool> DeleteOpenStockAsync(int storeId, int itemId)
     {
         using var db = _connectionFactory.CreateConnection();
-        return await db.ExecuteAsync(
+        var result = await db.ExecuteAsync(
             "DELETE FROM [Open_Stock] WHERE [StoreID]=@StoreId AND [ItemID]=@ItemId",
             new { StoreId = storeId, ItemId = itemId }) > 0;
+
+        if (result)
+            await RecalcStockForItemAsync(itemId);
+
+        return result;
     }
 
     // ── Stock ────────────────────────────────────────────────────────────

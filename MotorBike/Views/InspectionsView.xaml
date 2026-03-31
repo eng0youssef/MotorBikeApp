@@ -632,7 +632,7 @@
 
         <!--  SEARCH Section  -->
         <Grid Margin="24" Style="{StaticResource SearchContainerStyle}">
-            <Border Padding="32" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16">
+            <Border Padding="32" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
                 </Border.Effect>
@@ -645,10 +645,16 @@
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,24">
                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                            <Border Margin="0,0,12,0" Padding="10" Background="#F3F4F6" CornerRadius="8">
+                            <Border Margin="0,0,12,0" Padding="10" CornerRadius="8">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#E8A54B" />
+                                        <GradientStop Offset="1" Color="#D4922F" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
                                 <TextBlock FontSize="20" Text="🔎" />
                             </Border>
-                            <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#1E293B" Text="البحث في الكشوفات السابقة" />
+                            <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="White" Text="البحث في الكشوفات السابقة" />
                         </StackPanel>
                         <Button Padding="16,8" HorizontalAlignment="Right"
                                 Command="{Binding HideSearchPanelCommand}"
@@ -656,46 +662,46 @@
                                 Style="{StaticResource SecondaryButton}" />
                     </DockPanel>
 
-                    <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
+                    <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#272C3F" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الشاسيه، الكشف، الموتور، اللوحة):" />
-                            <TextBox Width="460" Padding="12,8" Background="White" FontSize="15"
+                            <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold"  Foreground="LightGray" Text="كلمة البحث (رقم الشاسيه، الكشف، الموتور، اللوحة):" />
+                            <TextBox Width="460" Padding="12,8" Background="#272C3F" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                     </Border>
 
-                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
-                        <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="54" FontSize="14" Foreground="#1E293B"
-                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
+                    <Border Grid.Row="2" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
+                        <DataGrid AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="50" FontSize="13" Foreground="#C8CEE0"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#323848" IsReadOnly="True"
                                   ItemsSource="{Binding FilteredItems}"
                                   RowHeight="48"
                                   SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                                   SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#F1F5F9" />
-                                    <Setter Property="Foreground" Value="#334155" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                    <Setter Property="Padding" Value="16,12" />
-                                    <Setter Property="BorderBrush" Value="#E2E8F0" />
-                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
+                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader">
+                                    <Setter Property="Padding" Value="14,12" />
                                 </Style>
                             </DataGrid.ColumnHeaderStyle>
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow">
                                     <Setter Property="Cursor" Value="Hand" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="#C8CEE0" />
                                     <Style.Triggers>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#DBEAFE" />
-                                            <Setter Property="Foreground" Value="#1D4ED8" />
+                                            <Setter Property="Background" Value="#323F58" />
+                                            <Setter Property="Foreground" Value="#E8A54B" />
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#EFF6FF" />
+                                            <Setter Property="Background" Value="#2A3040" />
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
                             </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                            </DataGrid.CellStyle>
                             <DataGrid.Columns>
                                 <!--  Choose Action Column  -->
                                 <DataGridTemplateColumn Width="100">

@@ -171,6 +171,17 @@
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="المخازن" />
                     </StackPanel>
                 </Button>
+                <Button Width="210" Height="170" Margin="0,0,20,20"
+                        Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="OpenStock"
+                        Style="{StaticResource CardButtonStyle}">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Background="#F0FDF4" Style="{StaticResource IconBorderStyle}">
+                            <TextBlock Style="{StaticResource IconTextStyle}" Text="📦" />
+                        </Border>
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="أرصدة أول المدة" />
+                    </StackPanel>
+                </Button>
             </WrapPanel>
 
             <!--  بيانات المركبات  -->

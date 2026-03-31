@@ -26,6 +26,7 @@
 
         <Style x:Key="IconBorderStyle" TargetType="Border">
             <Setter Property="Width" Value="64" />
+            <Setter Property="Background" Value="White"/>
             <Setter Property="Height" Value="64" />
             <Setter Property="CornerRadius" Value="32" />
             <Setter Property="HorizontalAlignment" Value="Center" />
@@ -65,7 +66,7 @@
                         CommandParameter="ImportSuppliers"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#3F2259" Style="{StaticResource IconBorderStyle}">
+                        <Border  Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🌍" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="موردين الاستيراد" />
@@ -76,7 +77,7 @@
                         CommandParameter="ImportExpenses"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#5C2B29" Style="{StaticResource IconBorderStyle}">
+                        <Border Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🧾" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="بنود مصروفات الاستيراد" />
@@ -95,7 +96,7 @@
                         CommandParameter="ImportInvoice"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#1C5E46" Style="{StaticResource IconBorderStyle}">
+                        <Border  Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="📄" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="فاتورة الاستيراد" />
@@ -106,7 +107,7 @@
                         CommandParameter="ImportPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#6B5300" Style="{StaticResource IconBorderStyle}">
+                        <Border Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="💰" />
                         </Border>
                         <TextBlock Style="{StaticResource TitleTextStyle}" Text="مدفوعات الاستيراد" />

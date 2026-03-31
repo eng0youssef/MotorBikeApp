@@ -16,8 +16,8 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     /// <summary>Tracks whether the current form operation is an insert (true) or update (false).</summary>
     private bool _isInsertMode;
 
-    /// <summary>Exposes insert mode flag to subclasses (read-only).</summary>
-    protected bool IsInsertMode => _isInsertMode;
+    /// <summary>Exposes insert mode flag to subclasses and views.</summary>
+    public bool IsInsertMode => _isInsertMode;
 
     [ObservableProperty]
     private ObservableCollection<T> _items = [];

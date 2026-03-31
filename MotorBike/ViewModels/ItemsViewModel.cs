@@ -11,6 +11,8 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
 {
     private readonly IRepository<ItemCategory> _categoryRepo;
     private readonly IRepository<Unit> _unitRepo;
+    private readonly IRepository<Store> _storeRepo;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty]
     private ObservableCollection<ItemCategory> _categories = [];
@@ -18,10 +20,72 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
     [ObservableProperty]
     private ObservableCollection<Unit> _units = [];
 
-    public ItemsViewModel(IRepository<Item> repository, IRepository<ItemCategory> categoryRepo, IRepository<Unit> unitRepo) : base(repository) 
+    [ObservableProperty]
+    private ObservableCollection<Store> _stores = [];
+
+    [ObservableProperty]
+    private double _openBalanceQty;
+
+    [ObservableProperty]
+    private int _openBalanceStoreId;
+
+    [ObservableProperty]
+    private ObservableCollection<OpenStock> _currentItemOpenStocks = [];
+
+    // Fields for the detailed "Add Opening Stock" form in the UI
+    [ObservableProperty] private DateTime _newOS_Date = System.DateTime.Now;
+    [ObservableProperty] private int _newOS_StoreId;
+    [ObservableProperty] private int _newOS_UnitId;
+    [ObservableProperty] private double _newOS_Qty = 1;
+    [ObservableProperty] private double _newOS_Price;
+    [ObservableProperty] private double _newOS_DiscPer;
+    [ObservableProperty] private double _newOS_Disc;
+    
+    // Computed property for the "Total" in the entry form
+    public double NewOS_Total => (_newOS_Qty * _newOS_Price) - _newOS_Disc;
+
+    private bool _isSyncingDisc;
+    partial void OnNewOS_DiscPerChanged(double value) 
+    {
+        if (_isSyncingDisc) return;
+        _isSyncingDisc = true;
+        NewOS_Disc = (_newOS_Qty * _newOS_Price) * (value / 100);
+        _isSyncingDisc = false;
+        OnPropertyChanged(nameof(NewOS_Total));
+    }
+
+    partial void OnNewOS_DiscChanged(double value)
+    {
+        if (_isSyncingDisc) return;
+        _isSyncingDisc = true;
+        var totalBefore = _newOS_Qty * _newOS_Price;
+        NewOS_DiscPer = totalBefore > 0 ? (value / totalBefore) * 100 : 0;
+        _isSyncingDisc = false;
+        OnPropertyChanged(nameof(NewOS_Total));
+    }
+
+    partial void OnNewOS_QtyChanged(double value) => UpdateOSDiscAndTotal();
+    partial void OnNewOS_PriceChanged(double value) => UpdateOSDiscAndTotal();
+
+    private void UpdateOSDiscAndTotal()
+    {
+        _isSyncingDisc = true;
+        NewOS_Disc = (_newOS_Qty * _newOS_Price) * (_newOS_DiscPer / 100);
+        _isSyncingDisc = false;
+        OnPropertyChanged(nameof(NewOS_Total));
+    }
+
+    public ItemsViewModel(
+        IRepository<Item> repository, 
+        IRepository<ItemCategory> categoryRepo, 
+        IRepository<Unit> unitRepo,
+        IRepository<Store> storeRepo,
+        CompositeKeyRepository compositeRepo) : base(repository) 
     { 
         _categoryRepo = categoryRepo;
         _unitRepo = unitRepo;
+        _storeRepo = storeRepo;
+        _compositeRepo = compositeRepo;
     }
 
     public async Task LoadLookupsAsync()
@@ -31,6 +95,140 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
 
         var units = await _unitRepo.GetAllAsync();
         Units = new ObservableCollection<Unit>(units.Where(u => u.Active));
+
+        var stores = await _storeRepo.GetAllAsync();
+        Stores = new ObservableCollection<Store>(stores.Where(s => s.Active));
+
+        if (Stores.Any())
+        {
+            OpenBalanceStoreId = Stores.First().StoreId;
+            NewOS_StoreId = Stores.First().StoreId;
+        }
+        
+        if (Units.Any())
+            NewOS_UnitId = Units.First().UnitId;
+    }
+
+    protected override async void OnFormItemChangedHook(Item value)
+    {
+        if (value != null && value.ItemId > 0)
+        {
+            // Load existing opening stocks for this item
+            var osList = await _compositeRepo.GetAllOpenStockAsync();
+            CurrentItemOpenStocks = new ObservableCollection<OpenStock>(osList.Where(x => x.ItemId == value.ItemId));
+        }
+        else
+        {
+            CurrentItemOpenStocks = [];
+        }
+        
+        // Reset the "Add" form
+        NewOS_Date = System.DateTime.Now;
+        if (Stores.Any()) NewOS_StoreId = Stores.First().StoreId;
+        NewOS_Qty = 1;
+        NewOS_Price = value?.Price0 ?? 0;
+        NewOS_DiscPer = 0;
+        NewOS_UnitId = value?.UnitId ?? (Units.FirstOrDefault()?.UnitId ?? 0);
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private async Task AddOSAsync()
+    {
+        if (NewOS_StoreId == 0)
+        {
+            StatusMessage = "⚠️ يرجى تحديد المخزن أولاً";
+            return;
+        }
+        if (NewOS_Qty <= 0)
+        {
+            StatusMessage = "⚠️ الكمية يجب أن تكون أكبر من صفر";
+            return;
+        }
+
+        double unitQtyValue = 1.0;
+        if (NewOS_UnitId == FormItem.Unit2 && FormItem.Unit2Qty > 0)
+        {
+            unitQtyValue = FormItem.Unit2Qty;
+        }
+
+        var os = new OpenStock
+        {
+            ItemId = FormItem.ItemId,
+            StoreId = NewOS_StoreId,
+            OpenDate = NewOS_Date,
+            UnitId = NewOS_UnitId,
+            Qty = NewOS_Qty,
+            Price = NewOS_Price,
+            DiscPer = NewOS_DiscPer,
+            Disc = NewOS_Disc,
+            UnitQty = unitQtyValue,
+            QtyAll = NewOS_Qty * unitQtyValue 
+        };
+
+        if (FormItem.ItemId > 0)
+        {
+            // Existing item: Save to DB immediately
+            try 
+            {
+                await _compositeRepo.InsertOpenStockAsync(os);
+                CurrentItemOpenStocks.Add(os);
+                StatusMessage = "✅ تم إضافة الرصيد بنجاح";
+            }
+            catch (System.Exception ex)
+            {
+                StatusMessage = $"❌ خطأ في الإضافة: {ex.Message}";
+            }
+        }
+        else
+        {
+            // New item: Add to memory list
+            CurrentItemOpenStocks.Add(os);
+            StatusMessage = "📝 تم إضافة الرصيد للقائمة (سيتم الحفظ مع الصنف)";
+        }
+        
+        // Reset partial form
+        NewOS_Qty = 1;
+    }
+
+    public override async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(FormItem.ItemName))
+        {
+            StatusMessage = "⚠️ يرجى إدخال اسم الصنف أولاً";
+            return;
+        }
+
+        if (FormItem.CatId == 0)
+        {
+            StatusMessage = "⚠️ يرجى اختيار مجموعة الصنف";
+            return;
+        }
+
+        await base.SaveAsync();
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private async Task RemoveOSAsync(OpenStock os)
+    {
+        if (os == null) return;
+        
+        if (FormItem.ItemId > 0)
+        {
+            try 
+            {
+                await _compositeRepo.DeleteOpenStockAsync(os.StoreId, os.ItemId);
+                CurrentItemOpenStocks.Remove(os);
+                StatusMessage = "تم حذف الرصيد ✓";
+            }
+            catch (System.Exception ex)
+            {
+                StatusMessage = $"خطأ في الحذف: {ex.Message}";
+            }
+        }
+        else
+        {
+            CurrentItemOpenStocks.Remove(os);
+        }
     }
 
     protected override object GetEntityId(Item entity) => entity.ItemId;
@@ -41,5 +239,26 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
     {
         base.SetDefaultValues(entity);
         entity.IsStock = true;
+        OpenBalanceQty = 0;
+        if (Stores.Any()) OpenBalanceStoreId = Stores.First().StoreId;
+    }
+
+    protected override async Task AfterSaveAsync(bool wasInsert)
+    {
+        // If it was a new item, save the collected opening stocks
+        if (wasInsert && CurrentItemOpenStocks.Any())
+        {
+            foreach (var os in CurrentItemOpenStocks)
+            {
+                os.ItemId = FormItem.ItemId; // Assign the newly generated ID
+                await _compositeRepo.InsertOpenStockAsync(os);
+            }
+        }
+        
+        // Legacy single field fallback (optional, could be removed now)
+        else if (wasInsert && OpenBalanceQty > 0 && OpenBalanceStoreId > 0)
+        {
+            // ... (rest of old logic)
+        }
     }
 }

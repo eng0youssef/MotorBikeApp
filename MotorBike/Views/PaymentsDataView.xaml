@@ -65,10 +65,10 @@
                         CommandParameter="CusPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#1F3A5F" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="White" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="👥" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="سداد العملاء" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="سداد العملاء" />
                     </StackPanel>
                 </Button>
                 <Button Width="210" Height="170" Margin="0,0,20,20"
@@ -76,10 +76,10 @@
                         CommandParameter="SuppPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#5C2B29" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="White" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🏭" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="سداد الموردين" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="سداد الموردين" />
                     </StackPanel>
                 </Button>
             </WrapPanel>
@@ -95,10 +95,10 @@
                         CommandParameter="ExpPayments"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#3F2259" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="White" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🧾" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="صرف المصروفات" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="صرف المصروفات" />
                     </StackPanel>
                 </Button>
                 <Button Width="210" Height="170" Margin="0,0,20,20"
@@ -106,10 +106,10 @@
                         CommandParameter="CashTransfers"
                         Style="{StaticResource CardButtonStyle}">
                     <StackPanel VerticalAlignment="Center">
-                        <Border Background="#18414A" Style="{StaticResource IconBorderStyle}">
+                        <Border Background="White" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🔄" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="تحويلات الخزينة" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="تحويلات الخزينة" />
                     </StackPanel>
                 </Button>
             </WrapPanel>
