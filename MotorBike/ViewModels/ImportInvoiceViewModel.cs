@@ -870,8 +870,12 @@ public partial class ImportInvoiceViewModel : ObservableObject
             }
             // PercentageMode.None → لا تعدّل أي نسب
 
+            double expensesOnly = FormItem.ExpTotal + FormItem.FrokOmla;
+
             foreach (var item in FormItems)
             {
+                item.TotalLocal = Math.Round(item.Total * omlaRate, 2);
+                item.ExpShareLocal = Math.Round(expensesOnly * (double)(item.CostPer / 100m), 2);
                 item.CostTotal = Math.Round(totalCost * (double)(item.CostPer / 100m), 2);
                 item.CostUnit = item.QtyAll > 0
                     ? Math.Round(item.CostTotal.Value / item.QtyAll, 2)
@@ -880,6 +884,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
             foreach (var car in FormCars)
             {
+                double carTotal = car.Total ?? 0;
+                car.TotalLocal = Math.Round(carTotal * omlaRate, 2);
+                car.ExpShareLocal = Math.Round(expensesOnly * (double)(car.CostPer / 100m), 2);
                 car.CostTotal = Math.Round(totalCost * (double)(car.CostPer / 100m), 2);
             }
         }

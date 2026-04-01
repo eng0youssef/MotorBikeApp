@@ -30,6 +30,11 @@ public partial class ImportInvItem : ObservableObject
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public double Total { get => _total; set => SetProperty(ref _total, value); }
 
+    private double _totalLocal;
+    [NotMapped]
+    public double TotalLocal { get => _totalLocal; set => SetProperty(ref _totalLocal, value); }
+
+
     public double UnitQty { get; set; }
 
     private double _qtyAll;
@@ -42,6 +47,11 @@ public partial class ImportInvItem : ObservableObject
 
     private double? _costTotal;
     public double? CostTotal { get => _costTotal; set => SetProperty(ref _costTotal, value); }
+
+    private double _expShareLocal;
+    [NotMapped]
+    public double ExpShareLocal { get => _expShareLocal; set => SetProperty(ref _expShareLocal, value); }
+
 
     private double? _costUnit;
     /// <summary>Computed column</summary>

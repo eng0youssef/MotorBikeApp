@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MotorBike.Models;
 
@@ -23,6 +24,15 @@ public partial class ImportInvCar : ObservableObject
 
     private double? _costTotal;
     public double? CostTotal { get => _costTotal; set => SetProperty(ref _costTotal, value); }
+
+    private double _totalLocal;
+    [NotMapped]
+    public double TotalLocal { get => _totalLocal; set => SetProperty(ref _totalLocal, value); }
+    
+    private double _expShareLocal;
+    [NotMapped]
+    public double ExpShareLocal { get => _expShareLocal; set => SetProperty(ref _expShareLocal, value); }
+
 
     public virtual ImportInvoice Inv { get; set; } = null!;
 

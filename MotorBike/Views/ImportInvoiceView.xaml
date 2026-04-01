@@ -227,14 +227,17 @@
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                             <DataGridTextColumn Header="الكمية" Binding="{Binding Qty, UpdateSourceTrigger=LostFocus}" Width="70"/>
                                             <DataGridTextColumn Header="السعر" Binding="{Binding Price, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="80"/>
-                                            <DataGridTextColumn Header="الإجمالي" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="الإجمالي (بالعملة)" Binding="{Binding Total, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="الإجمالي (محلي)" Binding="{Binding TotalLocal, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:N4\}, UpdateSourceTrigger=LostFocus}" Width="80" Foreground="#6366F1"/>
-                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="تكلفة الوحدة" Binding="{Binding CostUnit, StringFormat=\{0:N2\}}" Width="90" Foreground="#059669" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="تحمّل مصاريف (محلي)" Binding="{Binding ExpShareLocal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="الإجمالي النهائي (محلي)" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#059669" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="تكلفة الوحدة (محلي)" Binding="{Binding CostUnit, StringFormat=\{0:N2\}}" Width="90" Foreground="#0284C7" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTemplateColumn Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <Button Content="🗑️" Command="{Binding DataContext.RemoveSubItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                         </DataGrid.Columns>
+
                                     </DataGrid>
                                 </Grid>
                             </TabItem>
@@ -317,13 +320,16 @@
                                                     </MultiBinding></TextBlock.Text></TextBlock>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                             <DataGridTextColumn Header="المسافة" Binding="{Binding Mileage}" Width="80" IsReadOnly="True"/>
-                                            <DataGridTextColumn Header="السعر" Binding="{Binding Total, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="100" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="السعر (بالعملة)" Binding="{Binding Total, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="100" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="السعر (محلي)" Binding="{Binding TotalLocal, StringFormat=\{0:N2\}}" Width="90" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTextColumn Header="النسبة %" Binding="{Binding CostPer, StringFormat=\{0:N4\}, UpdateSourceTrigger=LostFocus}" Width="80" Foreground="#6366F1"/>
-                                            <DataGridTextColumn Header="تحمّل مصاريف" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" FontWeight="SemiBold" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="تحمّل مصاريف (محلي)" Binding="{Binding ExpShareLocal, StringFormat=\{0:N2\}}" Width="100" Foreground="#DC2626" IsReadOnly="True"/>
+                                            <DataGridTextColumn Header="الإجمالي النهائي (محلي)" Binding="{Binding CostTotal, StringFormat=\{0:N2\}}" Width="100" Foreground="#059669" FontWeight="SemiBold" IsReadOnly="True"/>
                                             <DataGridTemplateColumn Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <Button Content="🗑️" Command="{Binding DataContext.RemoveSubCarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                         </DataGrid.Columns>
+
                                     </DataGrid>
                                 </Grid>
                             </TabItem>
