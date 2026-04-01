@@ -5,7 +5,8 @@
         WindowStartupLocation="CenterScreen" 
         FlowDirection="RightToLeft"
         Background="#1E2233"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        FocusManager.FocusedElement="{Binding ElementName=txtUserName}">
     
     <Window.Resources>
         <!--  Header style  -->
@@ -73,10 +74,12 @@
                 <!-- Username Input -->
                 <StackPanel Margin="0,0,0,24">
                     <TextBlock Text="اسم المستخدم" Style="{StaticResource FormLabel}" Foreground="#9BA4B5" Margin="0,0,0,8" />
-                    <TextBox Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" 
+                    <TextBox x:Name="txtUserName"
+                             Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" 
                              Style="{StaticResource FormTextBox}" 
                              VerticalContentAlignment="Center"
-                             Height="58" />
+                             Height="58"
+                             KeyDown="txtUserName_KeyDown"/>
                 </StackPanel>
 
                 <!-- Password Input -->
@@ -93,7 +96,8 @@
                                          FontSize="14" 
                                          Padding="12,0"
                                          VerticalContentAlignment="Center"
-                                         PasswordChanged="txtPassword_PasswordChanged"/>
+                                         PasswordChanged="txtPassword_PasswordChanged"
+                                         KeyDown="txtPassword_KeyDown"/>
                         </Grid>
                     </Border>
                 </StackPanel>

@@ -12,4 +12,12 @@ public partial class BuyCarView : UserControl
     {
         if (DataContext is BuyCarViewModel vm) vm.LoadRelatedDataCommand.Execute(null);
     }
+
+    private void IsCash_Changed(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is BuyCarViewModel vm)
+        {
+            vm.HandleCashModeChanged();
+        }
+    }
 }

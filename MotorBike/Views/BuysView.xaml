@@ -281,8 +281,8 @@
                                             <Trigger Property="IsChecked" Value="False">
                                                 <Setter TargetName="SliderHighlight" Property="Grid.Column" Value="0" />
                                                 <Setter TargetName="SliderHighlight" Property="Background" Value="#E8A54B" />
-                                                <Setter TargetName="LabelRight" Property="Foreground" Value="#1E2233" />
-                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="#6B7490" />
+                                                <Setter TargetName="LabelRight" Property="Foreground" Value="White" />
+                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="White" />
                                             </Trigger>
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="TrackBorder" Property="BorderBrush" Value="#E8A54B" />
@@ -301,14 +301,14 @@
                                 IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="3*" MinWidth="150" />
+                                    <ColumnDefinition Width="2*" MinWidth="120" />
                                     <ColumnDefinition Width="*" MinWidth="80" />
                                     <ColumnDefinition Width="0.9*" MinWidth="70" />
                                     <ColumnDefinition Width="0.7*" MinWidth="60" />
                                     <ColumnDefinition Width="0.8*" MinWidth="70" />
                                     <ColumnDefinition Width="0.8*" MinWidth="70" />
                                     <ColumnDefinition Width="0.8*" MinWidth="70" />
-                                    <ColumnDefinition Width="0.8*" MinWidth="70" />
+                                    <ColumnDefinition Width="0.9*" MinWidth="70" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
