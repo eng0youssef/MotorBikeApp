@@ -61,6 +61,18 @@ public partial class ReBuyViewModel : ObservableObject
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
     partial void OnIsCashPaymentModeChanged(bool value) => HandleCashModeChanged();
+
+    [ObservableProperty] private int _selectedCashId;
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentSafeBalance;
+
+    partial void OnSelectedCashIdChanged(int value)
+    {
+        if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+        if (CurrentPayment != null) CurrentPayment.CashId = value;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+    }
+
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
@@ -164,7 +176,8 @@ public partial class ReBuyViewModel : ObservableObject
         try
         {
             Suppliers = new ObservableCollection<Supplier>(await _supplierRepository.GetAllAsync());
-            Cashes = new ObservableCollection<Cash>(await _cashRepository.GetAllAsync());
+            var cashes = await _cashRepository.GetAllAsync();
+            Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
             Items = new ObservableCollection<Item>(await _itemRepository.GetAllAsync());
             Stores = new ObservableCollection<Store>(await _storeRepository.GetAllAsync());
             Units = new ObservableCollection<Unit>(await _unitRepository.GetAllAsync());
@@ -221,10 +234,12 @@ public partial class ReBuyViewModel : ObservableObject
 
             _isSelectingSupplier = true;
             SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? string.Empty;
+            CurrentSupplierBalance = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.Bal ?? 0;
             IsSupplierSearchPopupOpen = false;
             _isSelectingSupplier = false;
 
             IsCashPaymentMode = FormItem.IsCash;
+            if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
 
             _vatTaxPercent = 0;
             _whtTaxPercent = 0;
@@ -291,9 +306,13 @@ public partial class ReBuyViewModel : ObservableObject
         SubItemQty = 1; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0;
 
         CurrentPayment = new ReBuyPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty;
+        CurrentSupplierBalance = 0;
+        CurrentSafeBalance = 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
         
@@ -311,8 +330,10 @@ public partial class ReBuyViewModel : ObservableObject
         _isInsertMode = false; 
         IsEditing = true;
         IsCashPaymentMode = FormItem.IsCash;
+        if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
         _isSelectingSupplier = true;
         SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? string.Empty;
+        CurrentSupplierBalance = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.Bal ?? 0;
         _isSelectingSupplier = false;
     }
     [RelayCommand]
@@ -331,6 +352,9 @@ public partial class ReBuyViewModel : ObservableObject
         
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty;
+        CurrentSupplierBalance = 0;
+        CurrentSafeBalance = 0;
+        SelectedCashId = 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
@@ -526,7 +550,11 @@ public partial class ReBuyViewModel : ObservableObject
             _isUpdatingDiscount = true; DiscountPercentInput = 0; DiscountValueInput = 0; _isUpdatingDiscount = false;
             FormSubItems.Clear(); 
             FormPayments.Clear();
-            SelectedInvoice = null; await LoadInvoicesAsync();
+            SelectedInvoice = null;
+            CurrentSupplierBalance = 0;
+            CurrentSafeBalance = 0;
+            SelectedCashId = 0;
+            await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
     }
@@ -703,7 +731,7 @@ public partial class ReBuyViewModel : ObservableObject
                 BuyId = FormItem.BuyId,
                 PayDate = DateTime.Now,
                 PayMoney = FormItem.Net,
-                CashId = existingCashId,
+                CashId = SelectedCashId > 0 ? SelectedCashId : Cashes.FirstOrDefault()?.CashId ?? 0,
                 Notes = "سداد كامل (كاش) - مرتجع"
             });
         }
@@ -786,6 +814,7 @@ public partial class ReBuyViewModel : ObservableObject
         _isSelectingSupplier = true;
         FormItem.SuppId = supplier.SuppId;
         SupplierSearchText = supplier.SuppName;
+        CurrentSupplierBalance = supplier.Bal ?? 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
     }

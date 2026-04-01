@@ -58,6 +58,24 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
     [ObservableProperty] private bool _isPaymentsPopupOpen;
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentSafeBalance;
+
+    private int _selectedCashId;
+    public int SelectedCashId
+    {
+        get => _selectedCashId;
+        set
+        {
+            if (SetProperty(ref _selectedCashId, value))
+            {
+                if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+                if (CurrentPayment != null) CurrentPayment.CashId = value;
+                CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
+
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
@@ -240,7 +258,7 @@ public partial class BuysViewModel : ObservableObject
             Suppliers = new ObservableCollection<Supplier>(suppliers);
 
             var cashes = await _cashRepository.GetAllAsync();
-            Cashes = new ObservableCollection<Cash>(cashes);
+            Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
 
             var items = await _itemRepository.GetAllAsync();
             Items = new ObservableCollection<Item>(items);
@@ -340,11 +358,13 @@ public partial class BuysViewModel : ObservableObject
             // Set supplier search text
             _isSelectingSupplier = true;
             SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? string.Empty;
+            CurrentSupplierBalance = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.Bal ?? 0;
             IsSupplierSearchPopupOpen = false;
             _isSelectingSupplier = false;
 
             // Update cash mode
             IsCashPaymentMode = FormItem.IsCash;
+            if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
 
             // Infer tax percentages from saved amounts
             if (FormItem.IsTax)
@@ -429,6 +449,8 @@ public partial class BuysViewModel : ObservableObject
         SubItemDiscountValue = 0;
 
         CurrentPayment = new BuyPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
         
         // Reset supplier search
         _isSelectingSupplier = true;
@@ -448,6 +470,7 @@ public partial class BuysViewModel : ObservableObject
         _isInsertMode = false;
         IsEditing = true;
         IsCashPaymentMode = FormItem.IsCash;
+        if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
     }
 
     [RelayCommand]
@@ -469,6 +492,9 @@ public partial class BuysViewModel : ObservableObject
         IsCashPaymentMode = false;
         CurrentSubItem = new BuySub();
         CurrentPayment = new BuyPayment();
+        SelectedCashId = 0;
+        CurrentSafeBalance = 0;
+        CurrentSupplierBalance = 0;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
@@ -680,6 +706,9 @@ public partial class BuysViewModel : ObservableObject
             Remaining = 0;
             IsCashPaymentMode = false;
             SelectedInvoice = null;
+            SelectedCashId = 0;
+            CurrentSafeBalance = 0;
+            CurrentSupplierBalance = 0;
             await LoadInvoicesAsync();
         }
         catch (Exception ex)
@@ -720,6 +749,7 @@ public partial class BuysViewModel : ObservableObject
         _isSelectingSupplier = true;
         FormItem.SuppId = supplier.SuppId;
         SupplierSearchText = supplier.SuppName;
+        CurrentSupplierBalance = supplier.Bal ?? 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
     }

@@ -61,6 +61,24 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
     [ObservableProperty] private bool _isPaymentsPopupOpen;
+    [ObservableProperty] private double _currentCustomerBalance;
+    [ObservableProperty] private double _currentSafeBalance;
+
+    private int _selectedCashId;
+    public int SelectedCashId
+    {
+        get => _selectedCashId;
+        set
+        {
+            if (SetProperty(ref _selectedCashId, value))
+            {
+                if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+                if (CurrentPayment != null) CurrentPayment.CashId = value;
+                CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
+
     [ObservableProperty] private double _subItemQty;
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
 
@@ -243,7 +261,7 @@ public partial class SalesViewModel : ObservableObject
             Customers = new ObservableCollection<Customer>(customers);
 
             var cashes = await _cashRepository.GetAllAsync();
-            Cashes = new ObservableCollection<Cash>(cashes);
+            Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
 
             var items = await _itemRepository.GetAllAsync();
             Items = new ObservableCollection<Item>(items);
@@ -356,11 +374,13 @@ public partial class SalesViewModel : ObservableObject
             // Set customer search text
             _isSelectingCustomer = true;
             CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
+            CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.Bal ?? 0;
             IsCustomerSearchPopupOpen = false;
             _isSelectingCustomer = false;
 
             // Update cash mode
             IsCashPaymentMode = FormItem.IsCash;
+            if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
 
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
             if (FormItem.CusId > 0)
@@ -431,6 +451,8 @@ public partial class SalesViewModel : ObservableObject
         SubItemDiscountValue = 0;
 
         CurrentPayment = new SalesPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
         
         // Reset customer search
         _isSelectingCustomer = true;
@@ -453,6 +475,7 @@ public partial class SalesViewModel : ObservableObject
         _isInsertMode = false;
         IsEditing = true;
         IsCashPaymentMode = FormItem.IsCash;
+        if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
     }
 
     [RelayCommand]
@@ -474,6 +497,9 @@ public partial class SalesViewModel : ObservableObject
         IsCashPaymentMode = false;
         CurrentSubItem = new SalesSub();
         CurrentPayment = new SalesPayment();
+        SelectedCashId = 0;
+        CurrentSafeBalance = 0;
+        CurrentCustomerBalance = 0;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
@@ -683,6 +709,9 @@ public partial class SalesViewModel : ObservableObject
             Remaining = 0;
             IsCashPaymentMode = false;
             SelectedInvoice = null;
+            SelectedCashId = 0;
+            CurrentSafeBalance = 0;
+            CurrentCustomerBalance = 0;
             await LoadInvoicesAsync();
         }
         catch (Exception ex)
@@ -723,6 +752,7 @@ public partial class SalesViewModel : ObservableObject
         _isSelectingCustomer = true;
         FormItem.CusId = customer.CusId;
         CustomerSearchText = customer.CusName;
+        CurrentCustomerBalance = customer.Bal ?? 0;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 

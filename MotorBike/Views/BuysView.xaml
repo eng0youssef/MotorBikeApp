@@ -201,49 +201,53 @@
                                        Style="{StaticResource FormLabel}"
                                        Text="المورد" />
                             <!--  Supplier Smart Search  -->
-                            <Grid Grid.Row="0" Grid.Column="7">
-                                <TextBox x:Name="SupplierSearchBox" Padding="8,6" GotFocus="SupplierSearch_GotFocus"
-                                         Style="{StaticResource FormTextBox}"
-                                         Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="ابحث عن المورد بالاسم" />
-                                <Popup x:Name="SupplierSearchPopup"
-                                       Width="{Binding ActualWidth, ElementName=SupplierSearchBox}"
-                                       AllowsTransparency="True"
-                                       IsOpen="{Binding IsSupplierSearchPopupOpen}"
-                                       Placement="Bottom"
-                                       PlacementTarget="{Binding ElementName=SupplierSearchBox}"
-                                       StaysOpen="False">
-                                    <Border MaxHeight="250" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="10">
-                                        <Border.Effect>
-                                            <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.2" ShadowDepth="4" Color="#000000" />
-                                        </Border.Effect>
-                                        <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredSuppliersList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Padding="10,8" Cursor="Hand">
-                                                        <TextBlock FontSize="13" Foreground="#C8CEE0">
-                                                            <Run Text="{Binding SuppName, Mode=OneWay}" />
-                                                        </TextBlock>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                            <ListBox.ItemContainerStyle>
-                                                <Style TargetType="ListBoxItem">
-                                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                                    <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="Background" Value="Transparent" />
-                                                    <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchSupplier_Click" />
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#323F58" />
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ListBox.ItemContainerStyle>
-                                        </ListBox>
-                                    </Border>
-                                </Popup>
-                            </Grid>
+                            <StackPanel Grid.Row="0" Grid.Column="7" VerticalAlignment="Center">
+                                <Grid>
+                                    <TextBox x:Name="SupplierSearchBox" Padding="8,6" GotFocus="SupplierSearch_GotFocus"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="ابحث عن المورد بالاسم" />
+                                    <Popup x:Name="SupplierSearchPopup"
+                                           Width="{Binding ActualWidth, ElementName=SupplierSearchBox}"
+                                           AllowsTransparency="True"
+                                           IsOpen="{Binding IsSupplierSearchPopupOpen}"
+                                           Placement="Bottom"
+                                           PlacementTarget="{Binding ElementName=SupplierSearchBox}"
+                                           StaysOpen="False">
+                                        <Border MaxHeight="250" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="10">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.2" ShadowDepth="4" Color="#000000" />
+                                            </Border.Effect>
+                                            <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredSuppliersList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="10,8" Cursor="Hand">
+                                                            <TextBlock FontSize="13" Foreground="#C8CEE0">
+                                                                <Run Text="{Binding SuppName, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchSupplier_Click" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#323F58" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
+                                            </ListBox>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                                <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B"
+                                           Text="{Binding CurrentSupplierBalance, StringFormat='الرصيد الحالي: {0:N2}'}" />
+                            </StackPanel>
 
                             <!--  Row 2: Notes + Payment Toggle  -->
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
@@ -585,8 +589,10 @@
                                 <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Foreground="#5BAE7C" Text="💳 اختر الخزينة (كاش):" />
                                 <ComboBox MinWidth="250" BorderBrush="#5BAE7C" DisplayMemberPath="CashName" FontSize="14" FontWeight="SemiBold"
                                           ItemsSource="{Binding Cashes}"
-                                          SelectedValue="{Binding FormPayments[0].CashId, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
+                                          SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
                                           SelectedValuePath="CashId" />
+                                <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#047857"
+                                           Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
                             </StackPanel>
                         </Border>
 
@@ -825,7 +831,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" MinWidth="100" />
                                 <ColumnDefinition Width="*" MinWidth="80" />
-                                <ColumnDefinition Width="*" MinWidth="100" />
+                                <ColumnDefinition Width="*" MinWidth="200" />
                                 <ColumnDefinition Width="2*" MinWidth="100" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
@@ -840,7 +846,11 @@
                             </Grid>
                             <Grid Grid.Column="2" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FloatingLabel}" Text="الخزينة" />
-                                <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding CurrentPayment.CashId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="CashId" />
+                                <StackPanel>
+                                    <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="CashId" />
+                                    <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#047857"
+                                               Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                                </StackPanel>
                             </Grid>
                             <Grid Grid.Column="3" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FloatingLabel}" Text="ملاحظات" />

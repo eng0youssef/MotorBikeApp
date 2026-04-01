@@ -84,6 +84,16 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;   // ← تمت إضافته كـ ObservableProperty
     [ObservableProperty] private int _selectedCashId;
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentCustomerBalance;
+    [ObservableProperty] private double _currentSafeBalance;
+
+    partial void OnSelectedCashIdChanged(int value)
+    {
+        if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+        if (CurrentPayment != null) CurrentPayment.CashId = value;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+    }
 
     // ── Search ────────────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
@@ -176,7 +186,7 @@ public partial class BuyCarViewModel : ObservableObject
         try
         {
             var cashes = await _cashRepository.GetAllAsync();
-            Cashes = new ObservableCollection<Cash>(cashes);
+            Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
 
             var models = await _carModelRepository.GetAllAsync();
             CarModels = new ObservableCollection<CarModel>(models.Where(m => m.Active));
@@ -258,6 +268,8 @@ public partial class BuyCarViewModel : ObservableObject
 
             CalculateTotalsInternal();
 
+
+
             Task.Run(async () =>
             {
                 await LoadPaymentsAsync(value.BuyId);
@@ -285,6 +297,20 @@ public partial class BuyCarViewModel : ObservableObject
             CarPlateNo = car.PlateNo;
             CarNotes = car.Notes;
             CarActive = car.IsStock;
+
+            IsFromCustomer = car.IsFromCustomer;
+            
+            _isSelectingSupplier = true;
+            SelectedSupplierId = car.SupplierId ?? 0;
+            SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == SelectedSupplierId)?.SuppName ?? string.Empty;
+            CurrentSupplierBalance = Suppliers.FirstOrDefault(s => s.SuppId == SelectedSupplierId)?.Bal ?? 0;
+            _isSelectingSupplier = false;
+            
+            _isSelectingCustomer = true;
+            SelectedSourceCustomerId = car.SourceCustomerId ?? 0;
+            CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == SelectedSourceCustomerId)?.CusName ?? string.Empty;
+            CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == SelectedSourceCustomerId)?.Bal ?? 0;
+            _isSelectingCustomer = false;
         }
         catch (Exception ex) { StatusMessage = "خطأ في تحميل بيانات الموتوسيكل: " + ex.Message; }
     }
@@ -321,6 +347,7 @@ public partial class BuyCarViewModel : ObservableObject
         };
         IsCashPaymentMode = true;
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
         CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
         CarYearNo = (short)DateTime.Now.Year;
@@ -339,6 +366,10 @@ public partial class BuyCarViewModel : ObservableObject
         _isSelectingCustomer = true;
         CustomerSearchText = string.Empty; IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+
+        CurrentSupplierBalance = 0;
+        CurrentCustomerBalance = 0;
+        CurrentSafeBalance = 0;
 
         FormPayments.Clear();
         TotalPayed = 0;
@@ -677,6 +708,10 @@ public partial class BuyCarViewModel : ObservableObject
             FormPayments.Clear();
             TotalPayed = 0;
             SelectedInvoice = null;
+            CurrentSupplierBalance = 0;
+            CurrentCustomerBalance = 0;
+            CurrentSafeBalance = 0;
+            SelectedCashId = 0;
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
@@ -710,6 +745,8 @@ public partial class BuyCarViewModel : ObservableObject
         _isSelectingSupplier = true;
         SelectedSupplierId = supplier.SuppId;
         SupplierSearchText = supplier.SuppName ?? string.Empty;
+        CurrentSupplierBalance = supplier.Bal ?? 0;
+        CurrentCustomerBalance = 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
@@ -750,6 +787,8 @@ public partial class BuyCarViewModel : ObservableObject
         _isSelectingCustomer = true;
         SelectedSourceCustomerId = customer.CusId;
         CustomerSearchText = customer.CusName ?? string.Empty;
+        CurrentCustomerBalance = customer.Bal ?? 0;
+        CurrentSupplierBalance = 0;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 

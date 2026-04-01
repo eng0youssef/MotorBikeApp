@@ -401,30 +401,36 @@
                                     <TextBlock Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"
                                                FontSize="13" Foreground="#9BA4B5" Text="المورد:" />
                                     <Grid Grid.Column="1">
-                                        <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
-                                                 Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                                        <Popup Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
-                                               IsOpen="{Binding IsSupplierSearchPopupOpen}"
-                                               Placement="Bottom"
-                                               PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
-                                               StaysOpen="False">
-                                            <Border MaxHeight="200" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8">
-                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                    <ItemsControl ItemsSource="{Binding FilteredSuppliersList}">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Button Padding="12,8" HorizontalContentAlignment="Right"
-                                                                        Background="Transparent" BorderThickness="0"
-                                                                        Command="{Binding DataContext.SelectSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                        CommandParameter="{Binding}"
-                                                                        Content="{Binding SuppName}"
-                                                                        Cursor="Hand" FontSize="13" Foreground="#C8CEE0" />
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </ScrollViewer>
-                                            </Border>
-                                        </Popup>
+                                        <StackPanel Orientation="Vertical">
+                                            <Grid>
+                                                <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
+                                                         Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Popup Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                                                       IsOpen="{Binding IsSupplierSearchPopupOpen}"
+                                                       Placement="Bottom"
+                                                       PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
+                                                       StaysOpen="False">
+                                                    <Border MaxHeight="200" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8">
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                            <ItemsControl ItemsSource="{Binding FilteredSuppliersList}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right"
+                                                                                Background="Transparent" BorderThickness="0"
+                                                                                Command="{Binding DataContext.SelectSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Content="{Binding SuppName}"
+                                                                                Cursor="Hand" FontSize="13" Foreground="#C8CEE0" />
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Popup>
+                                            </Grid>
+                                            <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B"
+                                                       Text="{Binding CurrentSupplierBalance, StringFormat='الرصيد الحالي: {0:N2}'}" />
+                                        </StackPanel>
                                     </Grid>
                                 </Grid>
 
@@ -438,30 +444,36 @@
                                     <TextBlock Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"
                                                FontSize="13" Foreground="#9BA4B5" Text="العميل:" />
                                     <Grid Grid.Column="1">
-                                        <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
-                                                 Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                                        <Popup Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
-                                               IsOpen="{Binding IsCustomerSearchPopupOpen}"
-                                               Placement="Bottom"
-                                               PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
-                                               StaysOpen="False">
-                                            <Border MaxHeight="200" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8">
-                                                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                                    <ItemsControl ItemsSource="{Binding FilteredCustomersList}">
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Button Padding="12,8" HorizontalContentAlignment="Right"
-                                                                        Background="Transparent" BorderThickness="0"
-                                                                        Command="{Binding DataContext.SelectCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                                        CommandParameter="{Binding}"
-                                                                        Content="{Binding CusName}"
-                                                                        Cursor="Hand" FontSize="13" Foreground="#C8CEE0" />
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                </ScrollViewer>
-                                            </Border>
-                                        </Popup>
+                                        <StackPanel Orientation="Vertical">
+                                            <Grid>
+                                                <TextBox FontSize="14" Style="{StaticResource FormTextBox}"
+                                                         Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                                <Popup Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Grid}}"
+                                                       IsOpen="{Binding IsCustomerSearchPopupOpen}"
+                                                       Placement="Bottom"
+                                                       PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Grid}}"
+                                                       StaysOpen="False">
+                                                    <Border MaxHeight="200" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="8">
+                                                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                                            <ItemsControl ItemsSource="{Binding FilteredCustomersList}">
+                                                                <ItemsControl.ItemTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right"
+                                                                                Background="Transparent" BorderThickness="0"
+                                                                                Command="{Binding DataContext.SelectCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Content="{Binding CusName}"
+                                                                                Cursor="Hand" FontSize="13" Foreground="#C8CEE0" />
+                                                                    </DataTemplate>
+                                                                </ItemsControl.ItemTemplate>
+                                                            </ItemsControl>
+                                                        </ScrollViewer>
+                                                    </Border>
+                                                </Popup>
+                                            </Grid>
+                                            <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B"
+                                                       Text="{Binding CurrentCustomerBalance, StringFormat='الرصيد الحالي: {0:N2}'}" />
+                                        </StackPanel>
                                     </Grid>
                                 </Grid>
 
@@ -615,6 +627,8 @@
                                           ItemsSource="{Binding Cashes}"
                                           SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}"
                                           SelectedValuePath="CashId" />
+                                <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#5BAE7C"
+                                           Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
                                 <StackPanel Margin="32,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
                                     <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#7B84A0" Text="المبلغ المطلوب: " />
                                     <TextBlock FontSize="16" FontWeight="Bold" Foreground="#5BAE7C"
@@ -865,7 +879,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" MinWidth="100" />
                                 <ColumnDefinition Width="*" MinWidth="80" />
-                                <ColumnDefinition Width="*" MinWidth="100" />
+                                <ColumnDefinition Width="*" MinWidth="200" />
                                 <ColumnDefinition Width="2*" MinWidth="100" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
@@ -881,9 +895,13 @@
                             </Grid>
                             <Grid Grid.Column="2" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}" Text="الخزينة" />
-                                <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}"
-                                          SelectedValue="{Binding CurrentPayment.CashId, UpdateSourceTrigger=PropertyChanged}"
-                                          SelectedValuePath="CashId" />
+                                <StackPanel>
+                                    <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}"
+                                              SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}"
+                                              SelectedValuePath="CashId" />
+                                    <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#047857"
+                                               Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                                </StackPanel>
                             </Grid>
                             <Grid Grid.Column="3" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}" Text="ملاحظات" />

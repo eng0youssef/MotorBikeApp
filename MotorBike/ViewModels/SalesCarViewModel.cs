@@ -44,6 +44,15 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private double _remaining;
     [ObservableProperty] private bool _isCashPaymentMode;
     [ObservableProperty] private int _selectedCashId;
+    [ObservableProperty] private double _currentCustomerBalance;
+    [ObservableProperty] private double _currentSafeBalance;
+
+    partial void OnSelectedCashIdChanged(int value)
+    {
+        if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+        if (CurrentPayment != null) CurrentPayment.CashId = value;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+    }
 
     // ── Invoice search ─────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
@@ -156,7 +165,7 @@ public partial class SalesCarViewModel : ObservableObject
             FilteredCustomersList = new ObservableCollection<Customer>(customers);
 
             var cashes = await _cashRepository.GetAllAsync();
-            Cashes = new ObservableCollection<Cash>(cashes);
+            Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
 
             var cars = await _carRepository.GetAllAsync();
             var activeCars = cars.Where(c => c.IsStock).ToList();
@@ -209,6 +218,7 @@ public partial class SalesCarViewModel : ObservableObject
             FormItem = CloneInvoice(value);
             IsCashPaymentMode = FormItem.IsCash;
             SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
+            CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.Bal ?? 0;
             SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
 
             // Infer tax percentages from saved amounts
@@ -280,6 +290,8 @@ public partial class SalesCarViewModel : ObservableObject
 
         SelectedCarDisplay = null;
         SelectedCustomerDisplay = null;
+        CurrentCustomerBalance = 0;
+        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
         // Re-seed popup lists
         FilteredCustomersList = new ObservableCollection<Customer>(Customers);
@@ -296,6 +308,7 @@ public partial class SalesCarViewModel : ObservableObject
         if (SelectedInvoice is null) return;
         FormItem = CloneInvoice(SelectedInvoice);
         SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName;
+        CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.Bal ?? 0;
         SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == FormItem.CarId)?.ChassisNo;
         _isInsertMode = false;
         IsEditing = true;
@@ -325,6 +338,9 @@ public partial class SalesCarViewModel : ObservableObject
         SelectedCustomerDisplay = null;
         IsCustomerPopupOpen = false;
         IsCarPopupOpen = false;
+        CurrentCustomerBalance = 0;
+        CurrentSafeBalance = 0;
+        SelectedCashId = 0;
         StatusMessage = null;
         VatTaxPercent = 0;
         WhtTaxPercent = 0;
@@ -525,6 +541,9 @@ public partial class SalesCarViewModel : ObservableObject
             SelectedInvoice = null;
             SelectedCarDisplay = null;
             SelectedCustomerDisplay = null;
+            CurrentCustomerBalance = 0;
+            CurrentSafeBalance = 0;
+            SelectedCashId = 0;
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحذف: {ex.Message}"; }
@@ -615,6 +634,7 @@ public partial class SalesCarViewModel : ObservableObject
         if (customer is null) return;
         FormItem.CusId = customer.CusId;
         SelectedCustomerDisplay = customer.CusName;
+        CurrentCustomerBalance = customer.Bal ?? 0;
         IsCustomerPopupOpen = false;
         CustomerSearchText = string.Empty;
     }
