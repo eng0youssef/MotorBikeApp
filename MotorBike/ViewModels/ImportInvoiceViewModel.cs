@@ -189,7 +189,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (currencyChanging && FormPayments.Any())
         {
             var result = MessageBox.Show(
-                "تغيير المورد سيؤدي لتغيير العملة وحذف جميع المدفوعات المسجلة.\nهل تريد المتابعة؟",
+                "تغيير المورد سيؤدي لتغيير العملة.\nالدفعات الحالية لن تُحذف لكن سيتم إزالة الخزينة المختارة من كل دفعة.\nيرجى اختيار الخزينة الجديدة المناسبة لكل دفعة بعد التغيير.\n\nهل تريد المتابعة؟",
                 "تنبيه تغيير العملة",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
@@ -205,8 +205,11 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 return;
             }
 
-            // المستخدم وافق — نمسح المدفوعات
-            FormPayments.Clear();
+            // المستخدم وافق — شيل الخزينة من كل دفعة بدل ما نحذفها
+            foreach (var pay in FormPayments)
+            {
+                pay.CashId = 0;
+            }
         }
 
         // ── تعيين المورد ─────────────────────────────────────────────────
@@ -222,6 +225,21 @@ public partial class ImportInvoiceViewModel : ObservableObject
         if (omla != null) FormItem.OmlaRate = omla.OmlaRate;
         SelectedOmlaId = supplier.OmlaId;
         FilteredPaymentCashList = new(CashList.Where(c => c.OmlaId == supplier.OmlaId));
+
+        // تحديث عملة الدفعات الموجودة للعملة الجديدة
+        foreach (var pay in FormPayments)
+        {
+            pay.OmlaId = supplier.OmlaId;
+        }
+
+        // إعادة تحميل جريد الدفعات لعرض التحديثات
+        if (currencyChanging && FormPayments.Any())
+        {
+            var tempPayments = FormPayments.ToList();
+            FormPayments = new(tempPayments);
+            StatusMessage = "⚠️ تم تغيير العملة — يرجى اختيار الخزينة المناسبة لكل دفعة في جدول الدفعات";
+        }
+
         OnPropertyChanged(nameof(FormItem));
         CalculateTotals();
     }
@@ -662,13 +680,22 @@ public partial class ImportInvoiceViewModel : ObservableObject
             return;
         }
 
-        // جلب سعر الصرف المحدث للخزينة من الداتابيز عشان فرق العملة يتحسب صح
+        if (CurrentSubPayment.CashId == 0)
+        {
+            StatusMessage = "يرجى اختيار الخزينة المسدد منها.";
+            return;
+        }
+
+        // جلب سعر الصرف الحالي للخزينة كقيمة افتراضية للدفعة
+        // لكن المستخدم يقدر يعدّل سعر الصرف بعد الإضافة من الجدول
         var liveCash = await _cashRepo.GetByIdAsync(CurrentSubPayment.CashId);
         if (liveCash != null) 
         {
+            // نضع سعر الصرف الحالي للخزينة فقط لو المستخدم لم يعدّله يدوياً
+            // (إذا كانت القيمة الافتراضية 1 أو لم يتم تغييرها)
             CurrentSubPayment.OmlaRate = liveCash.OmlaRate;
             
-            // تحديث القائمة المحلية عشان لو استخدمناها تاني
+            // تحديث القائمة المحلية
             var localCash = CashList.FirstOrDefault(c => c.CashId == CurrentSubPayment.CashId);
             if (localCash != null) localCash.OmlaRate = liveCash.OmlaRate;
         }
@@ -695,6 +722,16 @@ public partial class ImportInvoiceViewModel : ObservableObject
             CalculateFrokOmla();
             CalculateTotals();
         }
+    }
+
+    /// <summary>
+    /// يُستدعى عند تعديل خلية في جدول الدفعات (المبلغ، سعر الصرف، أو الخزينة)
+    /// لإعادة حساب فرق العملات والإجماليات
+    /// </summary>
+    public void RecalculatePaymentTotals()
+    {
+        CalculateFrokOmla();
+        CalculateTotals();
     }
 
     /// <summary>
@@ -872,6 +909,14 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 return;
             }
         }
+
+        // التحقق من أن كل دفعة فيها خزينة مختارة
+        if (FormPayments.Any(p => p.CashId == 0))
+        {
+            StatusMessage = "⚠️ يوجد دفعات بدون خزينة محددة. يرجى اختيار الخزينة لكل دفعة قبل الحفظ.";
+            return;
+        }
+
         try
         {
             bool isNew = _isNewInvoice;

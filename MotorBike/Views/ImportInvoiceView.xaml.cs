@@ -89,4 +89,15 @@ public partial class ImportInvoiceView : UserControl
             }), System.Windows.Threading.DispatcherPriority.Background);
         }
     }
+
+    private void PaymentsDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+    {
+        if (DataContext is ImportInvoiceViewModel vm)
+        {
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                vm.RecalculatePaymentTotals();
+            }), System.Windows.Threading.DispatcherPriority.Background);
+        }
+    }
 }

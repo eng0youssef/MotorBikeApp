@@ -413,7 +413,8 @@
                                             <Button Grid.Column="4" Content="➕ إضافة" Style="{StaticResource PrimaryButton}" Command="{Binding AddSubPaymentCommand}" Padding="16,8"/>
                                         </Grid>
                                     </Border>
-                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormPayments}" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                                    <DataGrid Grid.Row="1" x:Name="PaymentsDataGrid" ItemsSource="{Binding FormPayments}" AutoGenerateColumns="False" IsReadOnly="False" CanUserAddRows="False" SelectionMode="Single"
+                                              CellEditEnding="PaymentsDataGrid_CellEditEnding"
                                               GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="1" BorderBrush="#3D4560" MinHeight="150"
                                               AlternatingRowBackground="#222738" Background="#242940" Foreground="#C8CEE0" FontSize="13" HorizontalGridLinesBrush="#323848" >
                                         <DataGrid.ColumnHeaderStyle>
@@ -426,13 +427,33 @@
                                     <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
                                 </DataGrid.CellStyle>
                                 <DataGrid.Columns>
-                                            <DataGridTextColumn Header="الملاحظات" Binding="{Binding Notes}" Width="*"/>
-                                            <DataGridTextColumn Header="المبلغ" Binding="{Binding PayMoney, StringFormat=\{0:N2\}}" Width="100" FontWeight="SemiBold"/>
-                                            <DataGridTextColumn Header="تاريخ الدفع" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="100"/>
+                                            <DataGridTextColumn Header="الملاحظات" Binding="{Binding Notes, UpdateSourceTrigger=LostFocus}" Width="*"/>
+                                            <DataGridTextColumn Header="المبلغ" Binding="{Binding PayMoney, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" Width="100" FontWeight="SemiBold"/>
+                                            <DataGridTextColumn Header="سعر الصرف" Binding="{Binding OmlaRate, StringFormat=\{0:N4\}, UpdateSourceTrigger=LostFocus}" Width="100" Foreground="#6366F1" FontWeight="SemiBold"/>
+                                            <DataGridTemplateColumn Header="الخزينة" Width="150">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
+                                                            <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CashId,CashName">
+                                                                <Binding Path="CashId"/><Binding Path="DataContext.FilteredPaymentCashList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                            </MultiBinding></TextBlock.Text></TextBlock>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                                <DataGridTemplateColumn.CellEditingTemplate>
+                                                    <DataTemplate>
+                                                        <ComboBox ItemsSource="{Binding DataContext.FilteredPaymentCashList, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                  DisplayMemberPath="CashName" SelectedValuePath="CashId"
+                                                                  SelectedValue="{Binding CashId, UpdateSourceTrigger=PropertyChanged}"
+                                                                  Padding="4,2" FontSize="13" Background="#242940" Foreground="#C8CEE0"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellEditingTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Header="تاريخ الدفع" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Width="100" />
                                             <DataGridTemplateColumn Width="50"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                                                 <Button Content="🗑️" Command="{Binding DataContext.RemoveSubPaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Background="Transparent" BorderThickness="0" Foreground="Red" FontSize="14"/>
                                             </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                                         </DataGrid.Columns>
+
                                     </DataGrid>
                                 </Grid>
                             </TabItem>
