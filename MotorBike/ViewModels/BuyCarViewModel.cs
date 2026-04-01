@@ -7,6 +7,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Color = MotorBike.Models.Color;
 
 namespace MotorBike.ViewModels;
@@ -49,8 +50,8 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private bool _carActive = true;
 
     // ── Source selection ──────────────────────────────────────────────────
-    [ObservableProperty] private bool _isFromCustomer;      // true = عميل, false = مورد محلي
-    [ObservableProperty] private bool _isExistingCar;       // true = موتوسيكل موجود, false = جديد
+    [ObservableProperty] private bool _isFromCustomer;
+    [ObservableProperty] private bool _isExistingCar;
 
     // Smart search — Supplier
     [ObservableProperty] private string _supplierSearchText = string.Empty;
@@ -81,12 +82,14 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string? _statusMessage;
     [ObservableProperty] private double _totalPayed;
     [ObservableProperty] private double _remaining;
+    [ObservableProperty] private bool _isCashPaymentMode;   // ← تمت إضافته كـ ObservableProperty
     [ObservableProperty] private int _selectedCashId;
 
     // ── Search ────────────────────────────────────────────────────────────
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
+    // ── Payments Popup ────────────────────────────────────────────────────
     private bool _isPaymentsPopupOpen;
     public bool IsPaymentsPopupOpen
     {
@@ -94,8 +97,10 @@ public partial class BuyCarViewModel : ObservableObject
         set { _isPaymentsPopupOpen = value; OnPropertyChanged(); }
     }
 
-    // Removed manual payments popup commands as it's now Cash only
+    [RelayCommand] private void OpenPaymentsPopup() => IsPaymentsPopupOpen = true;
+    [RelayCommand] private void ClosePaymentsPopup() => IsPaymentsPopupOpen = false;
 
+    // ── Tax proxy properties ──────────────────────────────────────────────
     public bool FormIsTax
     {
         get => FormItem?.IsTax ?? false;
@@ -110,7 +115,6 @@ public partial class BuyCarViewModel : ObservableObject
         }
     }
 
-    // ── Proxy Properties for Tax Calculation ───────────────────────────
     public double FormTotal
     {
         get => FormItem?.Total ?? 0;
@@ -125,47 +129,21 @@ public partial class BuyCarViewModel : ObservableObject
         }
     }
 
-    //public bool FormIsTax
-    //{
-    //    get => FormItem?.IsTax ?? false;
-    //    set
-    //    {
-    //        if (FormItem != null && FormItem.IsTax != value)
-    //        {
-    //            FormItem.IsTax = value;
-    //            OnPropertyChanged();
-    //            CalculateTotalsInternal();
-    //        }
-    //    }
-    //}
-
-    // ── Tax ───────────────────────────────────────────────────────────────
+    // ── Tax percentages ───────────────────────────────────────────────────
     [ObservableProperty] private double _netBeforeTax;
 
     private double _vatTaxPercent;
     public double VatTaxPercent
     {
         get => _vatTaxPercent;
-        set
-        {
-            if (SetProperty(ref _vatTaxPercent, value))
-            {
-                CalculateTotalsInternal();
-            }
-        }
+        set { if (SetProperty(ref _vatTaxPercent, value)) CalculateTotalsInternal(); }
     }
 
     private double _whtTaxPercent;
     public double WhtTaxPercent
     {
         get => _whtTaxPercent;
-        set
-        {
-            if (SetProperty(ref _whtTaxPercent, value))
-            {
-                CalculateTotalsInternal();
-            }
-        }
+        set { if (SetProperty(ref _whtTaxPercent, value)) CalculateTotalsInternal(); }
     }
 
     // ── Constructor ───────────────────────────────────────────────────────
@@ -212,7 +190,6 @@ public partial class BuyCarViewModel : ObservableObject
             var customers = await _customerRepository.GetAllAsync();
             Customers = new ObservableCollection<Customer>(customers);
 
-            // Set defaults for the car ComboBoxes
             CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
             CarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
 
@@ -252,18 +229,18 @@ public partial class BuyCarViewModel : ObservableObject
     [RelayCommand] private void ShowSearchPanel() { IsSearchPanelVisible = true; SearchText = ""; FilterInvoices(); }
     [RelayCommand] private void HideSearchPanel() { IsSearchPanelVisible = false; }
 
-    // ── Selected invoice → load form + car details ────────────────────────
+    // ── Selected invoice → load form ──────────────────────────────────────
     partial void OnSelectedInvoiceChanged(BuyCar? value)
     {
         if (value is not null)
         {
             IsSearchPanelVisible = false;
             _isInsertMode = false;
-            IsEditing = false; // View mode after selection
-            
-            FormItem = CloneInvoice(value);
+            IsEditing = false;
 
-            // Infer tax percentages from saved amounts
+            FormItem = CloneInvoice(value);
+            IsCashPaymentMode = FormItem.IsCash;
+
             double netBefore = FormItem.Total;
             if (FormItem.IsTax && netBefore > 0)
             {
@@ -274,18 +251,17 @@ public partial class BuyCarViewModel : ObservableObject
             }
             else
             {
-                _vatTaxPercent = 0;
-                _whtTaxPercent = 0;
+                _vatTaxPercent = 0; _whtTaxPercent = 0;
                 OnPropertyChanged(nameof(VatTaxPercent));
                 OnPropertyChanged(nameof(WhtTaxPercent));
             }
-            
+
             CalculateTotalsInternal();
 
             Task.Run(async () =>
             {
                 await LoadPaymentsAsync(value.BuyId);
-                if (value.CarId.HasValue) 
+                if (value.CarId.HasValue)
                     await LoadCarDetailsAsync(value.CarId.Value);
             });
         }
@@ -326,7 +302,7 @@ public partial class BuyCarViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = "خطأ في تحميل المدفوعات: " + ex.Message; }
     }
 
-    // ── Add new invoice ───────────────────────────────────────────────────
+    // ── Add new ───────────────────────────────────────────────────────────
     [RelayCommand]
     public async Task AddNewAsync()
     {
@@ -340,48 +316,35 @@ public partial class BuyCarViewModel : ObservableObject
         {
             BuyDate = DateTime.Now,
             AddPc = Environment.MachineName,
-            AddDate = DateTime.Now
+            AddDate = DateTime.Now,
+            IsCash = true
         };
+        IsCashPaymentMode = true;
+        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
 
-        // Reset car fields
         CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
         CarYearNo = (short)DateTime.Now.Year;
         CarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
-        CarChassisNo = null;
-        CarMotorNo = null;
-        CarPlateNo = null;
-        CarNotes = null;
+        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null; CarNotes = null;
         CarActive = true;
 
-        // Reset source selection
-        IsFromCustomer = false;
-        IsExistingCar = false;
-        SelectedSupplierId = 0;
-        SelectedSourceCustomerId = 0;
-        SelectedExistingCarId = 0;
+        IsFromCustomer = false; IsExistingCar = false;
+        SelectedSupplierId = 0; SelectedSourceCustomerId = 0; SelectedExistingCarId = 0;
         SourceCars.Clear();
 
         _isSelectingSupplier = true;
-        SupplierSearchText = string.Empty;
-        IsSupplierSearchPopupOpen = false;
+        SupplierSearchText = string.Empty; IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
         _isSelectingCustomer = true;
-        CustomerSearchText = string.Empty;
-        IsCustomerSearchPopupOpen = false;
+        CustomerSearchText = string.Empty; IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 
         FormPayments.Clear();
         TotalPayed = 0;
-        SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
-        CurrentPayment = new BuyCarPayment
-        {
-            PayDate = DateTime.Now,
-            CashId = SelectedCashId
-        };
+        CurrentPayment = new BuyCarPayment { PayDate = DateTime.Now, CashId = SelectedCashId };
 
-        VatTaxPercent = 0;
-        WhtTaxPercent = 0;
+        VatTaxPercent = 0; WhtTaxPercent = 0;
     }
 
     // ── Edit selected ─────────────────────────────────────────────────────
@@ -390,9 +353,13 @@ public partial class BuyCarViewModel : ObservableObject
     {
         if (SelectedInvoice is null) return;
         FormItem = CloneInvoice(SelectedInvoice);
+        IsCashPaymentMode = FormItem.IsCash;
         _isInsertMode = false;
         IsEditing = true;
-        // Car fields already loaded in OnSelectedInvoiceChanged
+
+        SelectedCashId = FormItem.IsCash && FormPayments.Any()
+            ? FormPayments.First().CashId
+            : Cashes.FirstOrDefault()?.CashId ?? 0;
     }
 
     // ── Cancel ────────────────────────────────────────────────────────────
@@ -405,30 +372,22 @@ public partial class BuyCarViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         CurrentPayment = new BuyCarPayment();
-        CarChassisNo = null;
-        CarMotorNo = null;
-        CarPlateNo = null;
+        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null;
 
-        IsFromCustomer = false;
-        IsExistingCar = false;
-        SelectedSupplierId = 0;
-        SelectedSourceCustomerId = 0;
-        SelectedExistingCarId = 0;
+        IsFromCustomer = false; IsExistingCar = false;
+        SelectedSupplierId = 0; SelectedSourceCustomerId = 0; SelectedExistingCarId = 0;
         SourceCars.Clear();
 
         _isSelectingSupplier = true;
-        SupplierSearchText = string.Empty;
-        IsSupplierSearchPopupOpen = false;
+        SupplierSearchText = string.Empty; IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
         _isSelectingCustomer = true;
-        CustomerSearchText = string.Empty;
-        IsCustomerSearchPopupOpen = false;
+        CustomerSearchText = string.Empty; IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 
         StatusMessage = null;
-        VatTaxPercent = 0;
-        WhtTaxPercent = 0;
+        VatTaxPercent = 0; WhtTaxPercent = 0;
     }
 
     // ── Save ──────────────────────────────────────────────────────────────
@@ -475,20 +434,23 @@ public partial class BuyCarViewModel : ObservableObject
                     FormItem.TaxNo = null;
                 }
 
-                // Forced Cash Mode: Create single payment
-                FormPayments.Clear();
-                FormPayments.Add(new BuyCarPayment
-                {
-                    BuyId = FormItem.BuyId,
-                    PayDate = FormItem.BuyDate,
-                    PayMoney = FormItem.Net,
-                    CashId = SelectedCashId,
-                    Notes = "دفع كاش للفاتورة"
-                });
+                FormItem.IsCash = IsCashPaymentMode;
 
-                // Calculate tax values before saving
+                if (IsCashPaymentMode)
+                {
+                    FormPayments.Clear();
+                    FormPayments.Add(new BuyCarPayment
+                    {
+                        BuyId = FormItem.BuyId,
+                        PayDate = FormItem.BuyDate,
+                        PayMoney = FormItem.Net,
+                        CashId = SelectedCashId,
+                        Notes = "دفع كاش للفاتورة"
+                    });
+                }
+
                 CalculateTotalsInternal();
-                // Initialize common metadata fields early for both records
+
                 if (_isInsertMode)
                 {
                     FormItem.AddPc ??= Environment.MachineName;
@@ -508,17 +470,13 @@ public partial class BuyCarViewModel : ObservableObject
                     int carId;
                     if (IsExistingCar && SelectedExistingCarId > 0)
                     {
-                        // Use existing car — update its fields
                         carId = SelectedExistingCarId;
                         await db.ExecuteAsync(@"
                             UPDATE Cars
                             SET StatusID = 1, OwnerID = NULL, IsStock = 1,
-                                IsLocalSupplier = @IsLocalSupplier,
-                                SupplierID = @SupplierId,
-                                IsFromCustomer = @IsFromCustomer,
-                                SourceCustomerID = @SourceCustomerId,
-                                PurchasePrice = @PurchasePrice,
-                                Mileage = @Mileage,
+                                IsLocalSupplier = @IsLocalSupplier, SupplierID = @SupplierId,
+                                IsFromCustomer = @IsFromCustomer, SourceCustomerID = @SourceCustomerId,
+                                PurchasePrice = @PurchasePrice, Mileage = @Mileage,
                                 EditDate = @EditDate, EditPC = @EditPc, EditUser = @EditUser
                             WHERE Car_ID = @CarId",
                             new
@@ -537,7 +495,6 @@ public partial class BuyCarViewModel : ObservableObject
                     }
                     else
                     {
-                        // Create a brand-new Car row
                         carId = await _carRepository.GetNextIdAsync();
                         await db.ExecuteAsync(@"
                             INSERT INTO Cars
@@ -577,29 +534,18 @@ public partial class BuyCarViewModel : ObservableObject
                 }
                 else
                 {
-                    // Update the existing Car row
                     await db.ExecuteAsync(@"
                         UPDATE Cars
-                        SET ModelID   = @ModelId,
-                            YearNo    = @YearNo,
-                            ChassisNo = @ChassisNo,
-                            MotorNo   = @MotorNo,
-                            PlateNo   = @PlateNo,
-                            Mileage   = @Mileage,
-                            ColorID   = @ColorId,
-                            IsStock   = 1,
-                            Notes     = @Notes,
-                            StatusID  = 1,
-                            OwnerID   = NULL,
-                            IsLocalSupplier = @IsLocalSupplier,
-                            SupplierID = @SupplierId,
-                            IsFromCustomer = @IsFromCustomer,
-                            SourceCustomerID = @SourceCustomerId,
-                            PurchasePrice = @PurchasePrice,
-                            EditDate  = @EditDate,
-                            EditPC    = @EditPc,
-                            EditUser  = @EditUser
-                        WHERE Car_ID  = @CarId",
+                        SET ModelID   = @ModelId,  YearNo    = @YearNo,
+                            ChassisNo = @ChassisNo, MotorNo   = @MotorNo,
+                            PlateNo   = @PlateNo,   Mileage   = @Mileage,
+                            ColorID   = @ColorId,   IsStock   = 1,
+                            Notes     = @Notes,     StatusID  = 1, OwnerID = NULL,
+                            IsLocalSupplier  = @IsLocalSupplier, SupplierID = @SupplierId,
+                            IsFromCustomer   = @IsFromCustomer, SourceCustomerID = @SourceCustomerId,
+                            PurchasePrice    = @PurchasePrice,
+                            EditDate = @EditDate, EditPC = @EditPc, EditUser = @EditUser
+                        WHERE Car_ID = @CarId",
                         new
                         {
                             CarId = FormItem.CarId,
@@ -630,34 +576,27 @@ public partial class BuyCarViewModel : ObservableObject
                         INSERT INTO Buy_Car
                             (Buy_ID, BuyDate, OwnerName, OwnerTel, OwnerKawmy, OwnerAdress,
                              CarID, Mileage, Total, Notes, AddDate, AddPC, AddUser,
-                             IsTax, VatTax, Tax, TaxNo)
+                             IsTax, VatTax, Tax, TaxNo, IsCash)
                         VALUES
                             (@BuyId, @BuyDate, @OwnerName, @OwnerTel, @OwnerKawmy, @OwnerAdress,
                              @CarId, @Mileage, @Total, @Notes, @AddDate, @AddPc, @AddUser,
-                             @IsTax, @VatTax, @Tax, @TaxNo)",
+                             @IsTax, @VatTax, @Tax, @TaxNo, @IsCash)",
                         FormItem, tx);
                 }
                 else
                 {
                     await db.ExecuteAsync(@"
                         UPDATE Buy_Car
-                        SET BuyDate      = @BuyDate,
-                            OwnerName    = @OwnerName,
-                            OwnerTel     = @OwnerTel,
-                            OwnerKawmy   = @OwnerKawmy,
-                            OwnerAdress  = @OwnerAdress,
-                            CarID        = @CarId,
-                            Mileage      = @Mileage,
-                            Total        = @Total,
-                            Notes        = @Notes,
-                            EditDate     = @EditDate,
-                            EditPC       = @EditPc,
-                            EditUser     = @EditUser,
-                            IsTax        = @IsTax,
-                            VatTax       = @VatTax,
-                            Tax          = @Tax,
-                            TaxNo        = @TaxNo
-                        WHERE Buy_ID    = @BuyId",
+                        SET BuyDate     = @BuyDate,   OwnerName   = @OwnerName,
+                            OwnerTel    = @OwnerTel,  OwnerKawmy  = @OwnerKawmy,
+                            OwnerAdress = @OwnerAdress, CarID     = @CarId,
+                            Mileage     = @Mileage,   Total       = @Total,
+                            Notes       = @Notes,     EditDate    = @EditDate,
+                            EditPC      = @EditPc,    EditUser    = @EditUser,
+                            IsTax       = @IsTax,     VatTax      = @VatTax,
+                            Tax         = @Tax,       TaxNo       = @TaxNo,
+                            IsCash      = @IsCash
+                        WHERE Buy_ID = @BuyId",
                         FormItem, tx);
 
                     await db.ExecuteAsync(
@@ -672,9 +611,7 @@ public partial class BuyCarViewModel : ObservableObject
 
                 foreach (var p in FormPayments)
                 {
-                    // Ensure valid dates to prevent SqlDateTime overflow (1/1/1753)
                     if (p.PayDate < new DateTime(1753, 1, 1)) p.PayDate = DateTime.Now;
-
                     p.PayId = ++maxPayId;
                     p.BuyId = FormItem.BuyId;
                     await db.ExecuteAsync(@"
@@ -686,19 +623,22 @@ public partial class BuyCarViewModel : ObservableObject
                 }
 
                 tx.Commit();
-                // Retained IsEditing to enable further modifications
-                StatusMessage = "تم حفظ فاتورة الشراء بنجاح ✓ ";
+                StatusMessage = "تم حفظ فاتورة الشراء بنجاح ✓";
             }
             catch { tx.Rollback(); throw; }
 
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
-            if (!affectedCashIds.Contains(SelectedCashId))
+            if (IsCashPaymentMode && !affectedCashIds.Contains(SelectedCashId))
                 await _compositeRepo.RecalcBalanceForCashAsync(SelectedCashId);
 
+            if (IsFromCustomer && SelectedSourceCustomerId > 0)
+                await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedSourceCustomerId);
+            else if (!IsFromCustomer && SelectedSupplierId > 0)
+                await _compositeRepo.RecalcBalanceForSupplierAsync(SelectedSupplierId);
+
             _isInsertMode = false;
-            // IsEditing = false; // left true so the user can continue editing
             await LoadInvoicesAsync();
         }
         catch (Exception ex) { StatusMessage = $"خطأ في الحفظ: {ex.Message}"; }
@@ -773,14 +713,12 @@ public partial class BuyCarViewModel : ObservableObject
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
 
-        // Auto-fill owner info from supplier
         FormItem.OwnerName = supplier.SuppName;
         FormItem.OwnerTel = supplier.Tel;
         FormItem.OwnerKawmy = supplier.Kawmy;
         FormItem.OwnerAdress = supplier.Adress;
         OnPropertyChanged(nameof(FormItem));
 
-        // Load supplier's cars
         LoadSourceCarsAsync().ConfigureAwait(false);
     }
 
@@ -815,14 +753,12 @@ public partial class BuyCarViewModel : ObservableObject
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
 
-        // Auto-fill owner info from customer
         FormItem.OwnerName = customer.CusName;
         FormItem.OwnerTel = customer.Tel;
         FormItem.OwnerKawmy = customer.Kawmy;
         FormItem.OwnerAdress = customer.Adress;
         OnPropertyChanged(nameof(FormItem));
 
-        // Load customer's cars
         LoadSourceCarsAsync().ConfigureAwait(false);
     }
 
@@ -834,32 +770,21 @@ public partial class BuyCarViewModel : ObservableObject
             using var db = _dbFactory.CreateConnection();
             IEnumerable<Car> cars;
             if (IsFromCustomer && SelectedSourceCustomerId > 0)
-            {
                 cars = await db.QueryAsync<Car>(
-                    @"SELECT * FROM Cars WHERE OwnerID = @CusId",
+                    "SELECT * FROM Cars WHERE OwnerID = @CusId",
                     new { CusId = SelectedSourceCustomerId });
-            }
             else if (!IsFromCustomer && SelectedSupplierId > 0)
-            {
-                // Cars where source is this supplier
                 cars = await db.QueryAsync<Car>(
-                    @"SELECT * FROM Cars
-                      WHERE OwnerID IS NULL AND IsLocalSupplier = 1 AND SupplierID = @SuppId AND StatusID = 1",
+                    "SELECT * FROM Cars WHERE OwnerID IS NULL AND IsLocalSupplier = 1 AND SupplierID = @SuppId AND StatusID = 1",
                     new { SuppId = SelectedSupplierId });
-            }
             else
-            {
                 cars = [];
-            }
+
             SourceCars = new ObservableCollection<Car>(cars);
         }
-        catch (Exception ex)
-        {
-            StatusMessage = $"خطأ في تحميل الموتوسيكلات: {ex.Message}";
-        }
+        catch (Exception ex) { StatusMessage = $"خطأ في تحميل الموتوسيكلات: {ex.Message}"; }
     }
 
-    // ── When selecting an existing car, auto-fill car fields ───────────────
     partial void OnSelectedExistingCarIdChanged(int value)
     {
         if (value <= 0) return;
@@ -874,31 +799,82 @@ public partial class BuyCarViewModel : ObservableObject
         CarNotes = car.Notes;
     }
 
-    // When IsFromCustomer changes, clear the other search and reload
     partial void OnIsFromCustomerChanged(bool value)
     {
         if (value)
         {
             _isSelectingSupplier = true;
-            SupplierSearchText = string.Empty;
-            SelectedSupplierId = 0;
+            SupplierSearchText = string.Empty; SelectedSupplierId = 0;
             _isSelectingSupplier = false;
         }
         else
         {
             _isSelectingCustomer = true;
-            CustomerSearchText = string.Empty;
-            SelectedSourceCustomerId = 0;
+            CustomerSearchText = string.Empty; SelectedSourceCustomerId = 0;
             _isSelectingCustomer = false;
         }
         SourceCars.Clear();
         IsExistingCar = false;
     }
 
-    // --- Removed manual payment management commands ---
-    
-    private void CalculatePayedTotal() =>
+    // ── Payments ───────────────────────────────────────────────────────────
+    [RelayCommand]
+    private void AddPayment()
+    {
+        if (CurrentPayment.PayMoney <= 0 || CurrentPayment.CashId <= 0) return;
+        FormPayments.Add(CurrentPayment);
+        CalculatePayedTotal();
+        CurrentPayment = new BuyCarPayment
+        {
+            BuyId = FormItem.BuyId,
+            PayDate = DateTime.Now,
+            CashId = Cashes.FirstOrDefault()?.CashId ?? 0
+        };
+    }
+
+    [RelayCommand]
+    private void RemovePayment(BuyCarPayment payment)
+    {
+        if (payment != null && FormPayments.Contains(payment))
+        {
+            FormPayments.Remove(payment);
+            CalculatePayedTotal();
+        }
+    }
+
+    private void CalculatePayedTotal()
+    {
         TotalPayed = FormPayments.Sum(p => p.PayMoney);
+        UpdateRemaining();
+    }
+
+    private void UpdateRemaining() =>
+        Remaining = (FormItem?.Net ?? 0) - TotalPayed;
+
+    public void HandleCashModeChanged()
+    {
+        if (FormItem == null) return;
+        IsCashPaymentMode = FormItem.IsCash;
+
+        if (FormItem.IsCash)
+        {
+            FormPayments.Clear();
+            FormPayments.Add(new BuyCarPayment
+            {
+                BuyId = FormItem.BuyId,
+                PayDate = DateTime.Now,
+                PayMoney = FormItem.Net,
+                CashId = SelectedCashId,
+                Notes = "سداد كامل (كاش)"
+            });
+            CalculatePayedTotal();
+        }
+        else
+        {
+            FormPayments.Clear();
+            CalculatePayedTotal();
+        }
+    }
 
     // ── Helper ────────────────────────────────────────────────────────────
     private static BuyCar CloneInvoice(BuyCar s) => new()
@@ -917,6 +893,7 @@ public partial class BuyCarViewModel : ObservableObject
         AddUser = s.AddUser,
         AddDate = s.AddDate,
         AddPc = s.AddPc,
+        IsCash = s.IsCash,
         IsTax = s.IsTax,
         VatTax = s.VatTax,
         Tax = s.Tax,
@@ -927,7 +904,7 @@ public partial class BuyCarViewModel : ObservableObject
     {
         if (FormItem == null) return;
         NetBeforeTax = FormItem.Total;
-        
+
         if (FormItem.IsTax)
         {
             FormItem.VatTax = Math.Round(NetBeforeTax * (VatTaxPercent / 100.0), 2);
@@ -935,13 +912,21 @@ public partial class BuyCarViewModel : ObservableObject
         }
         else
         {
-            FormItem.Tax = 0;
-            FormItem.VatTax = 0;
+            FormItem.Tax = 0; FormItem.VatTax = 0;
         }
 
         FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
-        
-        // Notify UI of changes
+
+        if (IsCashPaymentMode && FormPayments.Any())
+        {
+            FormPayments[0].PayMoney = FormItem.Net;
+            CalculatePayedTotal();
+        }
+        else
+        {
+            UpdateRemaining();
+        }
+
         OnPropertyChanged(nameof(FormItem));
         OnPropertyChanged(nameof(FormTotal));
         OnPropertyChanged(nameof(FormIsTax));

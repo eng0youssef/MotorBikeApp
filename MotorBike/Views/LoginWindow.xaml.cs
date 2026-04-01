@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
 using MotorBike.ViewModels;
 
@@ -30,6 +31,25 @@ public partial class LoginWindow : Window
         if (DataContext is LoginViewModel vm)
         {
             vm.Password = ((PasswordBox)sender).Password;
+        }
+    }
+
+    private void txtUserName_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            txtPassword.Focus();
+        }
+    }
+
+    private void txtPassword_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            if (_viewModel.LoginCommand.CanExecute(null))
+            {
+                _viewModel.LoginCommand.Execute(null);
+            }
         }
     }
 }

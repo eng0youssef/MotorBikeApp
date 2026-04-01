@@ -12,6 +12,8 @@ public partial class BuyCar
 
     public DateTime BuyDate { get; set; }
 
+    public bool IsCash { get; set; }
+
     public string OwnerName { get; set; } = null!;
 
     public string? OwnerTel { get; set; }

@@ -120,13 +120,20 @@
 
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" /> <!-- Header -->
-                            <RowDefinition Height="Auto" /> <!-- Separator -->
-                            <RowDefinition Height="Auto" /> <!-- Main Info -->
-                            <RowDefinition Height="Auto" /> <!-- Treasury Selection -->
-                            <RowDefinition Height="Auto" /> <!-- Tax Section -->
-                            <RowDefinition Height="Auto" /> <!-- Payments -->
-                            <RowDefinition Height="Auto" /> <!-- Actions -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Header  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Separator  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Main Info  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Treasury Selection  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Tax Section  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Payments  -->
+                            <RowDefinition Height="Auto" /> 
+                            <!--  Actions  -->
                         </Grid.RowDefinitions>
 
                         <!--  ── Header ───────────────────────────────────────  -->
@@ -283,7 +290,7 @@
                                     </Border>
                                 </Popup>
                             </Grid>
-                         
+
                             <!--  Row 2 : Car search | Mileage | Total  -->
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
@@ -419,7 +426,7 @@
                                                         <TranslateTransform x:Name="SliderTranslate" X="0" />
                                                     </Border.RenderTransform>
                                                 </Border>
-                                                <TextBlock x:Name="LabelRight" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#6B7490" Text="أجل" />
+                                                <TextBlock x:Name="LabelRight" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="White" Text="أجل" />
                                                 <TextBlock x:Name="LabelLeft" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="White" Text="كاش" />
                                             </Grid>
                                         </Border>
@@ -427,8 +434,8 @@
                                             <Trigger Property="IsChecked" Value="False">
                                                 <Setter TargetName="SliderHighlight" Property="Grid.Column" Value="0" />
                                                 <Setter TargetName="SliderHighlight" Property="Background" Value="#E8A54B" />
-                                                <Setter TargetName="LabelRight" Property="Foreground" Value="#1E2233" />
-                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="#6B7490" />
+                                                <Setter TargetName="LabelRight" Property="Foreground" Value="White" />
+                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="White" />
                                             </Trigger>
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="TrackBorder" Property="BorderBrush" Value="#E8A54B" />
@@ -615,7 +622,7 @@
         <!--  SEARCH SECTION  -->
         <!--  ════════════════════════════════════════════════════════════════  -->
         <Grid Margin="24" Style="{StaticResource SearchContainerStyle}">
-            <Border Padding="32" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="16">
+            <Border Padding="24" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="14">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
                 </Border.Effect>
@@ -628,10 +635,16 @@
 
                     <DockPanel Grid.Row="0" Margin="0,0,0,24">
                         <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                            <Border Margin="0,0,12,0" Padding="10" Background="#F3F4F6" CornerRadius="8">
+                            <Border Margin="0,0,12,0" Padding="10" CornerRadius="8">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Offset="0" Color="#E8A54B" />
+                                        <GradientStop Offset="1" Color="#D4922F" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
                                 <TextBlock FontSize="20" Text="🔎" />
                             </Border>
-                            <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="#1E293B" Text="البحث في فواتير بيع الموتوسيكل" />
+                            <TextBlock VerticalAlignment="Center" FontSize="20" FontWeight="Bold" Foreground="White" Text="البحث في فواتير بيع الموتوسيكل" />
                         </StackPanel>
                         <Button Padding="16,8" HorizontalAlignment="Right"
                                 Command="{Binding HideSearchPanelCommand}"
@@ -639,50 +652,38 @@
                                 Style="{StaticResource SecondaryButton}" />
                     </DockPanel>
 
-                    <Border Grid.Row="1" Margin="0,0,0,24" Padding="16" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12">
+                    <Border Grid.Row="1" Margin="0,0,0,20" Padding="16"
+                            Background="{StaticResource SectionBg}"
+                            BorderBrush="{StaticResource SectionBorder}"
+                            BorderThickness="1" CornerRadius="10">                        
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#475569" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
-                            <TextBox Grid.Column="1" MinWidth="200" MaxWidth="460" Padding="12,8" HorizontalAlignment="Left" Background="White" FontSize="15"
+                            <TextBlock Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="White" Text="كلمة البحث (رقم الفاتورة، اسم العميل):" />
+                            <TextBox Grid.Column="1" MinWidth="200" MaxWidth="460" Padding="12,8" HorizontalAlignment="Left" Background="LightGray" FontSize="15"
                                      Style="{StaticResource FormTextBox}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
                     </Border>
 
-                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
-                        <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="False" Background="White" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="54" FontSize="14" Foreground="#1E293B"
-                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#F1F5F9" IsReadOnly="True"
+                    <Border Grid.Row="2" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="12">
+                        <DataGrid AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="50" FontSize="13" Foreground="#C8CEE0"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#323848" IsReadOnly="True"
                                   ItemsSource="{Binding FilteredInvoices}"
-                                  RowHeight="48"
+                                  RowHeight="46"
                                   SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}"
                                   SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader">
-                                    <Setter Property="Background" Value="#F1F5F9" />
-                                    <Setter Property="Foreground" Value="#334155" />
-                                    <Setter Property="FontWeight" Value="SemiBold" />
-                                    <Setter Property="Padding" Value="16,12" />
-                                    <Setter Property="BorderBrush" Value="#E2E8F0" />
-                                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                                </Style>
+                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
                             </DataGrid.ColumnHeaderStyle>
                             <DataGrid.RowStyle>
-                                <Style TargetType="DataGridRow">
-                                    <Setter Property="Cursor" Value="Hand" />
-                                    <Style.Triggers>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Background" Value="#DBEAFE" />
-                                            <Setter Property="Foreground" Value="#1D4ED8" />
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#EFF6FF" />
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
+                                <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
                             </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                            </DataGrid.CellStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -720,10 +721,8 @@
         </Grid>
         <!--  ████████ PAYMENTS POPUP OVERLAY ████████  -->
         <!--  ████████ PAYMENTS POPUP OVERLAY ████████  -->
-        <Grid Panel.ZIndex="100" Background="#B20F172A"
-      Visibility="{Binding IsPaymentsPopupOpen, Converter={StaticResource BoolToVis}}">
-            <Border Width="850" HorizontalAlignment="Center" VerticalAlignment="Center"
-            Background="#1E2233" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
+        <Grid Panel.ZIndex="100" Background="#B20F172A" Visibility="{Binding IsPaymentsPopupOpen, Converter={StaticResource BoolToVis}}">
+            <Border Width="850" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1E2233" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="32" Direction="270" Opacity="0.3" ShadowDepth="12" Color="#000000" />
                 </Border.Effect>
@@ -735,15 +734,15 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <!-- Header -->
+                    <!--  Header  -->
                     <DockPanel Grid.Row="0" Margin="0,0,0,20">
                         <TextBlock VerticalAlignment="Center" DockPanel.Dock="Left" FontSize="20" FontWeight="Bold" Foreground="#ECEEF5" Text="💰 المدفوعات" />
                         <Button HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
-                        Command="{Binding ClosePaymentsPopupCommand}"
-                        Content="✖" Cursor="Hand" DockPanel.Dock="Right" FontSize="20" FontWeight="Bold" Foreground="#7B84A0" ToolTip="إغلاق" />
+                                Command="{Binding ClosePaymentsPopupCommand}"
+                                Content="✖" Cursor="Hand" DockPanel.Dock="Right" FontSize="20" FontWeight="Bold" Foreground="#7B84A0" ToolTip="إغلاق" />
                     </DockPanel>
 
-                    <!-- Quick Add Payment -->
+                    <!--  Quick Add Payment  -->
                     <Border Grid.Row="1" Margin="0,0,0,14" Padding="14" Background="#2F3549" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -764,27 +763,25 @@
                             </Grid>
                             <Grid Grid.Column="2" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}" Text="الخزينة" />
-                                <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}"
-                                  SelectedValue="{Binding CurrentPayment.CashId, UpdateSourceTrigger=PropertyChanged}"
-                                  SelectedValuePath="CashId" />
+                                <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding CurrentPayment.CashId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="CashId" />
                             </Grid>
                             <Grid Grid.Column="3" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}" Text="ملاحظات" />
                                 <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CurrentPayment.Notes, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
                             <Button Grid.Column="4" Padding="16,10"
-                            Command="{Binding AddPaymentCommand}"
-                            Content="➕ إضافة"
-                            Style="{StaticResource SuccessButton}" />
+                                    Command="{Binding AddPaymentCommand}"
+                                    Content="➕ إضافة"
+                                    Style="{StaticResource SuccessButton}" />
                         </Grid>
                     </Border>
 
-                    <!-- Payments DataGrid -->
+                    <!--  Payments DataGrid  -->
                     <Border Grid.Row="2" MinHeight="150" MaxHeight="300" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="10">
-                        <DataGrid AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False"
-                          ColumnHeaderHeight="40" FontSize="13" Foreground="#C8CEE0" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                          HorizontalGridLinesBrush="#323848" IsReadOnly="False"
-                          ItemsSource="{Binding FormPayments}" RowHeight="36" SelectionMode="Single">
+                        <DataGrid AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False" ColumnHeaderHeight="40" FontSize="13" Foreground="#C8CEE0"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#323848" IsReadOnly="False"
+                                  ItemsSource="{Binding FormPayments}"
+                                  RowHeight="36" SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
                             </DataGrid.ColumnHeaderStyle>
@@ -796,7 +793,9 @@
                             </DataGrid.CellStyle>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Width="120" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
-                                <DataGridTextColumn Width="120" Binding="{Binding PayMoney, StringFormat=\{0:N2\}}" FontWeight="SemiBold" Foreground="#5BAE7C" Header="المبلغ" />
+                                <DataGridTextColumn Width="120"
+                                                    Binding="{Binding PayMoney, StringFormat=\{0:N2\}}"
+                                                    FontWeight="SemiBold" Foreground="#5BAE7C" Header="المبلغ" />
                                 <DataGridTemplateColumn Width="*" Header="الخزينة">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -813,9 +812,9 @@
                                     <DataGridTemplateColumn.CellEditingTemplate>
                                         <DataTemplate>
                                             <ComboBox DisplayMemberPath="CashName" IsDropDownOpen="True"
-                                              ItemsSource="{Binding DataContext.Cashes, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                              SelectedValue="{Binding CashId, UpdateSourceTrigger=PropertyChanged}"
-                                              SelectedValuePath="CashId" />
+                                                      ItemsSource="{Binding DataContext.Cashes, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      SelectedValue="{Binding CashId, UpdateSourceTrigger=PropertyChanged}"
+                                                      SelectedValuePath="CashId" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellEditingTemplate>
                                 </DataGridTemplateColumn>
@@ -824,9 +823,9 @@
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Background="Transparent" BorderThickness="0"
-                                            Command="{Binding DataContext.RemovePaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}"
-                                            Content="🗑️" Cursor="Hand" FontSize="14" Foreground="#D9534F" ToolTip="حذف الدفعة" />
+                                                    Command="{Binding DataContext.RemovePaymentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="🗑️" Cursor="Hand" FontSize="14" Foreground="#D9534F" ToolTip="حذف الدفعة" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -834,7 +833,7 @@
                         </DataGrid>
                     </Border>
 
-                    <!-- Payment Totals -->
+                    <!--  Payment Totals  -->
                     <StackPanel Grid.Row="3" Margin="0,14,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
                         <Border Margin="0,0,24,0" Padding="16,10" Background="#283830" BorderBrush="#3D7A5A" BorderThickness="1" CornerRadius="8">
                             <StackPanel>

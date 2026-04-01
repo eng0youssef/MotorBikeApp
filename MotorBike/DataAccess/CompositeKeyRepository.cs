@@ -241,6 +241,7 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashID = @CashId), 0)
                 - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashID = @CashId), 0)
                 - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId), 0)
+                + ISNULL((SELECT SUM(Total) FROM Inspection WHERE CashId = @CashId), 0)
             WHERE Cash_ID = @CashId";
         await db.ExecuteAsync(sql, new { CashId = cashId });
     }

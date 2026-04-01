@@ -27,7 +27,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        </UserControl.Resources>
+    </UserControl.Resources>
 
     <Grid Background="#1E2233">
         <!--  FORM Section  -->
@@ -208,7 +208,7 @@
                                                 <Setter TargetName="SliderHighlight" Property="Grid.Column" Value="0" />
                                                 <Setter TargetName="SliderHighlight" Property="Background" Value="#F59E0B" />
                                                 <Setter TargetName="LabelRight" Property="Foreground" Value="White" />
-                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="LightGray" />
+                                                <Setter TargetName="LabelLeft" Property="Foreground" Value="White" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -224,7 +224,7 @@
                                 IsEnabled="{Binding IsEditing}">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="3*" MinWidth="150" />
+                                    <ColumnDefinition Width="2*" MinWidth="150" />
                                     <!--  Smart Search  -->
                                     <ColumnDefinition Width="*" MinWidth="80" />
                                     <!--  Store  -->
@@ -232,19 +232,19 @@
                                     <!--  Unit  -->
                                     <ColumnDefinition Width="0.7*" MinWidth="60" />
                                     <!--  Qty  -->
-                                    <ColumnDefinition Width="0.8*" MinWidth="70" />
+                                    <ColumnDefinition Width="0.9*" MinWidth="70" />
                                     <!--  Price  -->
                                     <ColumnDefinition Width="0.8*" MinWidth="70" />
                                     <!--  DiscPer  -->
                                     <ColumnDefinition Width="0.8*" MinWidth="70" />
                                     <!--  Disc  -->
-                                    <ColumnDefinition Width="0.8*" MinWidth="70" />
+                                    <ColumnDefinition Width="1*" MinWidth="70" />
                                     <!--  Total  -->
                                     <ColumnDefinition Width="Auto" />
                                     <!--  Add btn  -->
                                 </Grid.ColumnDefinitions>
                                 <Grid Grid.Column="0" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" VerticalAlignment="Top" FontSize="11" Foreground="#64748B" Text="بحث الصنف" />
+                                    <TextBlock Margin="2,-16,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="13" Foreground="White" Text="بحث الصنف" />
                                     <TextBox x:Name="ItemSearchBox" GotFocus="ItemSearch_GotFocus" Style="{StaticResource FormTextBox}" Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}" />
                                     <Popup x:Name="ItemSearchPopup"
                                            Width="{Binding ActualWidth, ElementName=ItemSearchBox}"
@@ -287,37 +287,37 @@
                                     </Popup>
                                 </Grid>
                                 <Grid Grid.Column="1" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="المخزن" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold"  Foreground="White" Text="المخزن" />
                                     <ComboBox Padding="8,6" DisplayMemberPath="StoreName" FontSize="13"
                                               ItemsSource="{Binding Stores}"
                                               SelectedValue="{Binding CurrentSubItem.StoreId}"
                                               SelectedValuePath="StoreId" />
                                 </Grid>
                                 <Grid Grid.Column="2" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="الوحدة" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold"  Foreground="White" Text="الوحدة" />
                                     <ComboBox Padding="8,6" DisplayMemberPath="UnitName" FontSize="13"
                                               ItemsSource="{Binding CurrentItemUnits}"
                                               SelectedValue="{Binding CurrentSubItem.UnitId}"
                                               SelectedValuePath="UnitId" />
                                 </Grid>
                                 <Grid Grid.Column="3" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="الكمية" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold"  Foreground="White" Text="الكمية" />
                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemQty, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
                                 <Grid Grid.Column="4" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="السعر" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold"  Foreground="White" Text="السعر" />
                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemPrice, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
                                 <Grid Grid.Column="5" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="خصم %" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold" Foreground="White" Text="خصم %" />
                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountPercent, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
                                 <Grid Grid.Column="6" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="خصم" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13"  FontWeight="Bold"  Foreground="White" Text="خصم" />
                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountValue, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
                                 <Grid Grid.Column="7" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#64748B" Text="اجمالي" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13"  FontWeight="Bold"  Foreground="White" Text="اجمالي" />
                                     <TextBox Background="#2A3040" FontSize="13" FontWeight="Bold" Foreground="#E4A0A0" IsEnabled="False"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding SubItemTotal, Mode=OneWay, StringFormat=\{0:N2\}}" />
@@ -338,12 +338,12 @@
                                       SelectedItem="{Binding SelectedSubItem, Mode=TwoWay}"
                                       SelectionMode="Single">
                                 <DataGrid.ColumnHeaderStyle>
-                    <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
-                </DataGrid.ColumnHeaderStyle>
+                                    <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
+                                </DataGrid.ColumnHeaderStyle>
                                 <DataGrid.RowStyle>
-                    <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
-                </DataGrid.RowStyle>
-                <DataGrid.CellStyle>
+                                    <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                                </DataGrid.RowStyle>
+                                <DataGrid.CellStyle>
                                     <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
                                 </DataGrid.CellStyle>
                                 <DataGrid.Columns>
@@ -397,7 +397,7 @@
                         <Border Grid.Row="5" Margin="0,0,0,20" Padding="24,18"
                                 Background="{StaticResource SectionBg}"
                                 BorderBrush="{StaticResource SectionBorder}"
-                                BorderThickness="1" CornerRadius="12">                            
+                                BorderThickness="1" CornerRadius="12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -410,7 +410,7 @@
                                 <WrapPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
                                     <StackPanel Margin="0,0,24,12">
                                         <TextBlock Margin="0,0,0,4" FontSize="13" FontWeight="Bold" Foreground="White" Text="صافي المرتجع" />
-                                        <TextBox MinWidth="110" HorizontalContentAlignment="Center" Background="#3A3420" Foreground="#FDE047" FontSize="15" FontWeight="Bold" IsReadOnly="True"
+                                        <TextBox MinWidth="110" HorizontalContentAlignment="Center" Background="#3A3420" FontSize="15" FontWeight="Bold" Foreground="#FDE047" IsReadOnly="True"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding FormItem.Total, Mode=OneWay, StringFormat=\{0:N2\}}" />
                                     </StackPanel>
@@ -462,8 +462,8 @@
 
                                     <!--  Total Before Tax  -->
                                     <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,0,12" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Foreground="White" Text="اجمالي المرتجع" />
-                                    <TextBox Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,8" HorizontalContentAlignment="Center" Background="#3A3420" Foreground="#FDE047" FontSize="15"
-                                             FontWeight="Bold" IsReadOnly="True"
+                                    <TextBox Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,8" HorizontalContentAlignment="Center" Background="#3A3420" FontSize="15"
+                                             FontWeight="Bold" Foreground="#FDE047" IsReadOnly="True"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding NetBeforeTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
 
@@ -476,7 +476,7 @@
                                                  IsEnabled="{Binding IsEditing}"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding VatTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
-                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" Foreground="#FDE047" FontSize="14" FontWeight="SemiBold" IsReadOnly="True"
+                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" FontSize="14" FontWeight="SemiBold" Foreground="#FDE047" IsReadOnly="True"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding FormItem.VatTax, Mode=OneWay, StringFormat=\{0:N2\}}" />
                                     </StackPanel>
@@ -490,7 +490,7 @@
                                                  IsEnabled="{Binding IsEditing}"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding WhtTaxPercent, UpdateSourceTrigger=PropertyChanged}" />
-                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" Foreground="#FDE047" FontSize="14" FontWeight="SemiBold" IsReadOnly="True"
+                                        <TextBox MinWidth="100" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" FontSize="14" FontWeight="SemiBold" Foreground="#FDE047" IsReadOnly="True"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding FormItem.Tax, Mode=OneWay, StringFormat=\{0:N2\}}" />
                                     </StackPanel>
@@ -498,8 +498,8 @@
                                     <!--  Total After Tax  -->
                                     <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,0,0" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Foreground="White" Text="اجمالي بعد الضريبة"
                                                Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
-                                    <TextBox Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" Foreground="#FDE047" FontSize="15"
-                                             FontWeight="Bold" IsReadOnly="True"
+                                    <TextBox Grid.Row="3" Grid.Column="2" Grid.ColumnSpan="2" MinWidth="180" Margin="0,0,8,0" HorizontalContentAlignment="Center" Background="#3A3420" FontSize="15"
+                                             FontWeight="Bold" Foreground="#FDE047" IsReadOnly="True"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding FormItem.Net, Mode=OneWay, StringFormat=\{0:N2\}}"
                                              Visibility="{Binding FormItem.IsTax, Converter={StaticResource BoolToVis}}" />
@@ -646,14 +646,14 @@
                                   SelectedItem="{Binding SelectedInvoice, Mode=TwoWay}"
                                   SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
-                    <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
-                </DataGrid.ColumnHeaderStyle>
+                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
+                            </DataGrid.ColumnHeaderStyle>
                             <DataGrid.RowStyle>
-                    <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
-                </DataGrid.RowStyle>
-                <DataGrid.CellStyle>
-                    <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
-                </DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                            </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
+                            </DataGrid.CellStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Width="100">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -752,12 +752,12 @@
                                   ItemsSource="{Binding FormPayments}"
                                   RowHeight="36" SelectionMode="Single">
                             <DataGrid.ColumnHeaderStyle>
-                    <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
-                </DataGrid.ColumnHeaderStyle>
+                                <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
+                            </DataGrid.ColumnHeaderStyle>
                             <DataGrid.RowStyle>
-                    <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
-                </DataGrid.RowStyle>
-                <DataGrid.CellStyle>
+                                <Style BasedOn="{StaticResource DarkRow}" TargetType="DataGridRow" />
+                            </DataGrid.RowStyle>
+                            <DataGrid.CellStyle>
                                 <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
                             </DataGrid.CellStyle>
                             <DataGrid.Columns>

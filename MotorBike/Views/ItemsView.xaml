@@ -23,7 +23,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="16" Text="🔍" />
+                <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="16" Foreground="#E8A54B" Text="🔍" />
                 <TextBox Grid.Column="1" FontSize="14"
                          Style="{StaticResource FormTextBox}"
                          Tag="ابحث عن صنف..."
@@ -141,8 +141,8 @@
                     </TabControl.Resources>
 
                     <!--  Tab 1: Basic Data  -->
-                    <TabItem Header="📋 البيانات الأساسية">
-                        <ScrollViewer MaxHeight="350" Margin="0,16,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <TabItem Header="📋 البيانات الأساسية" >
+                        <ScrollViewer MaxHeight="350" MinHeight="370" Margin="0,16,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -196,7 +196,7 @@
                                           SelectedValuePath="CatId"
                                           Style="{DynamicResource {x:Type ComboBox}}" />
 
-                                <CheckBox Grid.Row="0" Grid.Column="9" Grid.ColumnSpan="2" VerticalAlignment="Center" Content="نشط" FontSize="14"
+                                <CheckBox Grid.Row="0" Grid.Column="8" Grid.ColumnSpan="2" Foreground="White" VerticalAlignment="Center" Content="نشط" FontSize="14"
                                           IsChecked="{Binding FormItem.Active}"
                                           Style="{StaticResource ToggleSwitchStyle}" />
 
@@ -302,7 +302,7 @@
                     </TabItem>
 
                     <TabItem Header="📦 رصيد أول المدة">
-                        <ScrollViewer MinHeight="350" MaxHeight="350" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer MinHeight="370" MaxHeight="350" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <Grid MinHeight="334" Margin="0,16,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -407,10 +407,10 @@
                                 <DataGrid Grid.Row="1" AutoGenerateColumns="False" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" IsReadOnly="True"
                                           ItemsSource="{Binding CurrentItemOpenStocks}">
                                     <DataGrid.Columns>
-                                        <DataGridTemplateColumn Width="*" Header="المخزن">
+                                        <DataGridTemplateColumn Width="150" Header="المخزن">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
-                                                    <TextBlock Padding="12,0" VerticalAlignment="Center" Foreground="#C8CEE0">
+                                                    <TextBlock Padding="12,0" VerticalAlignment="Center" Foreground="Black">
                                                         <TextBlock.Text>
                                                             <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="StoreId,StoreName">
                                                                 <Binding Path="StoreId" />
@@ -421,13 +421,13 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Width="110" Binding="{Binding OpenDate, StringFormat=d}" Header="التاريخ" />
+                                        <DataGridTextColumn Width="120" Binding="{Binding OpenDate, StringFormat=d}" Header="التاريخ" />
                                         <DataGridTextColumn Width="90" Binding="{Binding Qty}" Header="الكمية" />
-                                        <DataGridTextColumn Width="110" Binding="{Binding Price, StringFormat=N2}" Header="السعر" />
-                                        <DataGridTextColumn Width="80" Binding="{Binding DiscPer, StringFormat=P0}" Header="خصم%" />
-                                        <DataGridTextColumn Width="90" Binding="{Binding Disc, StringFormat=N2}" Header="خصم" />
-                                        <DataGridTextColumn Width="130" Binding="{Binding Total, StringFormat=N2}" FontWeight="SemiBold" Header="الإجمالي" />
-                                        <DataGridTemplateColumn Width="70" Header="إجراء">
+                                        <DataGridTextColumn Width="120" Binding="{Binding Price, StringFormat=N2}" Header="السعر" />
+                                        <DataGridTextColumn Width="100" Binding="{Binding DiscPer, StringFormat=P0}" Header="خصم%" />
+                                        <DataGridTextColumn Width="100" Binding="{Binding Disc, StringFormat=N2}" Header="خصم" />
+                                        <DataGridTextColumn Width="150" Binding="{Binding Total, StringFormat=N2}" FontWeight="SemiBold" Header="الإجمالي" />
+                                        <DataGridTemplateColumn Width="auto" Header="إجراء">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Width="34" Height="30" Padding="4"

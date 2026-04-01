@@ -14,6 +14,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     private readonly IRepository<Color> _colorRepository;
     private readonly IRepository<Cash> _cashRepository;
     private readonly IDbConnectionFactory _dbFactory;
+    private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty]
     private ObservableCollection<InspectionSub> _formSubItems = [];
@@ -44,12 +45,14 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
         IRepository<Inspection> repository,
         IRepository<CarModel> modelRepository,
         IRepository<Color> colorRepository,
-        IRepository<Cash> cashRepository) : base(repository)
+        IRepository<Cash> cashRepository,
+        CompositeKeyRepository compositeRepo) : base(repository)
     {
         _dbFactory = dbFactory;
         _modelRepository = modelRepository;
         _colorRepository = colorRepository;
         _cashRepository = cashRepository;
+        _compositeRepo = compositeRepo;
     }
 
     [RelayCommand]
@@ -197,6 +200,15 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                 await SetNewIdAsync(FormItem);
             }
 
+            int? oldCashId = null;
+            if (!isInsert)
+            {
+                using var dbPre = _dbFactory.CreateConnection();
+                oldCashId = await dbPre.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT CashId FROM Inspection WHERE Insp_ID = @InspId",
+                    new { InspId = FormItem.InspId });
+            }
+
             SetAuditFields(FormItem, isInsert);
 
             using var db = _dbFactory.CreateConnection();
@@ -249,6 +261,13 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                 throw;
             }
 
+            // Recalculate cash balances
+            if (oldCashId.HasValue && oldCashId.Value != FormItem.CashId)
+            {
+                await _compositeRepo.RecalcBalanceForCashAsync(oldCashId.Value);
+            }
+            await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId);
+
             // Reload data
             await LoadDataAsync();
             
@@ -277,12 +296,14 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
 
             try
             {
+                var affectedCashId = SelectedItem.CashId;
                 await db.ExecuteAsync("DELETE FROM Inspection_Sub WHERE InspId = @InspId", 
                     new { InspId = SelectedItem.InspId }, tx);
                 await db.ExecuteAsync("DELETE FROM Inspection WHERE Insp_ID = @InspId", 
                     new { InspId = SelectedItem.InspId }, tx);
 
                 tx.Commit();
+                await _compositeRepo.RecalcBalanceForCashAsync(affectedCashId);
                 StatusMessage = "تم حذف الكشف بنجاح ✓";
             }
             catch
