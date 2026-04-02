@@ -433,13 +433,13 @@ public partial class SalesCarViewModel : ObservableObject
                     FormItem.AddPc ??= Environment.MachineName;
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
-                        await db.ExecuteAsync(@"
-                        INSERT INTO Sales_Car
-                            (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Notes,
-                             AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo)
-                        VALUES
-                            (@SalesId, @SalesDate, @CusId, @CarId, @Mileage, @Total, @Notes,
-                             @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
+                    await db.ExecuteAsync(@"
+                    INSERT INTO Sales_Car
+                        (Sales_ID, SalesDate, CusId, CarID, Mileage, Total, Net, Notes,
+                         AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo, IsCash)
+                    VALUES
+                        (@SalesId, @SalesDate, @CusId, @CarId, @Mileage, @Total, @Net, @Notes,
+                         @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo, @IsCash)",
                         FormItem, tx);
                 }
                 else
@@ -448,12 +448,12 @@ public partial class SalesCarViewModel : ObservableObject
                     FormItem.EditDate = DateTime.Now;
                     FormItem.EditUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                        UPDATE Sales_Car
-                        SET SalesDate = @SalesDate, CusId = @CusId, CarID = @CarId,
-                            Mileage   = @Mileage,   Total = @Total,  Notes = @Notes,
-                            EditDate  = @EditDate,  EditPc = @EditPc, EditUser = @EditUser,
-                            IsTax = @IsTax, VatTax = @VatTax, Tax = @Tax, TaxNo = @TaxNo
-                        WHERE Sales_ID = @SalesId",
+                    UPDATE Sales_Car
+                    SET SalesDate = @SalesDate, CusId = @CusId, CarID = @CarId,
+                        Mileage   = @Mileage,   Total = @Total,  Net = @Net,  Notes = @Notes,
+                        EditDate  = @EditDate,  EditPc = @EditPc, EditUser = @EditUser,
+                        IsTax = @IsTax, VatTax = @VatTax, Tax = @Tax, TaxNo = @TaxNo, IsCash = @IsCash
+                    WHERE Sales_ID = @SalesId",
                         FormItem, tx);
                     await db.ExecuteAsync(
                         "DELETE FROM Sales_Car_Payments WHERE SalesId = @SalesId",

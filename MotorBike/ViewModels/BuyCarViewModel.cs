@@ -21,6 +21,7 @@ public partial class BuyCarViewModel : ObservableObject
     private readonly IRepository<Car> _carRepository;
     private readonly IRepository<CarModel> _carModelRepository;
     private readonly IRepository<Color> _colorRepository;
+    private readonly IRepository<CarBrand> _carBrandRepository;
     private readonly IRepository<Supplier> _supplierRepository;
     private readonly IRepository<Customer> _customerRepository;
     private readonly CompositeKeyRepository _compositeRepo;
@@ -29,6 +30,7 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private ObservableCollection<Color> _colors = [];
+    [ObservableProperty] private ObservableCollection<CarBrand> _carBrands = [];
     [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
 
@@ -40,9 +42,31 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private BuyCar _formItem = new();
 
     // ── Inline car fields ─────────────────────────────────────────────────
-    [ObservableProperty] private int _carModelId;
+    private int _carModelId;
+    private int _carColorId;
+    [ObservableProperty] private string _carModelName = string.Empty;
+    [ObservableProperty] private string _carBrandName = string.Empty;
+    [ObservableProperty] private string _carColorName = string.Empty;
+    [ObservableProperty] private bool _isBrandEnabled = true;
     [ObservableProperty] private short _carYearNo = (short)DateTime.Now.Year;
-    [ObservableProperty] private int _carColorId;
+
+    partial void OnCarModelNameChanged(string value)
+    {
+        var model = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, value?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            if (brand != null)
+            {
+                CarBrandName = brand.BrandName;
+            }
+            IsBrandEnabled = false;
+        }
+        else
+        {
+            IsBrandEnabled = true;
+        }
+    }
     [ObservableProperty] private string? _carChassisNo;
     [ObservableProperty] private string? _carMotorNo;
     [ObservableProperty] private string? _carPlateNo;
@@ -164,6 +188,7 @@ public partial class BuyCarViewModel : ObservableObject
         IRepository<Car> carRepository,
         IRepository<CarModel> carModelRepository,
         IRepository<Color> colorRepository,
+        IRepository<CarBrand> carBrandRepository,
         IRepository<Supplier> supplierRepository,
         IRepository<Customer> customerRepository,
         CompositeKeyRepository compositeRepo)
@@ -174,6 +199,7 @@ public partial class BuyCarViewModel : ObservableObject
         _carRepository = carRepository;
         _carModelRepository = carModelRepository;
         _colorRepository = colorRepository;
+        _carBrandRepository = carBrandRepository;
         _supplierRepository = supplierRepository;
         _customerRepository = customerRepository;
         _compositeRepo = compositeRepo;
@@ -194,14 +220,17 @@ public partial class BuyCarViewModel : ObservableObject
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors.Where(c => c.Active));
 
+            var brands = await _carBrandRepository.GetAllAsync();
+            CarBrands = new ObservableCollection<CarBrand>(brands.Where(b => b.Active));
+
             var suppliers = await _supplierRepository.GetAllAsync();
             Suppliers = new ObservableCollection<Supplier>(suppliers);
 
             var customers = await _customerRepository.GetAllAsync();
             Customers = new ObservableCollection<Customer>(customers);
 
-            CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
-            CarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
+            CarModelName = string.Empty;
+            CarColorName = string.Empty;
 
             await LoadInvoicesAsync();
             await AddNewAsync();
@@ -289,9 +318,28 @@ public partial class BuyCarViewModel : ObservableObject
                 "SELECT * FROM Cars WHERE Car_ID = @CarId", new { CarId = carId });
 
             if (car is null) return;
-            CarModelId = car.ModelId;
+
+            _carModelId = car.ModelId;
+            var model = CarModels.FirstOrDefault(m => m.ModelId == car.ModelId);
+            CarModelName = model?.ModelName ?? string.Empty;
+
+            _carColorId = car.ColorId;
+            var color = Colors.FirstOrDefault(c => c.ColorId == car.ColorId);
+            CarColorName = color?.ColorName ?? string.Empty;
+
+            if (model != null)
+            {
+                var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+                CarBrandName = brand?.BrandName ?? string.Empty;
+                IsBrandEnabled = false;
+            }
+            else
+            {
+                CarBrandName = string.Empty;
+                IsBrandEnabled = true;
+            }
+
             CarYearNo = car.YearNo;
-            CarColorId = car.ColorId;
             CarChassisNo = car.ChassisNo;
             CarMotorNo = car.MotorNo;
             CarPlateNo = car.PlateNo;
@@ -349,9 +397,14 @@ public partial class BuyCarViewModel : ObservableObject
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
-        CarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
+        _carModelId = 0;
+        _carColorId = 0;
+        CarModelName = string.Empty;
+        CarBrandName = string.Empty;
+        CarColorName = string.Empty;
+        IsBrandEnabled = true;
+
         CarYearNo = (short)DateTime.Now.Year;
-        CarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
         CarChassisNo = null; CarMotorNo = null; CarPlateNo = null; CarNotes = null;
         CarActive = true;
 
@@ -495,7 +548,50 @@ public partial class BuyCarViewModel : ObservableObject
                     FormItem.EditPc = Environment.MachineName;
                 }
 
-                // ── 1. Car record ────────────────────────────────────────
+                // Color check
+                var selectedColorName = CarColorName?.Trim() ?? "بدون";
+                var colorObj = Colors.FirstOrDefault(c => string.Equals(c.ColorName, selectedColorName, StringComparison.OrdinalIgnoreCase));
+                if (colorObj != null)
+                {
+                    _carColorId = colorObj.ColorId;
+                }
+                else
+                {
+                    _carColorId = await _colorRepository.GetNextIdAsync();
+                    var newColor = new Color { ColorId = _carColorId, ColorName = selectedColorName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO Colors (Color_ID, ColorName, Active, AddDate, AddPC, AddUser) VALUES (@ColorId, @ColorName, @Active, @AddDate, @AddPc, @AddUser)", newColor, tx);
+                    Colors.Add(newColor);
+                }
+
+                // Brand and Model check
+                var selectedModelName = CarModelName?.Trim() ?? "بدون";
+                var modelObj = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, selectedModelName, StringComparison.OrdinalIgnoreCase));
+                if (modelObj != null)
+                {
+                    _carModelId = modelObj.ModelId;
+                }
+                else
+                {
+                    var selectedBrandName = CarBrandName?.Trim() ?? "بدون";
+                    var brandObj = CarBrands.FirstOrDefault(b => string.Equals(b.BrandName, selectedBrandName, StringComparison.OrdinalIgnoreCase));
+                    int currentBrandId;
+                    if (brandObj != null)
+                    {
+                        currentBrandId = brandObj.BrandId;
+                    }
+                    else
+                    {
+                        currentBrandId = await _carBrandRepository.GetNextIdAsync();
+                        var newBrand = new CarBrand { BrandId = currentBrandId, BrandName = selectedBrandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                        await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand, tx);
+                        CarBrands.Add(newBrand);
+                    }
+
+                    var newModel = new CarModel { ModelId = _carModelId, ModelName = selectedModelName, BrandId = currentBrandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel, tx);
+                    CarModels.Add(newModel);
+                }
+
                 if (_isInsertMode)
                 {
                     int carId;
@@ -543,13 +639,13 @@ public partial class BuyCarViewModel : ObservableObject
                             new
                             {
                                 CarId = carId,
-                                ModelId = CarModelId,
+                                ModelId = _carModelId,
                                 YearNo = CarYearNo,
                                 ChassisNo = CarChassisNo,
                                 MotorNo = CarMotorNo,
                                 PlateNo = CarPlateNo,
                                 Mileage = FormItem.Mileage,
-                                ColorId = CarColorId,
+                                ColorId = _carColorId,
                                 Notes = CarNotes,
                                 IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
                                 SupplierId = IsFromCustomer ? (int?)null : (SelectedSupplierId > 0 ? SelectedSupplierId : (int?)null),
@@ -580,13 +676,13 @@ public partial class BuyCarViewModel : ObservableObject
                         new
                         {
                             CarId = FormItem.CarId,
-                            ModelId = CarModelId,
+                            ModelId = _carModelId,
                             YearNo = CarYearNo,
                             ChassisNo = CarChassisNo,
                             MotorNo = CarMotorNo,
                             PlateNo = CarPlateNo,
                             Mileage = FormItem.Mileage,
-                            ColorId = CarColorId,
+                            ColorId = _carColorId,
                             Notes = CarNotes,
                             IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
                             SupplierId = IsFromCustomer ? (int?)null : (SelectedSupplierId > 0 ? SelectedSupplierId : (int?)null),
@@ -604,30 +700,30 @@ public partial class BuyCarViewModel : ObservableObject
                 {
                     FormItem.BuyId = await _buyCarRepository.GetNextIdAsync();
                     await db.ExecuteAsync(@"
-                        INSERT INTO Buy_Car
-                            (Buy_ID, BuyDate, OwnerName, OwnerTel, OwnerKawmy, OwnerAdress,
-                             CarID, Mileage, Total, Notes, AddDate, AddPC, AddUser,
-                             IsTax, VatTax, Tax, TaxNo, IsCash)
-                        VALUES
-                            (@BuyId, @BuyDate, @OwnerName, @OwnerTel, @OwnerKawmy, @OwnerAdress,
-                             @CarId, @Mileage, @Total, @Notes, @AddDate, @AddPc, @AddUser,
-                             @IsTax, @VatTax, @Tax, @TaxNo, @IsCash)",
+                    INSERT INTO Buy_Car
+                        (Buy_ID, BuyDate, OwnerName, OwnerTel, OwnerKawmy, OwnerAdress,
+                         CarID, Mileage, Total, Net, Notes, AddDate, AddPC, AddUser,
+                         IsTax, VatTax, Tax, TaxNo, IsCash)
+                    VALUES
+                        (@BuyId, @BuyDate, @OwnerName, @OwnerTel, @OwnerKawmy, @OwnerAdress,
+                         @CarId, @Mileage, @Total, @Net, @Notes, @AddDate, @AddPc, @AddUser,
+                         @IsTax, @VatTax, @Tax, @TaxNo, @IsCash)",
                         FormItem, tx);
                 }
                 else
                 {
                     await db.ExecuteAsync(@"
-                        UPDATE Buy_Car
-                        SET BuyDate     = @BuyDate,   OwnerName   = @OwnerName,
-                            OwnerTel    = @OwnerTel,  OwnerKawmy  = @OwnerKawmy,
-                            OwnerAdress = @OwnerAdress, CarID     = @CarId,
-                            Mileage     = @Mileage,   Total       = @Total,
-                            Notes       = @Notes,     EditDate    = @EditDate,
-                            EditPC      = @EditPc,    EditUser    = @EditUser,
-                            IsTax       = @IsTax,     VatTax      = @VatTax,
-                            Tax         = @Tax,       TaxNo       = @TaxNo,
-                            IsCash      = @IsCash
-                        WHERE Buy_ID = @BuyId",
+                    UPDATE Buy_Car
+                    SET BuyDate     = @BuyDate,   OwnerName   = @OwnerName,
+                        OwnerTel    = @OwnerTel,  OwnerKawmy  = @OwnerKawmy,
+                        OwnerAdress = @OwnerAdress, CarID     = @CarId,
+                        Mileage     = @Mileage,   Total       = @Total,
+                        Net         = @Net,       Notes       = @Notes,
+                        EditDate    = @EditDate,  EditPC      = @EditPc,
+                        EditUser    = @EditUser,  IsTax       = @IsTax,
+                        VatTax      = @VatTax,   Tax         = @Tax,
+                        TaxNo       = @TaxNo,    IsCash      = @IsCash
+                    WHERE Buy_ID = @BuyId",
                         FormItem, tx);
 
                     await db.ExecuteAsync(
@@ -829,9 +925,27 @@ public partial class BuyCarViewModel : ObservableObject
         if (value <= 0) return;
         var car = SourceCars.FirstOrDefault(c => c.CarId == value);
         if (car == null) return;
-        CarModelId = car.ModelId;
+        _carModelId = car.ModelId;
+        var model = CarModels.FirstOrDefault(m => m.ModelId == car.ModelId);
+        CarModelName = model?.ModelName ?? string.Empty;
+
+        _carColorId = car.ColorId;
+        var color = Colors.FirstOrDefault(c => c.ColorId == car.ColorId);
+        CarColorName = color?.ColorName ?? string.Empty;
+
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            CarBrandName = brand?.BrandName ?? string.Empty;
+            IsBrandEnabled = false;
+        }
+        else
+        {
+            CarBrandName = string.Empty;
+            IsBrandEnabled = true;
+        }
+
         CarYearNo = car.YearNo;
-        CarColorId = car.ColorId;
         CarChassisNo = car.ChassisNo;
         CarMotorNo = car.MotorNo;
         CarPlateNo = car.PlateNo;
