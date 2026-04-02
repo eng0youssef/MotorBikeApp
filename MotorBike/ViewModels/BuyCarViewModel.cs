@@ -587,6 +587,7 @@ public partial class BuyCarViewModel : ObservableObject
                         CarBrands.Add(newBrand);
                     }
 
+                    _carModelId = await _carModelRepository.GetNextIdAsync();
                     var newModel = new CarModel { ModelId = _carModelId, ModelName = selectedModelName, BrandId = currentBrandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
                     await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel, tx);
                     CarModels.Add(newModel);
