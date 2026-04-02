@@ -661,12 +661,28 @@
                                     </Button.Style>
                                 </Button>
                                 <!--  Delete  -->
-                                <Button Padding="16,10" Command="{Binding DeleteCommand}" Content="🗑️ حذف">
+                                <Button Margin="0,0,10,0" Padding="16,10" Command="{Binding DeleteCommand}" Content="🗑️ حذف">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource DangerButton}" TargetType="Button">
                                             <Setter Property="Visibility" Value="Visible" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <!--  Print  -->
+                                <Button Padding="16,10" Command="{Binding PrintInvoiceCommand}" Content="🖨️ طباعة الفاتورة">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource PrimaryButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding FormItem.BuyId}" Value="0">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsEditing}" Value="True">

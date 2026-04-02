@@ -282,9 +282,25 @@ public class ReportGenerator
             };
             process.Start();
         }
-        catch (Exception ex)
+        catch
         {
-            System.Windows.MessageBox.Show("عذراً، لا يمكن الطباعة التلقائية يرجى طباعة الملف المصدّر يدوياً.\nالخطأ: " + ex.Message, "خطأ في الطباعة", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            try
+            {
+                // Fallback: Just open the file and let the user print it manually
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = filePath,
+                        UseShellExecute = true
+                    }
+                };
+                process.Start();
+            }
+            catch (Exception exInner)
+            {
+                System.Windows.MessageBox.Show("عذراً، لا يمكن الطباعة التلقائية أو فتح الملف المصدر يدوياً.\nالخطأ: " + exInner.Message, "خطأ في الطباعة", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
     }
 }
