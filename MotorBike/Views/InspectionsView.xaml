@@ -563,6 +563,24 @@
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />
                             <WrapPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding PrintInspectionCommand}" Content="🖨️ طباعة كشف الفحص">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="#3B82F6" />
+                                            <Setter Property="Foreground" Value="White" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <!--  Hide if no item is selected and not editing  -->
+                                                <DataTrigger Binding="{Binding SelectedItem}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding EditSelectedCommand}" Content="✏️ تـعـديـل الكشف">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">

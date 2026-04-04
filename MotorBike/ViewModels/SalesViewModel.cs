@@ -232,6 +232,9 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
+    private double _originalVatTax;
+    private double _originalTax;
+
     public SalesViewModel(
         IDbConnectionFactory dbFactory,
         IRepository<Sale> saleRepository,
@@ -356,20 +359,11 @@ public partial class SalesViewModel : ObservableObject
             }
             _isUpdatingDiscount = false;
 
-            // Infer tax percentages from loaded amounts to prevent them from being reset to 0
-            double netBase = FormItem.Total - FormItem.Disc + FormItem.AddMony;
-            if (netBase > 0)
-            {
-                _vatTaxPercent = Math.Round((FormItem.VatTax / netBase) * 100.0, 2);
-                _whtTaxPercent = Math.Round((FormItem.Tax / netBase) * 100.0, 2);
-                OnPropertyChanged(nameof(VatTaxPercent));
-                OnPropertyChanged(nameof(WhtTaxPercent));
-            }
-            else
-            {
-                VatTaxPercent = 0;
-                WhtTaxPercent = 0;
-            }
+            _originalVatTax = value.VatTax;
+            _originalTax = value.Tax;
+
+            _vatTaxPercent = 0;
+            _whtTaxPercent = 0;
 
             // Set customer search text
             _isSelectingCustomer = true;
@@ -405,6 +399,27 @@ public partial class SalesViewModel : ObservableObject
             CalculatePayedTotal();
 
             CalculateTotals();
+
+            if (FormItem.IsTax)
+            {
+                double netBase = NetBeforeTax;
+
+                if (netBase > 0)
+                {
+                    _vatTaxPercent = Math.Round((_originalVatTax / netBase) * 100.0, 2);
+                    _whtTaxPercent = Math.Round((_originalTax / netBase) * 100.0, 2);
+                }
+                else
+                {
+                    _vatTaxPercent = 0;
+                    _whtTaxPercent = 0;
+                }
+
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+
+                CalculateTotalsInternal();
+            }
         }
         catch (Exception ex)
         {
@@ -1096,5 +1111,80 @@ public partial class SalesViewModel : ObservableObject
             AddDate = source.AddDate,
             AddPc = source.AddPc
         };
+    }
+
+    [RelayCommand]
+    private async Task PrintInvoiceAsync()
+    {
+        if (FormItem == null || FormItem.SalesId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ الفاتورة أو اختيار فاتورة أولاً لطباعتها.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        if (FormSubItems == null || !FormSubItems.Any())
+        {
+            System.Windows.MessageBox.Show("الفاتورة لا تحتوي على أصناف.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.SalesDate);
+
+            var model = new MotorBike.Services.SalesInvoiceModel
+            {
+                InvoiceNo = FormItem.SalesId.ToString(),
+                IssueDate = FormItem.SalesDate.ToString("yyyy-MM-dd"),
+                Time = FormItem.AddDate.ToString("hh:mm tt") ?? "-",
+                CustomerName = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? "",
+                Notes = FormItem.Notes ?? "",
+                IsCash = FormItem.IsCash,
+                Total = FormItem.Total,
+                Discount = FormItem.Disc,
+                AddMoney = FormItem.AddMony,
+                IsTax = FormItem.IsTax,
+                VatTax = FormItem.VatTax,
+                WhtTax = FormItem.Tax,
+                NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
+                PaidAmount = TotalPayed,
+                RemainingAmount = Remaining
+            };
+
+            foreach (var sub in FormSubItems)
+            {
+                model.Items.Add(new MotorBike.Services.SalesInvoiceItemModel
+                {
+                    ItemName = Items.FirstOrDefault(i => i.ItemId == sub.ItemId)?.ItemName ?? "",
+                    Quantity = sub.Qty,
+                    Price = sub.Price,
+                    Discount = sub.Disc,
+                    Total = sub.Total
+                });
+            }
+
+            var document = new MotorBike.Services.SalesInvoiceDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf", DefaultExt = "pdf",
+                Title = "حفظ الفاتورة كـ PDF",
+                FileName = $"فاتورة_مبيعات_{FormItem.SalesId}_{DateTime.Now:yyyyMMdd}"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ الفاتورة بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
     }
 }

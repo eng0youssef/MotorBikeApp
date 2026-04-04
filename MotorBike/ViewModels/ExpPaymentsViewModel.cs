@@ -119,4 +119,57 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
     }
 
+    [RelayCommand]
+    private async Task PrintReceiptAsync()
+    {
+        if (FormItem == null || FormItem.PayId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ الإيصال أولاً لطباعته.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+
+            double previousBalance = await _compositeRepo.GetCashOldBalanceAsync((int)FormItem.CashId, FormItem.PayDate);
+
+            var model = new MotorBike.Services.ExpPaymentReceiptModel
+            {
+                ReceiptNo = FormItem.PayId.ToString(),
+                IssueDate = FormItem.PayDate.ToString("yyyy-MM-dd"),
+                ExpenseName = Expenses.FirstOrDefault(e => e.ExpId == FormItem.ExpId)?.ExpName ?? "",
+                CashName = CashList.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
+                Amount = FormItem.PayMoney,
+                Notes= FormItem.Notes ?? "",
+                PreviousBalance = previousBalance,
+                BalanceAfter = previousBalance - FormItem.PayMoney
+            };
+
+            var document = new MotorBike.Services.ExpPaymentReceiptDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf",
+                DefaultExt = "pdf",
+                Title = "حفظ الإيصال كـ PDF",
+                FileName = $"إيصال_مصروف_{FormItem.PayId}_{DateTime.Now:yyyyMMdd}"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ الإيصال بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

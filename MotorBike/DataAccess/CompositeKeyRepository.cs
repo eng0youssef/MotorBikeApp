@@ -166,6 +166,83 @@ public class CompositeKeyRepository
         }
     }
 
+    // ── Supplier Old Balance ────────────────────────────────────────────
+
+    public async Task<double> GetSupplierOldBalanceAsync(int suppId, DateTime toDate)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            DECLARE @Bal FLOAT = 
+                (CASE WHEN (SELECT TOP 1 OpenDate FROM Suppliers WHERE Supp_ID = @SuppId) < @ToDate 
+                      THEN ISNULL((SELECT Credit - Debit FROM Suppliers WHERE Supp_ID = @SuppId), 0) 
+                      ELSE 0 END)
+                + ISNULL((SELECT SUM(Net) FROM Buy WHERE SuppID = @SuppId AND BuyDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(bp.PayMoney) FROM Buy_Payments bp INNER JOIN Buy b ON bp.BuyId = b.Buy_ID WHERE b.SuppID = @SuppId AND bp.PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(bc.Net) FROM Buy_Car bc INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SupplierID = @SuppId AND bc.BuyDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(bcp.PayMoney) FROM Buy_Car_Payments bcp INNER JOIN Buy_Car bc ON bcp.BuyID = bc.Buy_ID INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SupplierID = @SuppId AND bcp.PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(Net) FROM ReBuy WHERE SuppID = @SuppId AND BuyDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(rp.PayMoney) FROM ReBuy_Payments rp INNER JOIN ReBuy rb ON rp.BuyId = rb.Buy_ID WHERE rb.SuppID = @SuppId AND rp.PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0);
+            SELECT @Bal;";
+
+        return await db.QueryFirstOrDefaultAsync<double>(sql, new { SuppId = suppId, ToDate = toDate });
+    }
+
+    // ── Customer Old Balance ─────────────────────────────────────────────
+
+    public async Task<double> GetCustomerOldBalanceAsync(int cusId, DateTime toDate)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            DECLARE @Bal FLOAT = 
+                (CASE WHEN (SELECT TOP 1 OpenDate FROM Customers WHERE Cus_ID = @CusId) < @ToDate 
+                      THEN ISNULL((SELECT Credit - Debit FROM Customers WHERE Cus_ID = @CusId), 0) 
+                      ELSE 0 END)
+                - ISNULL((SELECT SUM(Net) FROM Sales WHERE CusID = @CusId AND SalesDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(Net) FROM Sales_Car WHERE CusId = @CusId AND SalesDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(sp.PayMoney) FROM Sales_Payments sp INNER JOIN Sales s ON sp.SalesId = s.Sales_ID WHERE s.CusID = @CusId AND sp.PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(sc.PayMoney) FROM Sales_Car_Payments sc INNER JOIN Sales_Car ss ON sc.SalesID = ss.Sales_ID WHERE ss.CusId = @CusId AND sc.PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(bc.Net) FROM Buy_Car bc INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SourceCustomerID = @CusId AND c.IsFromCustomer = 1 AND bc.BuyDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(bcp.PayMoney) FROM Buy_Car_Payments bcp INNER JOIN Buy_Car bc ON bcp.BuyID = bc.Buy_ID INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SourceCustomerID = @CusId AND c.IsFromCustomer = 1 AND bcp.PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(Net) FROM ReSales WHERE CusID = @CusId AND SalesDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(rp.PayMoney) FROM ReSales_Payments rp INNER JOIN ReSales rs ON rp.SalesId = rs.Sales_ID WHERE rs.CusID = @CusId AND rp.PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId AND PayDate < @ToDate), 0);
+            SELECT @Bal;";
+
+        return await db.QueryFirstOrDefaultAsync<double>(sql, new { CusId = cusId, ToDate = toDate });
+    }
+
+    // ── Cash Old Balance ─────────────────────────────────────────────────
+
+    public async Task<double> GetCashOldBalanceAsync(int cashId, DateTime toDate)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            DECLARE @Bal FLOAT = 
+                ISNULL((SELECT Credit - Debit FROM Cash WHERE Cash_ID = @CashId), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Sales_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Sales_Car_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM ReBuy_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashTo = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Buy_Car_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Exp_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM ReSales_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(Total) FROM Inspection WHERE CashId = @CashId AND InspDate < @ToDate), 0);
+            SELECT @Bal;";
+
+        return await db.QueryFirstOrDefaultAsync<double>(sql, new { CashId = cashId, ToDate = toDate });
+    }
+
     // ── Supplier Balance Recalculation ───────────────────────────────────
 
     /// <summary>
@@ -180,6 +257,8 @@ public class CompositeKeyRepository
                 ISNULL(Credit, 0) - ISNULL(Debit, 0) 
                 + ISNULL((SELECT SUM(Net) FROM Buy WHERE SuppID = @SuppId), 0)
                 - ISNULL((SELECT SUM(bp.PayMoney) FROM Buy_Payments bp INNER JOIN Buy b ON bp.BuyId = b.Buy_ID WHERE b.SuppID = @SuppId), 0)
+                + ISNULL((SELECT SUM(bc.Net) FROM Buy_Car bc INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SupplierID = @SuppId), 0)
+                - ISNULL((SELECT SUM(bcp.PayMoney) FROM Buy_Car_Payments bcp INNER JOIN Buy_Car bc ON bcp.BuyID = bc.Buy_ID INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SupplierID = @SuppId), 0)
                 - ISNULL((SELECT SUM(Net) FROM ReBuy WHERE SuppID = @SuppId), 0)
                 + ISNULL((SELECT SUM(rp.PayMoney) FROM ReBuy_Payments rp INNER JOIN ReBuy rb ON rp.BuyId = rb.Buy_ID WHERE rb.SuppID = @SuppId), 0)
                 - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId), 0)
@@ -204,10 +283,12 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(Total) FROM Sales_Car WHERE CusId = @CusId), 0)
                 + ISNULL((SELECT SUM(sp.PayMoney) FROM Sales_Payments sp INNER JOIN Sales s ON sp.SalesId = s.Sales_ID WHERE s.CusID = @CusId), 0)
                 + ISNULL((SELECT SUM(sc.PayMoney) FROM Sales_Car_Payments sc INNER JOIN Sales_Car ss ON sc.SalesID = ss.Sales_ID WHERE ss.CusId = @CusId), 0)
+                + ISNULL((SELECT SUM(bc.Net) FROM Buy_Car bc INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SourceCustomerID = @CusId AND c.IsFromCustomer = 1), 0)
+                - ISNULL((SELECT SUM(bcp.PayMoney) FROM Buy_Car_Payments bcp INNER JOIN Buy_Car bc ON bcp.BuyID = bc.Buy_ID INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SourceCustomerID = @CusId AND c.IsFromCustomer = 1), 0)
                 + ISNULL((SELECT SUM(Net) FROM ReSales WHERE CusID = @CusId), 0)
                 - ISNULL((SELECT SUM(rp.PayMoney) FROM ReSales_Payments rp INNER JOIN ReSales rs ON rp.SalesId = rs.Sales_ID WHERE rs.CusID = @CusId), 0)
-                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
-                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
             WHERE Cus_ID = @CusId";
         await db.ExecuteAsync(sql, new { CusId = cusId });
     }

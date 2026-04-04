@@ -754,4 +754,97 @@ public partial class SalesCarViewModel : ObservableObject
         OnPropertyChanged(nameof(FormTotal));
         OnPropertyChanged(nameof(FormIsTax));
     }
+
+    [RelayCommand]
+    private async Task PrintInvoiceAsync()
+    {
+        if (FormItem == null || FormItem.SalesId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ الفاتورة أو اختيار فاتورة أولاً لطباعتها.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.SalesDate);
+
+            // Load car details for printing
+            string carModel = "", carBrand = "", chassisNo = "", motorNo = "", plateNo = "", colorName = "";
+            int yearNo = 0, mileage = (int)FormItem.Mileage;
+            if (FormItem.CarId > 0)
+            {
+                var car = await db.QuerySingleOrDefaultAsync<Car>(
+                    "SELECT * FROM Cars WHERE Car_ID = @CarId", new { CarId = FormItem.CarId });
+                if (car != null)
+                {
+                    chassisNo = car.ChassisNo ?? "";
+                    motorNo = car.MotorNo ?? "";
+                    plateNo = car.PlateNo ?? "";
+                    yearNo = car.YearNo;
+                    mileage = car.Mileage;
+                    var mdl = await db.QuerySingleOrDefaultAsync<CarModel>(
+                        "SELECT * FROM Car_Models WHERE Model_ID = @ModelId", new { ModelId = car.ModelId });
+                    if (mdl != null)
+                    {
+                        carModel = mdl.ModelName ?? "";
+                        var brand = await db.QuerySingleOrDefaultAsync<CarBrand>(
+                            "SELECT * FROM Car_Brands WHERE Brand_ID = @BrandId", new { BrandId = mdl.BrandId });
+                        carBrand = brand?.BrandName ?? "";
+                    }
+                    var clr = await db.QuerySingleOrDefaultAsync<dynamic>(
+                        "SELECT ColorName FROM Colors WHERE Color_ID = @ColorId", new { ColorId = car.ColorId });
+                    colorName = clr?.ColorName ?? "";
+                }
+            }
+
+            var model = new MotorBike.Services.SalesCarInvoiceModel
+            {
+                InvoiceNo = FormItem.SalesId.ToString(),
+                IssueDate = FormItem.SalesDate.ToString("yyyy-MM-dd"),
+                Time = FormItem.AddDate.ToString("hh:mm tt") ?? "-",
+                IsCash = FormItem.IsCash,
+                CustomerName = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? "",
+                Notes = FormItem.Notes ?? "",
+                CarModel = carModel,
+                CarBrand = carBrand,
+                ChassisNo = chassisNo,
+                MotorNo = motorNo,
+                PlateNo = plateNo,
+                ColorName = colorName,
+                YearNo = yearNo,
+                Mileage = mileage,
+                Total = FormItem.Total,
+                IsTax = FormItem.IsTax,
+                VatTax = FormItem.VatTax,
+                WhtTax = FormItem.Tax,
+                NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
+                PaidAmount = TotalPayed,
+                RemainingAmount = Remaining
+            };
+
+            var document = new MotorBike.Services.SalesCarInvoiceDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf", DefaultExt = "pdf",
+                Title = "حفظ الفاتورة كـ PDF",
+                FileName = $"فاتورة_بيع_موتوسيكل_{FormItem.SalesId}_{DateTime.Now:yyyyMMdd}"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ الفاتورة بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

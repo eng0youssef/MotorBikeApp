@@ -142,8 +142,8 @@
                         <TextBlock Text="الاستيراد" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="🌍  إدارة الاستيراد" Command="{Binding NavigateToCommand}" CommandParameter="ImportData" Style="{StaticResource MenuButtonStyle}"/>
 
-                        <!--<TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
-                        <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>-->
+                        <TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>

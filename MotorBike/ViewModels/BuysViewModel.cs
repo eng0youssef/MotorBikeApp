@@ -229,6 +229,9 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private string _searchText = string.Empty;
     [ObservableProperty] private bool _isSearchPanelVisible;
 
+    private double _originalVatTax;
+    private double _originalTax;
+
     public BuysViewModel(
         IDbConnectionFactory dbFactory,
         IRepository<Buy> buyRepository,
@@ -367,21 +370,11 @@ public partial class BuysViewModel : ObservableObject
             if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
 
             // Infer tax percentages from saved amounts
-            if (FormItem.IsTax)
-            {
-                double netBefore = FormItem.Total - FormItem.Disc + FormItem.AddMoney;
-                _vatTaxPercent = netBefore > 0 ? Math.Round((FormItem.VatTax / netBefore) * 100.0, 2) : 0;
-                _whtTaxPercent = netBefore > 0 ? Math.Round((FormItem.Tax / netBefore) * 100.0, 2) : 0;
-                OnPropertyChanged(nameof(VatTaxPercent));
-                OnPropertyChanged(nameof(WhtTaxPercent));
-            }
-            else
-            {
-                _vatTaxPercent = 0;
-                _whtTaxPercent = 0;
-                OnPropertyChanged(nameof(VatTaxPercent));
-                OnPropertyChanged(nameof(WhtTaxPercent));
-            }
+            _originalVatTax = value.VatTax;
+            _originalTax = value.Tax;
+
+            _vatTaxPercent = 0;
+            _whtTaxPercent = 0;
 
             // Load SubItems
             LoadSubItemsAsync(value.BuyId).ConfigureAwait(false);
@@ -403,6 +396,27 @@ public partial class BuysViewModel : ObservableObject
             CalculatePayedTotal();
 
             CalculateTotals();
+
+            if (FormItem.IsTax)
+            {
+                double netBase = NetBeforeTax;
+
+                if (netBase > 0)
+                {
+                    _vatTaxPercent = Math.Round((_originalVatTax / netBase) * 100.0, 2);
+                    _whtTaxPercent = Math.Round((_originalTax / netBase) * 100.0, 2);
+                }
+                else
+                {
+                    _vatTaxPercent = 0;
+                    _whtTaxPercent = 0;
+                }
+
+                OnPropertyChanged(nameof(VatTaxPercent));
+                OnPropertyChanged(nameof(WhtTaxPercent));
+
+                CalculateTotalsInternal();
+            }
         }
         catch (Exception ex)
         {
@@ -1099,6 +1113,8 @@ public partial class BuysViewModel : ObservableObject
             using var db = _dbFactory.CreateConnection();
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
 
+            double previousBalance = await _compositeRepo.GetSupplierOldBalanceAsync(FormItem.SuppId, FormItem.BuyDate);
+
             var model = new MotorBike.Services.BuyInvoiceModel
             {
                 InvoiceNo = FormItem.BuyId.ToString(),
@@ -1106,6 +1122,7 @@ public partial class BuysViewModel : ObservableObject
                 Time = FormItem.AddDate.ToString("hh:mm tt") ?? "-",
                 SupplierName = Suppliers.FirstOrDefault(c => c.SuppId == FormItem.SuppId)?.SuppName ?? "",
                 Notes = FormItem.Notes ?? "",
+                IsCash = FormItem.IsCash,
                 Total = FormItem.Total,
                 Discount = FormItem.Disc,
                 AddMoney = FormItem.AddMoney,
@@ -1113,6 +1130,7 @@ public partial class BuysViewModel : ObservableObject
                 VatTax = FormItem.VatTax,
                 WhtTax = FormItem.Tax,
                 NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
                 RemainingAmount = Remaining
             };

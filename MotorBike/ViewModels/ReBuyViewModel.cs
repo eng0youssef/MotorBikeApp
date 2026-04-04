@@ -818,4 +818,79 @@ public partial class ReBuyViewModel : ObservableObject
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
     }
+
+    [RelayCommand]
+    private async Task PrintInvoiceAsync()
+    {
+        if (FormItem == null || FormItem.BuyId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ المرتجع أو اختيار مرتجع أولاً لطباعته.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        if (FormSubItems == null || !FormSubItems.Any())
+        {
+            System.Windows.MessageBox.Show("المرتجع لا يحتوي على أصناف.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            double previousBalance = await _compositeRepo.GetSupplierOldBalanceAsync(FormItem.SuppId, FormItem.BuyDate);
+
+            var model = new MotorBike.Services.ReBuyInvoiceModel
+            {
+                InvoiceNo = FormItem.BuyId.ToString(),
+                IssueDate = FormItem.BuyDate.ToString("yyyy-MM-dd"),
+                Time = FormItem.AddDate.ToString("hh:mm tt") ?? "-",
+                SupplierName = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? "",
+                Notes = FormItem.Notes ?? "",
+                IsCash = FormItem.IsCash,
+                Total = FormItem.Total,
+                Discount = FormItem.Disc,
+                AddMoney = FormItem.AddMoney,
+                IsTax = FormItem.IsTax,
+                VatTax = FormItem.VatTax,
+                WhtTax = FormItem.Tax,
+                NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
+                PaidAmount = TotalPayed,
+                RemainingAmount = Remaining
+            };
+
+            foreach (var sub in FormSubItems)
+            {
+                model.Items.Add(new MotorBike.Services.ReBuyInvoiceItemModel
+                {
+                    ItemName = Items.FirstOrDefault(i => i.ItemId == sub.ItemId)?.ItemName ?? "",
+                    Quantity = sub.Qty,
+                    Price = sub.Price,
+                    Discount = sub.Disc,
+                    Total = sub.Total
+                });
+            }
+
+            var document = new MotorBike.Services.ReBuyInvoiceDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf", DefaultExt = "pdf",
+                Title = "حفظ المرتجع كـ PDF",
+                FileName = $"مرتجع_مشتريات_{FormItem.BuyId}_{DateTime.Now:yyyyMMdd}"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ المرتجع بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

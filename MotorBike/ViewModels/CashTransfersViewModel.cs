@@ -143,5 +143,121 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
         if (_oldCashToId.HasValue && _oldCashToId.Value > 0 && _oldCashToId.Value != _oldCashId)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashToId.Value);
     }
+    // ── Replace PrintReceiptAsync in CashTransfersViewModel with this version ────
+    // Changes: adds CurrencyName, ExchangeRate, AmountInLocalCurrency, AmountInWords
+    // Removes: فرع field (never existed in model — just don't show it)
 
+    [RelayCommand]
+    private async Task PrintReceiptAsync()
+    {
+        if (FormItem == null || FormItem.PayId <= 0)
+        {
+            System.Windows.MessageBox.Show(
+                "يجب حفظ إيصال التحويل أولاً لطباعته.",
+                "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+
+            // ── Currency info from DB (Omla table) ───────────────────────────────
+            // If your CashTransfer has OmlaId / Rate fields, use them directly.
+            // Otherwise fall back to EGP defaults.
+            string currencyName = "جنية مصري";
+            double exchangeRate = 1.0;
+
+            // Uncomment and adjust if CashTransfer carries OmlaId / Rate:
+            // if (FormItem.OmlaId > 0)
+            // {
+            //     var omla = await db.QueryFirstOrDefaultAsync<dynamic>(
+            //         "SELECT OmlaName, Rate FROM Omla WHERE OmlaId = @Id",
+            //         new { Id = FormItem.OmlaId });
+            //     if (omla != null) { currencyName = omla.OmlaName; exchangeRate = omla.Rate; }
+            // }
+
+            double amountInLocal = Math.Round(FormItem.PayMoney * exchangeRate, 2);
+            string amountWords = MotorBike.Services.CashTransferReceiptDocument
+                                       .ToArabicWords(amountInLocal);
+
+            // ── Supplier balances BEFORE this transfer ────────────────────────────
+            double fromCashOld = await _compositeRepo.GetCashOldBalanceAsync(
+                                     FormItem.CashId, FormItem.PayDate);
+            double toCashOld = await _compositeRepo.GetCashOldBalanceAsync(
+                                     FormItem.CashTo, FormItem.PayDate);
+
+            var model = new MotorBike.Services.CashTransferReceiptModel
+            {
+                ReceiptNo = FormItem.PayId.ToString(),
+                IssueDate = FormItem.PayDate.ToString("dd-MM-yyyy hh:mm:ss tt"),
+
+                // ── NEW currency fields ───────────────────────────────────────────
+                CurrencyName = currencyName,
+                ExchangeRate = exchangeRate,
+                AmountInLocalCurrency = amountInLocal,
+                AmountInWords = amountWords,
+                // ─────────────────────────────────────────────────────────────────
+
+                FromCashName = CashList.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
+                ToCashName = CashList.FirstOrDefault(c => c.CashId == FormItem.CashTo)?.CashName ?? "",
+                Amount = FormItem.PayMoney,
+                Notes = FormItem.Notes ?? "",
+
+                FromCashPreviousBalance = fromCashOld,
+                FromCashBalanceAfter = fromCashOld - FormItem.PayMoney,
+                ToCashPreviousBalance = toCashOld,
+                ToCashBalanceAfter = toCashOld + FormItem.PayMoney
+            };
+
+            var document = new MotorBike.Services.CashTransferReceiptDocument(model, company);
+
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf",
+                DefaultExt = "pdf",
+                Title = "حفظ إيصال التحويل كـ PDF",
+                FileName = $"تحويل_خزينة_{FormItem.PayId}_{DateTime.Now:yyyyMMdd}"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+
+                var result = System.Windows.MessageBox.Show(
+                    "تم حفظ الإيصال بنجاح. هل تريد فتح الملف الآن لطباعته؟",
+                    "حفظ وطباعة",
+                    System.Windows.MessageBoxButton.YesNo,
+                    System.Windows.MessageBoxImage.Question);
+
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        new System.Diagnostics.Process
+                        {
+                            StartInfo = new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = saveFileDialog.FileName,
+                                UseShellExecute = true
+                            }
+                        }.Start();
+                    }
+                    catch (Exception exInner)
+                    {
+                        System.Windows.MessageBox.Show(
+                            "لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message,
+                            "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                "حدث خطأ أثناء الطباعة: " + ex.Message,
+                "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

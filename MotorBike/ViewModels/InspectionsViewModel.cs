@@ -322,4 +322,72 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
             StatusMessage = $"خطأ في الحذف: {ex.Message}";
         }
     }
+
+    [RelayCommand]
+    private async Task PrintInspectionAsync()
+    {
+        if (FormItem == null || FormItem.InspId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ الكشف أولاً لطباعته.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+
+            var model = new MotorBike.Services.InspectionPrintModel
+            {
+                InspNo = FormItem.InspId.ToString(),
+                IssueDate = FormItem.InspDate.ToString("yyyy-MM-dd"),
+                Seller = FormItem.Seller ?? "",
+                Buyer = FormItem.Buyer ?? "",
+                Notes = FormItem.Notes ?? "",
+                CarModel = Models.FirstOrDefault(m => m.ModelId == FormItem.ModelId)?.ModelName ?? "",
+                ChassisNo = FormItem.ChassisNo ?? "",
+                MotorNo = FormItem.MotorNo ?? "",
+                PlateNo = FormItem.PlateNo ?? "",
+                ColorName = Colors.FirstOrDefault(c => c.ColorId == FormItem.ColorId)?.ColorName ?? "",
+                YearNo = FormItem.YearNo,
+                Mileage = FormItem.Mileage,
+                CashName = Cashes.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
+                Total = FormItem.Total
+            };
+
+            foreach (var item in FormSubItems)
+            {
+                model.Items.Add(new MotorBike.Services.InspectionSubModel
+                {
+                    ItemName = item.ItemName ?? "",
+                    Status = item.Status,
+                    Note = item.Note ?? ""
+                });
+            }
+
+            var document = new MotorBike.Services.InspectionDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf",
+                DefaultExt = "pdf",
+                Title = "حفظ الكشف كـ PDF",
+                FileName = $"كشف_فني_{FormItem.InspId}_{DateTime.Now:yyyyMMdd}"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ الكشف بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

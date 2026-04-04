@@ -541,6 +541,23 @@
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />
                             <WrapPanel MinHeight="45" HorizontalAlignment="Left" Orientation="Horizontal">
+                                <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding PrintInvoiceCommand}" Content="🖨️ طباعة الفاتورة">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="#3B82F6" />
+                                            <Setter Property="Foreground" Value="White" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
                                 <Button Margin="0,0,12,12" Padding="16,10" Command="{Binding EditSelectedCommand}" Content="✏️ تـعـديـل">
                                     <Button.Style>
                                         <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">

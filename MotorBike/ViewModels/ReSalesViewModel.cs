@@ -419,6 +419,18 @@ public partial class ReSalesViewModel : ObservableObject
 
             try
             {
+                if (FormItem.IsTax && string.IsNullOrWhiteSpace(FormItem.TaxNo))
+                {
+                    var maxTaxNoStr = await db.QueryFirstOrDefaultAsync<string>(
+                        "SELECT CAST(MAX(CAST(TaxNo AS INT)) AS VARCHAR) FROM ReSales WHERE ISNUMERIC(TaxNo) = 1 AND TaxNo NOT LIKE '%[^0-9]%'", transaction: tx);
+                    int.TryParse(maxTaxNoStr, out int maxTaxNo);
+                    FormItem.TaxNo = (maxTaxNo + 1).ToString();
+                }
+                else if (!FormItem.IsTax)
+                {
+                    FormItem.TaxNo = null;
+                }
+
                 if (_isInsertMode)
                 {
                     FormItem.SalesId = await _reSaleRepository.GetNextIdAsync();
@@ -428,8 +440,8 @@ public partial class ReSalesViewModel : ObservableObject
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
 
                     await db.ExecuteAsync(@"
-                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser)",
+                    INSERT INTO ReSales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo)",
                         FormItem, tx);
                 }
                 else
@@ -441,7 +453,8 @@ public partial class ReSalesViewModel : ObservableObject
                     await db.ExecuteAsync(@"
                     UPDATE ReSales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total, Disc=@Disc, 
                     AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
-                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser
+                    EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 
@@ -807,5 +820,80 @@ public partial class ReSalesViewModel : ObservableObject
         CurrentCustomerBalance = customer.Bal ?? 0;
         IsCustomerSearchPopupOpen = false;
         _isSelectingCustomer = false;
+    }
+
+    [RelayCommand]
+    private async Task PrintInvoiceAsync()
+    {
+        if (FormItem == null || FormItem.SalesId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ المرتجع أو اختيار مرتجع أولاً لطباعته.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        if (FormSubItems == null || !FormSubItems.Any())
+        {
+            System.Windows.MessageBox.Show("المرتجع لا يحتوي على أصناف.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.SalesDate);
+
+            var model = new MotorBike.Services.ReSalesInvoiceModel
+            {
+                InvoiceNo = FormItem.SalesId.ToString(),
+                IssueDate = FormItem.SalesDate.ToString("yyyy-MM-dd"),
+                Time = FormItem.AddDate.ToString("hh:mm tt") ?? "-",
+                CustomerName = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? "",
+                Notes = FormItem.Notes ?? "",
+                IsCash = FormItem.IsCash,
+                Total = FormItem.Total,
+                Discount = FormItem.Disc,
+                AddMoney = FormItem.AddMony,
+                IsTax = FormItem.IsTax,
+                VatTax = FormItem.VatTax,
+                WhtTax = FormItem.Tax,
+                NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
+                PaidAmount = TotalPayed,
+                RemainingAmount = Remaining
+            };
+
+            foreach (var sub in FormSubItems)
+            {
+                model.Items.Add(new MotorBike.Services.ReSalesInvoiceItemModel
+                {
+                    ItemName = Items.FirstOrDefault(i => i.ItemId == sub.ItemId)?.ItemName ?? "",
+                    Quantity = sub.Qty,
+                    Price = sub.Price,
+                    Discount = sub.Disc,
+                    Total = sub.Total
+                });
+            }
+
+            var document = new MotorBike.Services.ReSalesInvoiceDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf", DefaultExt = "pdf",
+                Title = "حفظ المرتجع كـ PDF",
+                FileName = $"مرتجع_مبيعات_{FormItem.SalesId}_{DateTime.Now:yyyyMMdd}"
+            };
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ المرتجع بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
     }
 }
