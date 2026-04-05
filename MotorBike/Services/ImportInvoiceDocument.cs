@@ -315,7 +315,7 @@ public class ImportInvoiceDocument : IDocument
     private static void SectionHeader(IContainer c, string title, string bgColor)
     {
         c.Background(bgColor).CornerRadius(4).Padding(6)
-         .Text(title).FontSize(11).Bold().FontColor(Colors.White).AlignCenter();
+         .Text(title).FontSize(12).Bold().FontColor(Colors.White).AlignCenter();
     }
 
     // ── Shared: table data cell ──────────────────────────────────
@@ -326,7 +326,7 @@ public class ImportInvoiceDocument : IDocument
         bool ltr,
         string? textColor = null,
         bool bold = false,
-        int fontSize = 8)
+        int fontSize = 9)
     {
         var cell = table.Cell()
             .Background(rowBg)
@@ -593,11 +593,11 @@ public class ImportInvoiceDocument : IDocument
         // (Label, Value, Color)
         var totals = new List<(string Label, string Value, string Color)>
         {
-            ("إجمالي الفاتورة (بالعملة)",  _model.InvTotal.ToString("N2"),      "#1D4ED8"),
-            ("إجمالي الفاتورة (بالمحلي)",  _model.InvTotalLocal.ToString("N2"), "#1D4ED8"),
-            ("إجمالي المصروفات (محلي)",    _model.ExpTotal.ToString("N2"),      "#DC2626"),
-            ("فرق العملات",                _model.FrokOmla.ToString("N2"),      _model.FrokOmla >= 0 ? "#059669" : "#DC2626"),
             ("التكلفة الإجمالية (محلي)",   _model.TotalCost.ToString("N2"),     "#059669"),
+            ("فرق العملات",                _model.FrokOmla.ToString("N2"),      _model.FrokOmla >= 0 ? "#059669" : "#DC2626"),
+            ("إجمالي المصروفات (محلي)",    _model.ExpTotal.ToString("N2"),      "#DC2626"),
+            ("إجمالي الفاتورة (بالمحلي)",  _model.InvTotalLocal.ToString("N2"), "#1D4ED8"),
+            ("إجمالي الفاتورة (بالعملة)",  _model.InvTotal.ToString("N2"),      "#1D4ED8"),
         };
 
         container
@@ -609,7 +609,7 @@ public class ImportInvoiceDocument : IDocument
             {
                 col.Item().PaddingBottom(10)
                     .Text("ملخص التكاليف")
-                    .FontSize(12).Bold().FontColor("#1E293B");
+                    .FontSize(12).Bold().FontColor("#1E293B").AlignCenter();
 
                 col.Item().Table(table =>
                 {
@@ -640,13 +640,13 @@ public class ImportInvoiceDocument : IDocument
                 // Final cost highlight
                 col.Item().PaddingTop(10)
                     .Background("#EEF2FF").CornerRadius(6)
-                    .Padding(10)
+                    .Padding(10).AlignCenter()
                     .Row(row =>
                     {
-                        row.AutoItem().Text("التكلفة الإجمالية النهائية بالمحلي: ")
-                            .FontSize(13).SemiBold().FontColor("#3730A3");
                         row.AutoItem().Text(_model.TotalCost.ToString("N2"))
                             .FontSize(15).Bold().FontColor("#059669").DirectionFromLeftToRight();
+                        row.AutoItem().Text(" : التكلفة الإجمالية النهائية بالمحلي ")
+                            .FontSize(13).SemiBold().FontColor("#3730A3");
                     });
             });
     }

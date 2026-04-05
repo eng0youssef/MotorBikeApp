@@ -829,7 +829,7 @@
                             <StackPanel Grid.Column="0" Margin="0,0,12,0">
                                 <TextBlock Margin="0,0,0,6" FontSize="13" Foreground="#7B84A0" Text="التاريخ" />
                                 <DatePicker Padding="10,6" Background="#161925" BorderBrush="#3D4560" BorderThickness="1" FontSize="14" Foreground="#ECEEF5"
-                                            SelectedDate="{Binding CurrentPayment.PayDate}" />
+                                            SelectedDate="{Binding CurrentPayment.PayDate}" IsEnabled="False" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="0,0,12,0">
                                 <TextBlock Margin="0,0,0,6" FontSize="13" Foreground="#7B84A0" Text="المبلغ" />
@@ -880,7 +880,7 @@
                             </DataGrid.CellStyle>
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Width="120" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
+                                <DataGridTextColumn Width="120" Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" IsReadOnly="True" />
                                 <DataGridTextColumn Width="120" Binding="{Binding PayMoney, StringFormat=\{0:N2\}}" FontWeight="SemiBold" Header="المبلغ" />
                                 <DataGridTemplateColumn Width="*" Header="الخزينة">
                                     <DataGridTemplateColumn.CellTemplate>

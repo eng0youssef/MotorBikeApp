@@ -305,7 +305,7 @@ public partial class ReBuyViewModel : ObservableObject
         CurrentSubItem = new ReBuySub { BuyId = item.BuyId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         SubItemQty = 1; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0;
 
-        CurrentPayment = new ReBuyPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new ReBuyPayment { BuyId = item.BuyId, PayDate = FormItem.BuyDate.AddSeconds(20), CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
@@ -479,6 +479,7 @@ public partial class ReBuyViewModel : ObservableObject
                     "SELECT ISNULL(MAX(Pay_ID), 0) FROM ReBuy_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
+                    p.PayDate = FormItem.BuyDate.AddSeconds(20);
                     p.PayId = ++maxPayId;
                     p.BuyId = FormItem.BuyId;
                     await db.ExecuteAsync(@"
@@ -688,7 +689,7 @@ public partial class ReBuyViewModel : ObservableObject
         CurrentPayment = new ReBuyPayment
         {
             BuyId = FormItem.BuyId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.BuyDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
@@ -729,7 +730,7 @@ public partial class ReBuyViewModel : ObservableObject
             FormPayments.Add(new ReBuyPayment
             {
                 BuyId = FormItem.BuyId,
-                PayDate = DateTime.Now,
+                PayDate = FormItem.BuyDate.AddSeconds(20),
                 PayMoney = FormItem.Net,
                 CashId = SelectedCashId > 0 ? SelectedCashId : Cashes.FirstOrDefault()?.CashId ?? 0,
                 Notes = "سداد كامل (كاش) - مرتجع"
