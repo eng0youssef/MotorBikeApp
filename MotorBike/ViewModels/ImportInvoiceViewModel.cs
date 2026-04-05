@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Dapper;
 using MotorBike.DataAccess;
 using MotorBike.Models;
 
@@ -18,6 +19,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     private readonly IRepository<ImportExp> _expRepo;
     private readonly IRepository<ImportPayment> _paymentRepo;
     private readonly CompositeKeyRepository _compositeRepo;
+    private readonly IDbConnectionFactory _dbFactory;
 
     // Lookup Repos
     private readonly IRepository<ImportSupplier> _supplierRepo;
@@ -43,6 +45,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         IRepository<ImportExpense> expenseLookupRepo,
         IRepository<Store> storeRepo,
         IRepository<Unit> unitRepo,
+        IDbConnectionFactory dbFactory,
         IRepository<Item> itemsLookupRepo,
         IRepository<Car> carsLookupRepo,
         IRepository<CarModel> carModelRepo,
@@ -55,7 +58,8 @@ public partial class ImportInvoiceViewModel : ObservableObject
         _expRepo = expRepo;
         _paymentRepo = paymentRepo;
         _compositeRepo = compositeRepo;
-
+        // في الـ parameters
+        _dbFactory = dbFactory;
         _supplierRepo = supplierRepo;
         _omlaRepo = omlaRepo;
         _cashRepo = cashRepo;
@@ -1073,6 +1077,183 @@ public partial class ImportInvoiceViewModel : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"خطأ في الحفظ: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
+    private async Task PrintInvoiceAsync()
+    {
+        // ── Guard: لازم يكون فيه فاتورة محفوظة ──────────────────────────────
+        if (FormItem == null || FormItem.InvId <= 0)
+        {
+            MessageBox.Show(
+                "يجب حفظ الفاتورة أو اختيار فاتورة أولاً لطباعتها.",
+                "تنبيه",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!FormItems.Any() && !FormCars.Any())
+        {
+            MessageBox.Show(
+                "الفاتورة لا تحتوي على أصناف أو موتوسيكلات.",
+                "تنبيه",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            // ── 1) جلب بيانات الشركة ─────────────────────────────────────────
+            Company? company;
+            using (var db = _dbFactory.CreateConnection())
+            {
+                company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            }
+
+            // ── 2) بناء الـ model الرئيسي ─────────────────────────────────────
+            var omla = Omlas.FirstOrDefault(o => o.OmlaId == FormItem.OmlaId);
+
+            var model = new MotorBike.Services.ImportInvoiceModel
+            {
+                InvoiceNo = FormItem.InvId.ToString(),
+                InvName = FormItem.InvName ?? string.Empty,
+                IssueDate = FormItem.InvDate.ToString("yyyy-MM-dd"),
+                SupplierName = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? string.Empty,
+                MadeIn = FormItem.MadeIn ?? string.Empty,
+                ShipPort = FormItem.ShipPort ?? string.Empty,
+                InvType = FormItem.InvType == 2 ? "CIF" : "FOB",
+                OmlaName = omla?.OmlaName ?? string.Empty,
+                OmlaRate = ((double)FormItem.OmlaRate).ToString("N4"),
+                Notes = FormItem.Notes ?? string.Empty,
+
+                InvTotal = FormItem.InvTotal ,
+                InvTotalLocal = FormItem.InvTotalLocal ,
+                ExpTotal = FormItem.ExpTotal ,
+                FrokOmla = FormItem.FrokOmla ,
+                TotalCost = FormItem.TotalCost ?? 0,
+            };
+
+            // ── 3) الأصناف ────────────────────────────────────────────────────
+            foreach (var item in FormItems)
+            {
+                var itemName = ItemsList.FirstOrDefault(i => i.ItemId == item.ItemId)?.ItemName ?? string.Empty;
+                model.Items.Add(new MotorBike.Services.ImportInvoiceItemModel
+                {
+                    ItemName = itemName,
+                    Qty = item.Qty,
+                    Price = item.Price,
+                    Total = item.Total,
+                    TotalLocal = item.TotalLocal ,
+                    CostPer = item.CostPer,
+                    ExpShareLocal = item.ExpShareLocal ,
+                    CostTotal = item.CostTotal ?? 0,
+                    CostUnit = item.CostUnit ?? 0,
+                });
+            }
+
+            // ── 4) الموتوسيكلات ───────────────────────────────────────────────
+            foreach (var car in FormCars)
+            {
+                var carInfo = CarsList.FirstOrDefault(c => c.CarId == car.CarId);
+                var modelName = CarModels.FirstOrDefault(m => m.ModelId == carInfo?.ModelId)?.ModelName ?? string.Empty;
+                var colorName = Colors.FirstOrDefault(col => col.ColorId == carInfo?.ColorId)?.ColorName ?? string.Empty;
+
+                model.Cars.Add(new MotorBike.Services.ImportInvoiceCarModel
+                {
+                    ChassisNo = carInfo?.ChassisNo ?? string.Empty,
+                    ModelName = modelName,
+                    ColorName = colorName,
+                    Total = car.Total ?? 0,
+                    TotalLocal = car.TotalLocal ,
+                    CostPer = car.CostPer,
+                    ExpShareLocal = car.ExpShareLocal ,
+                    CostTotal = car.CostTotal ?? 0,
+                });
+            }
+
+            // ── 5) المصروفات ──────────────────────────────────────────────────
+            foreach (var exp in FormExps)
+            {
+                model.Expenses.Add(new MotorBike.Services.ImportInvoiceExpModel
+                {
+                    ExpName = ExpenseTypes.FirstOrDefault(e => e.ExpId == exp.ExpId)?.ExpName ?? string.Empty,
+                    CashName = CashList.FirstOrDefault(c => c.CashId == exp.CashId)?.CashName ?? string.Empty,
+                    PayTotal = exp.PayTotal,
+                    PayDate = exp.PayDate,
+                });
+            }
+
+            // ── 6) الدفعات ────────────────────────────────────────────────────
+            foreach (var pay in FormPayments)
+            {
+                // نجرب FilteredPaymentCashList أولاً (عملة أجنبية) وإلا CashList
+                var cashName = FilteredPaymentCashList.FirstOrDefault(c => c.CashId == pay.CashId)?.CashName
+                            ?? CashList.FirstOrDefault(c => c.CashId == pay.CashId)?.CashName
+                            ?? string.Empty;
+
+                model.Payments.Add(new MotorBike.Services.ImportInvoicePaymentModel
+                {
+                    PayMoney = pay.PayMoney,
+                    OmlaRate = (double)pay.OmlaRate,
+                    CashName = cashName,
+                    PayDate = pay.PayDate,
+                    Notes = pay.Notes ?? string.Empty,
+                });
+            }
+
+            // ── 7) إنشاء الـ Document ─────────────────────────────────────────
+            var document = new MotorBike.Services.ImportInvoiceDocument(model, company!);
+
+            // ── 8) حوار الحفظ ─────────────────────────────────────────────────
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf",
+                DefaultExt = "pdf",
+                Title = "حفظ فاتورة الاستيراد كـ PDF",
+                FileName = $"فاتورة_استيراد_{FormItem.InvId}_{DateTime.Now:yyyyMMdd}",
+            };
+
+            if (saveDialog.ShowDialog() != true) return;
+
+            // ── 9) توليد الـ PDF ──────────────────────────────────────────────
+            QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveDialog.FileName);
+
+            var open = MessageBox.Show(
+                "تم حفظ الفاتورة بنجاح.\nهل تريد فتح الملف الآن؟",
+                "حفظ وطباعة",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (open == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = saveDialog.FileName,
+                        UseShellExecute = true
+                    });
+                }
+                catch (Exception exInner)
+                {
+                    MessageBox.Show(
+                        "لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message,
+                        "خطأ",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                "حدث خطأ أثناء الطباعة: " + ex.Message,
+                "خطأ",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 

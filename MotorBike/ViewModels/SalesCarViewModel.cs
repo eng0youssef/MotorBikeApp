@@ -784,12 +784,12 @@ public partial class SalesCarViewModel : ObservableObject
                     yearNo = car.YearNo;
                     mileage = car.Mileage;
                     var mdl = await db.QuerySingleOrDefaultAsync<CarModel>(
-                        "SELECT * FROM Car_Models WHERE Model_ID = @ModelId", new { ModelId = car.ModelId });
+                        "SELECT * FROM CarModels WHERE Model_ID = @ModelId", new { ModelId = car.ModelId });
                     if (mdl != null)
                     {
                         carModel = mdl.ModelName ?? "";
                         var brand = await db.QuerySingleOrDefaultAsync<CarBrand>(
-                            "SELECT * FROM Car_Brands WHERE Brand_ID = @BrandId", new { BrandId = mdl.BrandId });
+                            "SELECT * FROM CarBrands WHERE Brand_ID = @BrandId", new { BrandId = mdl.BrandId });
                         carBrand = brand?.BrandName ?? "";
                     }
                     var clr = await db.QuerySingleOrDefaultAsync<dynamic>(

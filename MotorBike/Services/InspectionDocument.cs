@@ -124,7 +124,7 @@ public class InspectionDocument : IDocument
         container.PaddingVertical(1).Column(colContainer =>
         {
             // Car info
-            colContainer.Item().PaddingBottom(5).Text("بيانات الموتوسيكل").FontSize(13).SemiBold().FontColor(Colors.Blue.Darken3);
+            colContainer.Item().PaddingBottom(5).Text("بيانات الموتوسيكل").FontSize(13).SemiBold().FontColor(Colors.Blue.Darken3).AlignCenter();
             colContainer.Item().Table(table =>
             {
                 table.ColumnsDefinition(columns =>
