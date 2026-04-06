@@ -198,6 +198,9 @@ public partial class OpenStockViewModel : ObservableObject
             // إعادة حساب Stock للصنف
             await _compositeRepo.RecalcStockForItemAsync(FormItem.ItemId);
 
+            // إعادة حساب متوسط التكلفة من تاريخ الرصيد الافتتاحي
+            await _compositeRepo.RecalcAvgCostForItemAsync(FormItem.ItemId, FormItem.OpenDate.Date);
+
             // IsEditing = false; // Retain edit mode so user can save again
             await LoadDataAsync();
         }
@@ -223,6 +226,9 @@ public partial class OpenStockViewModel : ObservableObject
 
             // إعادة حساب Stock للصنف
             await _compositeRepo.RecalcStockForItemAsync(deletedItemId);
+
+            // إعادة حساب متوسط التكلفة من البداية (بعد حذف الرصيد الافتتاحي نحسب من أول حركة)
+            await _compositeRepo.RecalcAvgCostForItemAsync(deletedItemId, DateTime.MinValue);
 
             StatusMessage = "تم الحذف بنجاح.";
             IsEditing = false;

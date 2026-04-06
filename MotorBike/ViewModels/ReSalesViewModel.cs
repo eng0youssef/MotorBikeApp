@@ -501,6 +501,10 @@ public partial class ReSalesViewModel : ObservableObject
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
 
+            // إعادة حساب متوسط التكلفة لكل الأصناف المتأثرة ابتداءً من تاريخ المرتجع
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, FormItem.SalesDate.Date);
+
             if (oldCusId.HasValue && oldCusId.Value != FormItem.CusId)
                 await _compositeRepo.RecalcBalanceForCustomerAsync(oldCusId.Value);
             await _compositeRepo.RecalcBalanceForCustomerAsync(FormItem.CusId);
@@ -539,6 +543,10 @@ public partial class ReSalesViewModel : ObservableObject
 
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // إعادة حساب متوسط التكلفة من البداية (بعد الحذف نحسب من أول حركة)
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, DateTime.MinValue);
 
             // إعادة حساب رصيد العميل من كل الحركات
             await _compositeRepo.RecalcBalanceForCustomerAsync(SelectedInvoice.CusId);

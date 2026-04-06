@@ -344,4 +344,234 @@ public class CompositeKeyRepository
             WHERE Supp_ID = @SuppId";
         await db.ExecuteAsync(sql, new { SuppId = suppId });
     }
+
+    // ── Average Cost Recalculation ───────────────────────────────────────
+
+    /// <summary>
+    /// يعيد حساب متوسط التكلفة المتحرك للصنف المحدد ابتداءً من تاريخ معين.
+    /// يحذف كل سجلات TblCost الخاصة بالصنف من @fromDate فما بعد، ثم يعيد بناءها
+    /// بناءً على جميع حركات الصنف (رصيد افتتاحي، شراء، استيراد، مرتجع بيع كوارد؛
+    /// بيع، مرتجع شراء كصادر)، ويحدّث AvrgCost في جدول Items.
+    /// 
+    /// استخدم DateTime.MinValue لإعادة حساب كل الحركات من البداية.
+    /// </summary>
+    public async Task RecalcAvgCostForItemAsync(int itemId, DateTime fromDate)
+    {
+        // SQL Server DATETIME لا يقبل تواريخ قبل 1753. 
+        // DateTime.MinValue تسبب خطأ overflow.
+        if (fromDate < new DateTime(1753, 1, 1))
+            fromDate = new DateTime(1753, 1, 1);
+
+        // SQL query that gathers all movements for the item from @FromDate, ordered by date then type.
+ 
+        const string gatherSql = @"
+            SELECT MyType, MyID, MyDate, ItemID, Qty, Cost, TotalCost
+            FROM (
+                -- رصيد افتتاحي (وارد)
+                SELECT
+                    1001 AS MyType,
+                    os.ItemID AS MyID,
+                    os.OpenDate AS MyDate,
+                    os.ItemID,
+                    SUM(os.QtyAll) AS Qty,
+                    CASE WHEN SUM(os.QtyAll) <> 0 THEN SUM(os.Total) / SUM(os.QtyAll) ELSE 0 END AS Cost,
+                    SUM(os.Total) AS TotalCost
+                FROM Open_Stock os
+                WHERE os.ItemID = @ItemId AND os.OpenDate >= @FromDate
+                GROUP BY os.ItemID, os.OpenDate
+
+                UNION ALL
+
+                -- شراء (وارد)
+                SELECT
+                    1002 AS MyType,
+                    b.Buy_ID AS MyID,
+                    b.BuyDate AS MyDate,
+                    bs.ItemID,
+                    SUM(bs.QtyAll) AS Qty,
+                    CASE WHEN SUM(bs.QtyAll) = 0 THEN 0
+                         ELSE SUM(bs.Total * b.NetPer) / SUM(bs.QtyAll) END AS Cost,
+                    SUM(bs.Total * b.NetPer) AS TotalCost
+                FROM Buy b
+                INNER JOIN Buy_Sub bs ON b.Buy_ID = bs.BuyId
+                WHERE bs.ItemID = @ItemId AND b.BuyDate >= @FromDate
+                GROUP BY b.Buy_ID, b.BuyDate, bs.ItemID
+
+                UNION ALL
+
+                -- استيراد (وارد)
+                SELECT
+                    1003 AS MyType,
+                    ii.Inv_ID AS MyID,
+                    ii.InvDate AS MyDate,
+                    im.ItemID,
+                    SUM(im.QtyAll) AS Qty,
+                    CASE WHEN SUM(im.QtyAll) = 0 THEN 0
+                         ELSE SUM(im.CostTotal) / SUM(im.QtyAll) END AS Cost,
+                    SUM(im.CostTotal) AS TotalCost
+                FROM Import_Invoice ii
+                INNER JOIN Import_Inv_Item im ON ii.Inv_ID = im.InvID
+                WHERE im.ItemID = @ItemId AND ii.InvDate >= @FromDate
+                GROUP BY ii.Inv_ID, ii.InvDate, im.ItemID
+
+                UNION ALL
+
+                -- مرتجع بيع (وارد)
+                SELECT
+                    1007 AS MyType,
+                    rs.Sales_ID AS MyID,
+                    rs.SalesDate AS MyDate,
+                    rss.ItemID,
+                    SUM(rss.QtyAll) AS Qty,
+                    CASE WHEN SUM(rss.QtyAll) = 0 THEN 0
+                         ELSE SUM(rss.Total * rs.NetPer) / SUM(rss.QtyAll) END AS Cost,
+                    SUM(rss.Total * rs.NetPer) AS TotalCost
+                FROM ReSales rs
+                INNER JOIN ReSales_Sub rss ON rs.Sales_ID = rss.SalesId
+                WHERE rss.ItemID = @ItemId AND rs.SalesDate >= @FromDate
+                GROUP BY rs.Sales_ID, rs.SalesDate, rss.ItemID
+
+                UNION ALL
+
+                -- بيع (صادر — الكميات سالبة)
+                SELECT
+                    1009 AS MyType,
+                    s.Sales_ID AS MyID,
+                    s.SalesDate AS MyDate,
+                    ss.ItemID,
+                    SUM(ss.QtyAll) * -1 AS Qty,
+                    CASE WHEN SUM(ss.QtyAll) = 0 THEN 0
+                         ELSE SUM(ss.Total * s.NetPer) / SUM(ss.QtyAll) * -1 END AS Cost,
+                    SUM(ss.Total * s.NetPer) AS TotalCost
+                FROM Sales s
+                INNER JOIN Sales_Sub ss ON s.Sales_ID = ss.SalesId
+                WHERE ss.ItemID = @ItemId AND s.SalesDate >= @FromDate
+                GROUP BY s.Sales_ID, s.SalesDate, ss.ItemID
+
+                UNION ALL
+
+                -- مرتجع شراء (صادر — الكميات سالبة)
+                SELECT
+                    1011 AS MyType,
+                    rb.Buy_ID AS MyID,
+                    rb.BuyDate AS MyDate,
+                    rbs.ItemID,
+                    SUM(rbs.QtyAll) * -1 AS Qty,
+                    CASE WHEN SUM(rbs.QtyAll) = 0 THEN 0
+                         ELSE SUM(rbs.Total * rb.NetPer) / SUM(rbs.QtyAll) * -1 END AS Cost,
+                    SUM(rbs.Total * rb.NetPer) AS TotalCost
+                FROM ReBuy rb
+                INNER JOIN ReBuy_Sub rbs ON rb.Buy_ID = rbs.BuyId
+                WHERE rbs.ItemID = @ItemId AND rb.BuyDate >= @FromDate
+                GROUP BY rb.Buy_ID, rb.BuyDate, rbs.ItemID
+            ) AS AllMovements
+            ORDER BY MyDate, MyType, MyID";
+
+        // Helper to read the running balance BEFORE @fromDate so we start from the correct base
+        const string previousBalSql = @"
+            SELECT TOP 1 NewQty, NewCost
+            FROM TblCost
+            WHERE ItemID = @ItemId AND MyDate < @FromDate
+            ORDER BY MyDate DESC, ID DESC";
+
+        using var db = _connectionFactory.CreateConnection();
+        db.Open();
+        using var tx = db.BeginTransaction();
+        try
+        {
+            // 1 — Get the opening balance (last known state before fromDate)
+            var prevRow = await db.QueryFirstOrDefaultAsync<(decimal? NewQty, decimal? NewCost)>(
+                previousBalSql, new { ItemId = itemId, FromDate = fromDate }, tx);
+
+            decimal runQty  = prevRow.NewQty  ?? 0m;
+            decimal runCost = prevRow.NewCost ?? 0m;
+
+            // 2 — Delete TblCost rows for this item from fromDate onwards
+            await db.ExecuteAsync(
+                "DELETE FROM TblCost WHERE ItemID = @ItemId AND MyDate >= @FromDate",
+                new { ItemId = itemId, FromDate = fromDate }, tx);
+
+            // 3 — Gather all movements
+            var movements = (await db.QueryAsync<MovementRow>(
+                gatherSql, new { ItemId = itemId, FromDate = fromDate }, tx)).ToList();
+
+            // 4 — Walk through movements and write TblCost rows
+            foreach (var m in movements)
+            {
+                decimal oldQty  = runQty;
+                decimal oldCost = runCost;
+
+                decimal addQty  = 0m, addCost  = 0m;
+                decimal outQty  = 0m, outCost  = 0m;
+
+                bool isIn  = m.MyType <= 1008;  // 1001-1008 = inbound
+                bool isOut = m.MyType >= 1009;  // 1009-1012 = outbound
+
+                if (isIn)
+                {
+                    addQty  = (decimal)m.Qty;
+                    // For purchase/import/open-stock: use the actual cost from the transaction.
+                    // For sales-return: the cost is the current running average (we're putting
+                    //   stock back at the average we had when we sold it, matching the SP logic).
+                    bool useTransactionCost = m.MyType <= 1003;  // OpenStock, Buy, Import
+                    addCost = useTransactionCost ? (decimal)m.Cost : runCost;
+
+                    // Recalculate running average
+                    decimal newTotalCost = (runQty * runCost) + (addQty * addCost);
+                    runQty  += addQty;
+                    runCost  = runQty != 0 ? newTotalCost / runQty : runCost;
+                }
+                else // isOut
+                {
+                    outQty  = (decimal)(m.Qty * -1); // m.Qty is already negative, flip it
+                    outCost = runCost;               // always valued at current average
+                    runQty += (decimal)m.Qty;        // m.Qty is negative for out rows
+                    // average cost doesn't change on outbound movements
+                }
+
+                await db.ExecuteAsync(@"
+                    INSERT INTO TblCost
+                        (ItemID, MyDate, MyType, MyID, OldQty, OldCost, AddQty, AddCost, OutQty, OutCost)
+                    VALUES
+                        (@ItemId, @MyDate, @MyType, @MyId, @OldQty, @OldCost, @AddQty, @AddCost, @OutQty, @OutCost)",
+                    new
+                    {
+                        ItemId  = itemId,
+                        m.MyDate,
+                        m.MyType,
+                        MyId    = m.MyID,
+                        OldQty  = oldQty,
+                        OldCost = oldCost,
+                        AddQty  = addQty,
+                        AddCost = addCost,
+                        OutQty  = outQty,
+                        OutCost = outCost
+                    }, tx);
+            }
+
+            // 5 — Update AvrgCost on the Items table
+            await db.ExecuteAsync(@"
+                UPDATE Items SET
+                    AvrgCost = ISNULL((SELECT TOP 1 NewCost FROM TblCost WHERE ItemID = @ItemId ORDER BY MyDate DESC, ID DESC), 0)
+                WHERE Item_ID = @ItemId",
+                new { ItemId = itemId }, tx);
+
+            tx.Commit();
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    /// <summary>Internal DTO for average-cost movements query.</summary>
+    private sealed record MovementRow(
+        int      MyType,
+        int      MyID,
+        DateTime MyDate,
+        int      ItemID,
+        double   Qty,
+        double   Cost,
+        double   TotalCost);
 }

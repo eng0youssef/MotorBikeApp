@@ -1047,6 +1047,10 @@ public partial class ImportInvoiceViewModel : ObservableObject
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
 
+            // 1b) إعادة حساب متوسط التكلفة لكل صنف متأثر ابتداءً من تاريخ الفاتورة
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, FormItem.InvDate.Date);
+
             // 2) إعادة حساب رصيد مورد الاستيراد
             if (!isNew && _oldSuppId.HasValue && _oldSuppId.Value != FormItem.SuppId)
                 await _compositeRepo.RecalcBalanceForImportSupplierAsync(_oldSuppId.Value);
@@ -1295,6 +1299,10 @@ public partial class ImportInvoiceViewModel : ObservableObject
             // 1) إعادة حساب المخزون لكل صنف متأثر
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // 1b) إعادة حساب متوسط التكلفة من البداية (بعد الحذف نحسب من أول حركة)
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, DateTime.MinValue);
 
             // 2) إعادة حساب رصيد مورد الاستيراد
             await _compositeRepo.RecalcBalanceForImportSupplierAsync(deletedSuppId);

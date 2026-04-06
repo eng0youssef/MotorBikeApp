@@ -663,6 +663,10 @@ public partial class BuysViewModel : ObservableObject
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
+            // إعادة حساب متوسط التكلفة لكل الأصناف المتأثرة ابتداءً من تاريخ الفاتورة
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, FormItem.BuyDate.Date);
+
             _isInsertMode = false;
             // IsEditing = false; // left true to allow further edits
             await LoadInvoicesAsync();
@@ -696,6 +700,10 @@ public partial class BuysViewModel : ObservableObject
             // إعادة حساب Stock لكل الأصناف المتأثرة
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
+
+            // إعادة حساب متوسط التكلفة من البداية (بعد الحذف نحسب من أول حركة)
+            foreach (var itemId in affectedItemIds)
+                await _compositeRepo.RecalcAvgCostForItemAsync(itemId, DateTime.MinValue);
 
             // إعادة حساب رصيد المورد من كل الحركات
             await _compositeRepo.RecalcBalanceForSupplierAsync(SelectedInvoice.SuppId);
