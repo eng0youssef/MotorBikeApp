@@ -313,12 +313,12 @@
                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemPrice, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
                                 <Grid Grid.Column="5" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold" Foreground="White" Text="خصم %" />
-                                    <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountPercent, UpdateSourceTrigger=PropertyChanged}" />
+                                    <RadioButton Content="خصم %" Margin="2,-16,0,0" FontSize="13" Foreground="White" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer}" />
+                                    <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountPercent, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsSubItemDiscountPer}" />
                                 </Grid>
                                 <Grid Grid.Column="6" Margin="0,0,12,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13"  FontWeight="Bold"  Foreground="White" Text="خصم" />
-                                    <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountValue, UpdateSourceTrigger=PropertyChanged}" />
+                                    <RadioButton Content="خصم" Margin="2,-16,0,0" FontSize="13" Foreground="White" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer, Converter={StaticResource InverseBool}}" />
+                                    <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountValue, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsSubItemDiscountPer, Converter={StaticResource InverseBool}}" />
                                 </Grid>
                                 <Grid Grid.Column="7" Margin="0,0,12,0">
                                     <TextBlock Margin="2,-16,0,0" FontSize="13"  FontWeight="Bold"  Foreground="White" Text="اجمالي" />
@@ -427,19 +427,19 @@
                                                  TextChanged="Totals_TextChanged" />
                                     </StackPanel>
                                     <StackPanel Margin="0,0,28,8">
-                                        <TextBlock FontSize="11" Foreground="White" Text="خصم إجمالي (%)" />
+                                        <RadioButton Margin="0,0,0,4" FontSize="11" Foreground="White" Content="خصم إجمالي (%)" IsChecked="{Binding IsInvoiceDiscountPer}" />
                                         <TextBox Width="70"
-                                                 IsEnabled="{Binding IsEditing}"
+                                                 IsEnabled="{Binding IsInvoiceDiscountPer}"
                                                  Style="{StaticResource FormTextBox}"
                                                  Text="{Binding DiscountPercentInput, UpdateSourceTrigger=PropertyChanged}"
                                                  TextChanged="Totals_TextChanged" />
                                     </StackPanel>
                                     <StackPanel Margin="0,0,24,8">
-                                        <TextBlock FontSize="12" FontWeight="Bold" Foreground="White" Text="خصم مبلغ" />
+                                        <RadioButton Margin="0,0,0,4" FontSize="12" FontWeight="Bold" Foreground="White" Content="خصم مبلغ" IsChecked="{Binding IsInvoiceDiscountPer, Converter={StaticResource InverseBool}}" />
                                         <TextBox MinWidth="80" FontSize="13"
-                                                 IsEnabled="{Binding IsEditing}"
+                                                 IsEnabled="{Binding IsInvoiceDiscountPer, Converter={StaticResource InverseBool}}"
                                                  Style="{StaticResource FormTextBox}"
-                                                 Text="{Binding DiscountValueInput, UpdateSourceTrigger=PropertyChanged}"
+                                                 Text="{Binding DiscountValueInput, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}"
                                                  TextChanged="Totals_TextChanged" />
                                     </StackPanel>
                                     <!--  Tax Toggle CheckBox  -->

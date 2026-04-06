@@ -79,8 +79,11 @@ public partial class SalesViewModel : ObservableObject
         }
     }
 
+    [ObservableProperty] private bool _isInvoiceDiscountPer = true;
+    [ObservableProperty] private bool _isSubItemDiscountPer = true;
+
     [ObservableProperty] private double _subItemQty;
-    public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - SubItemDiscountValue), 2);
+    public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - (CurrentSubItem?.Disc ?? 0)), 2);
 
     [ObservableProperty] private double _netBeforeTax;
 
@@ -96,15 +99,19 @@ public partial class SalesViewModel : ObservableObject
         get => _discountPercentInput;
         set
         {
-            if (SetProperty(ref _discountPercentInput, value))
+            if (SetProperty(ref _discountPercentInput, Math.Round(value, 2)))
             {
                 if (_isUpdatingDiscount) return;
                 _isUpdatingDiscount = true;
-                if (FormItem != null)
+                if (FormItem != null && IsInvoiceDiscountPer)
                 {
                     FormItem.IsPer = true;
-                    DiscountValueInput = Math.Round(FormItem.Total * (value / 100.0), 2);
-                    FormItem.Disc = DiscountValueInput;
+                    double exactValue = FormItem.Total * (value / 100.0);
+                    FormItem.Disc = exactValue;
+                    
+                    _discountValueInput = Math.Round(exactValue, 2);
+                    OnPropertyChanged(nameof(DiscountValueInput));
+                    
                     CalculateTotalsInternal();
                 }
                 _isUpdatingDiscount = false;
@@ -118,15 +125,19 @@ public partial class SalesViewModel : ObservableObject
         get => _discountValueInput;
         set
         {
-            if (SetProperty(ref _discountValueInput, value))
+            if (SetProperty(ref _discountValueInput, Math.Round(value, 2)))
             {
                 if (_isUpdatingDiscount) return;
                 _isUpdatingDiscount = true;
-                if (FormItem != null)
+                if (FormItem != null && !IsInvoiceDiscountPer)
                 {
                     FormItem.IsPer = false;
                     FormItem.Disc = value;
-                    DiscountPercentInput = FormItem.Total > 0 ? Math.Round((value / FormItem.Total) * 100.0, 2) : 0;
+                    
+                    double exactPercent = FormItem.Total > 0 ? (value / FormItem.Total) * 100.0 : 0;
+                    _discountPercentInput = Math.Round(exactPercent, 2);
+                    OnPropertyChanged(nameof(DiscountPercentInput));
+                    
                     CalculateTotalsInternal();
                 }
                 _isUpdatingDiscount = false;
@@ -148,8 +159,20 @@ public partial class SalesViewModel : ObservableObject
                 if (!_isUpdatingSubDiscount)
                 {
                     _isUpdatingSubDiscount = true;
-                    SubItemDiscountValue = Math.Round(value * (SubItemDiscountPercent / 100.0), 2);
-                    if (CurrentSubItem != null) CurrentSubItem.Disc = SubItemDiscountValue;
+                    if (IsSubItemDiscountPer)
+                    {
+                        double exactValue = value * (SubItemDiscountPercent / 100.0);
+                        if (CurrentSubItem != null) CurrentSubItem.Disc = exactValue;
+                        _subItemDiscountValue = Math.Round(exactValue, 2);
+                        OnPropertyChanged(nameof(SubItemDiscountValue));
+                    }
+                    else
+                    {
+                        double exactPercent = value > 0 ? (SubItemDiscountValue / value) * 100.0 : 0;
+                        if (CurrentSubItem != null) CurrentSubItem.DiscPer = exactPercent;
+                        _subItemDiscountPercent = Math.Round(exactPercent, 2);
+                        OnPropertyChanged(nameof(SubItemDiscountPercent));
+                    }
                     _isUpdatingSubDiscount = false;
                 }
                 OnPropertyChanged(nameof(SubItemTotal));
@@ -163,15 +186,18 @@ public partial class SalesViewModel : ObservableObject
         get => _subItemDiscountPercent;
         set
         {
-            if (SetProperty(ref _subItemDiscountPercent, value))
+            if (SetProperty(ref _subItemDiscountPercent, Math.Round(value, 2)))
             {
                 if (_isUpdatingSubDiscount) return;
                 _isUpdatingSubDiscount = true;
-                if (CurrentSubItem != null)
+                if (CurrentSubItem != null && IsSubItemDiscountPer)
                 {
                     CurrentSubItem.DiscPer = value;
-                    SubItemDiscountValue = Math.Round(CurrentSubItem.Price * (value / 100.0), 2);
-                    CurrentSubItem.Disc = SubItemDiscountValue;
+                    double exactValue = CurrentSubItem.Price * (value / 100.0);
+                    CurrentSubItem.Disc = exactValue;
+                    
+                    _subItemDiscountValue = Math.Round(exactValue, 2);
+                    OnPropertyChanged(nameof(SubItemDiscountValue));
                 }
                 _isUpdatingSubDiscount = false;
                 OnPropertyChanged(nameof(SubItemTotal));
@@ -185,15 +211,18 @@ public partial class SalesViewModel : ObservableObject
         get => _subItemDiscountValue;
         set
         {
-            if (SetProperty(ref _subItemDiscountValue, value))
+            if (SetProperty(ref _subItemDiscountValue, Math.Round(value, 2)))
             {
                 if (_isUpdatingSubDiscount) return;
                 _isUpdatingSubDiscount = true;
-                if (CurrentSubItem != null)
+                if (CurrentSubItem != null && !IsSubItemDiscountPer)
                 {
                     CurrentSubItem.Disc = value;
-                    SubItemDiscountPercent = CurrentSubItem.Price > 0 ? Math.Round((value / CurrentSubItem.Price) * 100.0, 2) : 0;
-                    CurrentSubItem.DiscPer = SubItemDiscountPercent;
+                    double exactPercent = CurrentSubItem.Price > 0 ? (value / CurrentSubItem.Price) * 100.0 : 0;
+                    CurrentSubItem.DiscPer = exactPercent;
+
+                    _subItemDiscountPercent = Math.Round(exactPercent, 2);
+                    OnPropertyChanged(nameof(SubItemDiscountPercent));
                 }
                 _isUpdatingSubDiscount = false;
                 OnPropertyChanged(nameof(SubItemTotal));
@@ -347,15 +376,16 @@ public partial class SalesViewModel : ObservableObject
             FormItem = CloneInvoice(value);
             
             _isUpdatingDiscount = true;
+            IsInvoiceDiscountPer = FormItem.IsPer;
             if (FormItem.IsPer)
             {
                 DiscountPercentInput = Math.Round(FormItem.DiscPer * 100.0, 2);
-                DiscountValueInput = FormItem.Disc;
+                DiscountValueInput = Math.Round(FormItem.Disc, 2);
             }
             else
             {
-                DiscountValueInput = FormItem.Disc;
-            DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
+                DiscountValueInput = Math.Round(FormItem.Disc, 2);
+                DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
             }
             _isUpdatingDiscount = false;
 
@@ -446,6 +476,7 @@ public partial class SalesViewModel : ObservableObject
         item.IsPer = true;
         FormItem = item;
         
+        IsInvoiceDiscountPer = true;
         _isUpdatingDiscount = true;
         DiscountPercentInput = 0;
         DiscountValueInput = 0;
@@ -460,10 +491,13 @@ public partial class SalesViewModel : ObservableObject
         IsCashPaymentMode = false;
         
         CurrentSubItem = new SalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
+        _isUpdatingSubDiscount = true;
+        IsSubItemDiscountPer = true;
         SubItemQty = 1;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
+        _isUpdatingSubDiscount = false;
 
         CurrentPayment = new SalesPayment { SalesId = item.SalesId, PayDate = item.SalesDate.AddSeconds(20), CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
@@ -977,17 +1011,20 @@ public partial class SalesViewModel : ObservableObject
         _isUpdatingDiscount = true;
         FormItem.Total = FormSubItems.Sum(x => x.Total);
         
-        if (FormItem.IsPer)
+        if (IsInvoiceDiscountPer)
         {
-            DiscountValueInput = Math.Round(FormItem.Total * (DiscountPercentInput / 100.0), 2);
-            FormItem.Disc = DiscountValueInput;
+            double exactValue = FormItem.Total * (DiscountPercentInput / 100.0);
+            FormItem.Disc = exactValue;
             FormItem.DiscPer = DiscountPercentInput / 100.0;
+            _discountValueInput = Math.Round(exactValue, 2);
+            OnPropertyChanged(nameof(DiscountValueInput));
         }
         else
         {
-            DiscountPercentInput = FormItem.Total > 0 ? Math.Round((FormItem.Disc / FormItem.Total) * 100.0, 2) : 0;
-            DiscountValueInput = FormItem.Disc;
-            FormItem.DiscPer = DiscountPercentInput / 100.0;
+            double exactPercent = FormItem.Total > 0 ? (DiscountValueInput / FormItem.Total) * 100.0 : 0;
+            FormItem.DiscPer = exactPercent / 100.0;
+            _discountPercentInput = Math.Round(exactPercent, 2);
+            OnPropertyChanged(nameof(DiscountPercentInput));
         }
         
         CalculateTotalsInternal();
