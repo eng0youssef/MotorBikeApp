@@ -107,7 +107,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private ImportInvItem _currentSubItem = new();
     [ObservableProperty] private ImportInvCar _currentSubCar = new();
     [ObservableProperty] private ImportExp _currentSubExp = new() { PayDate = DateTime.Now };
-    [ObservableProperty] private ImportPayment _currentSubPayment = new() { PayDate = DateTime.Now };
+    [ObservableProperty] private ImportPayment _currentSubPayment = new() { PayDate = DateTime.Now.AddSeconds(20) };
 
     [ObservableProperty] private int _currentSubItemUnitId;
     private Item? _selectedItemForSubItem;
@@ -710,7 +710,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         FormPayments.Add(CurrentSubPayment);
         var oldCashId = CurrentSubPayment.CashId;
         
-        CurrentSubPayment = new ImportPayment { PayDate = DateTime.Now, OmlaRate = 1, CashId = oldCashId };
+        CurrentSubPayment = new ImportPayment { PayDate = FormItem.InvDate.AddSeconds(20), OmlaRate = 1, CashId = oldCashId };
         if (Omlas.Any()) CurrentSubPayment.OmlaId = FormItem.OmlaId;
 
         CalculateFrokOmla();
@@ -1023,6 +1023,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             int nextPayId = Math.Max(await _paymentRepo.GetNextIdAsync(), FormPayments.Any() ? FormPayments.Max(p => p.PayId) + 1 : 1);
             foreach (var pay in FormPayments)
             {
+                pay.PayDate = FormItem.InvDate.AddSeconds(20);
                 if (pay.PayId == 0) pay.PayId = nextPayId++;
                 pay.InvId = FormItem.InvId;
                 pay.SuppId = FormItem.SuppId;

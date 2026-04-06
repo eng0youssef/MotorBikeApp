@@ -193,48 +193,78 @@ public class SalesCarInvoiceDocument : IDocument
         else cell.Text(val).FontSize(10);
     }
 
-    private void ComposeTotals(IContainer container)
+    private void ComposeTotals(IContainer container)   // SalesCarInvoiceDocument
     {
-        var totals = BuildTotals();
-        const int itemsPerRow = 3;
-        container.Padding(5).Column(column =>
+        double totalAccount = _model.NetAmount + _model.PreviousBalance;
+        double remaining = totalAccount - _model.PaidAmount;
+
+        var leftItems = new[]
         {
-            foreach (var rowTotals in totals.Chunk(itemsPerRow))
+        ("الإجمالي",      _model.NetAmount.ToString("N2")),
+        ("الرصيد السابق", _model.PreviousBalance.ToString("N2")),
+        ("الإجمالي",      totalAccount.ToString("N2")),
+        ("المدفوع",       _model.PaidAmount.ToString("N2")),
+        ("المتبقي",       remaining.ToString("N2")),
+    };
+
+        var rightItems = BuildRightTotals_Car();
+
+        container.Padding(5).Row(mainRow =>
+        {
+            mainRow.ConstantItem(130).Column(leftCol =>
             {
-                var items = rowTotals.Reverse().ToList();
-                column.Item().PaddingBottom(8).Row(row =>
+                foreach (var (label, value) in leftItems)
                 {
-                    foreach (var kv in items)
+                    leftCol.Item().PaddingBottom(5).Column(c =>
                     {
-                        row.RelativeItem().PaddingHorizontal(3).Column(c =>
-                        {
-                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(10).FontColor("#334155");
-                            c.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
-                                .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                .Text(kv.Value).FontSize(11).FontColor("#1E293B").DirectionFromLeftToRight();
-                        });
-                    }
-                    for (int i = items.Count; i < itemsPerRow; i++) row.RelativeItem();
-                });
-            }
+                        c.Item().AlignCenter()
+                            .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                        c.Item().PaddingTop(2)
+                            .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+                            .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
+                            .Text(value).FontSize(11).FontColor("#1E293B")
+                            .DirectionFromLeftToRight();
+                    });
+                }
+            });
+
+            mainRow.ConstantItem(8).AlignCenter().AlignMiddle()
+                .LineVertical(1).LineColor(Colors.Grey.Lighten2);
+
+            mainRow.RelativeItem().PaddingHorizontal(4).Row(rightRow =>
+            {
+                foreach (var (label, value) in rightItems)
+                {
+                    rightRow.RelativeItem().PaddingHorizontal(3).Column(c =>
+                    {
+                        c.Item().AlignCenter()
+                            .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                        c.Item().PaddingTop(3)
+                            .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+                            .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
+                            .Text(value).FontSize(11).FontColor("#1E293B")
+                            .DirectionFromLeftToRight();
+                    });
+                }
+            });
         });
     }
 
-    private List<KeyValuePair<string, string>> BuildTotals()
+    private List<(string Label, string Value)> BuildRightTotals_Car()
     {
-        var list = new List<KeyValuePair<string, string>> { new("السعر", _model.Total.ToString("N2")) };
+        var list = new List<(string, string)>
+    {
+        ("السعر", _model.Total.ToString("N2")),
+    };
+
         if (_model.IsTax)
         {
             double vatPct = _model.Total > 0 ? Math.Round((_model.VatTax / _model.Total) * 100, 2) : 0;
             double whtPct = _model.Total > 0 ? Math.Round((_model.WhtTax / _model.Total) * 100, 2) : 0;
-            list.Add(new("ضريبة القيمة المضافة", $"{_model.VatTax:N2}    % {vatPct:0.##}"));
-            list.Add(new("ضريبة الأرباح التجارية والصناعية", $"{_model.WhtTax:N2}    % {whtPct:0.##}"));
+            list.Add(($"ض. قيمة مضافة {vatPct:0.##}%", _model.VatTax.ToString("N2")));
+            list.Add(($"ض. الأرباح {whtPct:0.##}%", _model.WhtTax.ToString("N2")));
         }
-        list.Add(new("الصافي", _model.NetAmount.ToString("N2")));
-        list.Add(new("الرصيد السابق", _model.PreviousBalance.ToString("N2")));
-        list.Add(new("إجمالي الحساب", (_model.NetAmount + _model.PreviousBalance).ToString("N2")));
-        list.Add(new("المدفوع", _model.PaidAmount.ToString("N2")));
-        list.Add(new("المتبقي", ((_model.NetAmount + _model.PreviousBalance) - _model.PaidAmount).ToString("N2")));
+
         return list;
     }
 

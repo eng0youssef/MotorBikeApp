@@ -284,7 +284,7 @@ public partial class SalesCarViewModel : ObservableObject
         CurrentPayment = new SalesCarPayment
         {
             SalesId = FormItem.SalesId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.SalesDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
 
@@ -399,7 +399,7 @@ public partial class SalesCarViewModel : ObservableObject
                     FormPayments.Add(new SalesCarPayment
                     {
                         SalesId = FormItem.SalesId,
-                        PayDate = FormItem.SalesDate,
+                        PayDate = FormItem.SalesDate.AddSeconds(20),
                         PayMoney = FormItem.Net,
                         CashId = SelectedCashId,
                         Notes = "دفع كاش للفاتورة"
@@ -466,7 +466,7 @@ public partial class SalesCarViewModel : ObservableObject
 
                 foreach (var p in FormPayments)
                 {
-                    if (p.PayDate < new DateTime(1753, 1, 1)) p.PayDate = DateTime.Now;
+                    p.PayDate = FormItem.SalesDate.AddSeconds(20);
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
@@ -559,7 +559,7 @@ public partial class SalesCarViewModel : ObservableObject
         CurrentPayment = new SalesCarPayment
         {
             SalesId = FormItem.SalesId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.SalesDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
@@ -596,7 +596,7 @@ public partial class SalesCarViewModel : ObservableObject
             FormPayments.Add(new SalesCarPayment
             {
                 SalesId = FormItem.SalesId,
-                PayDate = DateTime.Now,
+                PayDate = FormItem.SalesDate.AddSeconds(20),
                 PayMoney = FormItem.Net,
                 CashId = SelectedCashId,
                 Notes = "سداد كامل (كاش)"

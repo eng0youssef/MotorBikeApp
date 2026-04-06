@@ -320,7 +320,7 @@ public partial class ReSalesViewModel : ObservableObject
         CurrentSubItem = new ReSalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         SubItemQty = 1; SubItemPrice = 0; SubItemDiscountPercent = 0; SubItemDiscountValue = 0;
 
-        CurrentPayment = new ReSalesPayment { SalesId = item.SalesId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new ReSalesPayment { SalesId = item.SalesId, PayDate = FormItem.SalesDate.AddSeconds(20), CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
@@ -480,6 +480,7 @@ public partial class ReSalesViewModel : ObservableObject
                     "SELECT ISNULL(MAX(Pay_ID), 0) FROM ReSales_Payments", transaction: tx);
                 foreach (var p in FormPayments)
                 {
+                    p.PayDate = FormItem.SalesDate.AddSeconds(20);
                     p.PayId = ++maxPayId;
                     p.SalesId = FormItem.SalesId;
                     await db.ExecuteAsync(@"
@@ -690,7 +691,7 @@ public partial class ReSalesViewModel : ObservableObject
         CurrentPayment = new ReSalesPayment
         {
             SalesId = FormItem.SalesId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.SalesDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
@@ -731,7 +732,7 @@ public partial class ReSalesViewModel : ObservableObject
             FormPayments.Add(new ReSalesPayment
             {
                 SalesId = FormItem.SalesId,
-                PayDate = DateTime.Now,
+                PayDate = FormItem.SalesDate.AddSeconds(20),
                 PayMoney = FormItem.Net,
                 CashId = SelectedCashId > 0 ? SelectedCashId : Cashes.FirstOrDefault()?.CashId ?? 0,
                 Notes = "سداد كامل (كاش) - مرتجع"

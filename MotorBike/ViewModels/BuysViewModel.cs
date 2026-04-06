@@ -462,7 +462,7 @@ public partial class BuysViewModel : ObservableObject
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
 
-        CurrentPayment = new BuyPayment { BuyId = item.BuyId, PayDate = DateTime.Now, CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
+        CurrentPayment = new BuyPayment { BuyId = item.BuyId, PayDate = item.BuyDate.AddSeconds(20), CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
         
@@ -637,6 +637,7 @@ public partial class BuysViewModel : ObservableObject
                 {
                     p.PayId = ++maxPayId;
                     p.BuyId = FormItem.BuyId;
+                    p.PayDate = FormItem.BuyDate.AddSeconds(20);
                     await db.ExecuteAsync(@"
                     INSERT INTO Buy_Payments (Pay_ID, PayDate, PayMoney, CashID, Notes, BuyID) 
                     VALUES (@PayId, @PayDate, @PayMoney, @CashId, @Notes, @BuyId)",
@@ -883,7 +884,7 @@ public partial class BuysViewModel : ObservableObject
         CurrentPayment = new BuyPayment
         {
             BuyId = FormItem.BuyId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.BuyDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
@@ -925,7 +926,7 @@ public partial class BuysViewModel : ObservableObject
             FormPayments.Add(new BuyPayment
             {
                 BuyId = FormItem.BuyId,
-                PayDate = DateTime.Now,
+                PayDate = FormItem.BuyDate.AddSeconds(20),
                 PayMoney = FormItem.Net,
                 CashId = Cashes.FirstOrDefault()?.CashId ?? 0,
                 Notes = "سداد كامل (كاش)"

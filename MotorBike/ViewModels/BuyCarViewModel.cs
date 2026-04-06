@@ -426,7 +426,7 @@ public partial class BuyCarViewModel : ObservableObject
 
         FormPayments.Clear();
         TotalPayed = 0;
-        CurrentPayment = new BuyCarPayment { PayDate = DateTime.Now, CashId = SelectedCashId };
+        CurrentPayment = new BuyCarPayment { PayDate = FormItem.BuyDate.AddSeconds(20), CashId = SelectedCashId };
 
         VatTaxPercent = 0; WhtTaxPercent = 0;
     }
@@ -526,7 +526,7 @@ public partial class BuyCarViewModel : ObservableObject
                     FormPayments.Add(new BuyCarPayment
                     {
                         BuyId = FormItem.BuyId,
-                        PayDate = FormItem.BuyDate,
+                        PayDate = FormItem.BuyDate.AddSeconds(20),
                         PayMoney = FormItem.Net,
                         CashId = SelectedCashId,
                         Notes = "دفع كاش للفاتورة"
@@ -739,7 +739,7 @@ public partial class BuyCarViewModel : ObservableObject
 
                 foreach (var p in FormPayments)
                 {
-                    if (p.PayDate < new DateTime(1753, 1, 1)) p.PayDate = DateTime.Now;
+                    p.PayDate = FormItem.BuyDate.AddSeconds(20);
                     p.PayId = ++maxPayId;
                     p.BuyId = FormItem.BuyId;
                     await db.ExecuteAsync(@"
@@ -981,7 +981,7 @@ public partial class BuyCarViewModel : ObservableObject
         CurrentPayment = new BuyCarPayment
         {
             BuyId = FormItem.BuyId,
-            PayDate = DateTime.Now,
+            PayDate = FormItem.BuyDate.AddSeconds(20),
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
     }
@@ -1016,7 +1016,7 @@ public partial class BuyCarViewModel : ObservableObject
             FormPayments.Add(new BuyCarPayment
             {
                 BuyId = FormItem.BuyId,
-                PayDate = DateTime.Now,
+                PayDate = FormItem.BuyDate.AddSeconds(20),
                 PayMoney = FormItem.Net,
                 CashId = SelectedCashId,
                 Notes = "سداد كامل (كاش)"

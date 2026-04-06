@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="MotorBike.Views.ImportPaymentsView"
+<UserControl x:Class="MotorBike.Views.ImportPaymentsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:MotorBike.Converters"
@@ -93,20 +93,11 @@
                     <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding FormItem.PayMoney, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="المورد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Suppliers}" DisplayMemberPath="SuppName" SelectedValuePath="SuppId" SelectedValue="{Binding FormItem.SuppId}" Padding="10,6" FontSize="14" IsEditable="True"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Suppliers}" DisplayMemberPath="SuppName" SelectedItem="{Binding SelectedSupplier}" Padding="10,6" FontSize="14" IsEditable="True"/>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="الخزنة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="2" Grid.Column="4" ItemsSource="{Binding CashList}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormItem.CashId}" Padding="10,6" FontSize="14"/>
-                    <TextBlock Grid.Row="2" Grid.Column="6" Text="العملة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <StackPanel Grid.Row="2" Grid.Column="7" Orientation="Horizontal">
-                        <ComboBox ItemsSource="{Binding Omlas}" DisplayMemberPath="OmlaName" SelectedValuePath="OmlaId" SelectedValue="{Binding FormItem.OmlaId}" Padding="10,6" FontSize="14" Width="100" Margin="0,0,12,0"/>
-                        <TextBlock Text="السعر:" VerticalAlignment="Center" Foreground="#9BA4B5" Margin="0,0,8,0"/>
-                        <TextBox Text="{Binding FormItem.OmlaRate, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}" Width="80"/>
-                    </StackPanel>
-
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="رقم الفاتورة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Invoices}" DisplayMemberPath="InvId" SelectedValuePath="InvId" SelectedValue="{Binding FormItem.InvId}" Padding="10,6" FontSize="14" IsEditable="True"/>
-                    <TextBlock Grid.Row="4" Grid.Column="3" Text="الملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="4" Grid.Column="4" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="الملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                 </Grid>
 
                 <DockPanel>

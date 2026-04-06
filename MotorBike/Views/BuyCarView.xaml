@@ -959,7 +959,7 @@
                             <Grid Grid.Column="0" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}"
                                            Text="التاريخ" />
-                                <DatePicker SelectedDate="{Binding CurrentPayment.PayDate, UpdateSourceTrigger=PropertyChanged}" />
+                                <DatePicker SelectedDate="{Binding CurrentPayment.PayDate, UpdateSourceTrigger=PropertyChanged}" IsEnabled="False" />
                             </Grid>
                             <Grid Grid.Column="1" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FormLabel}"
@@ -1015,7 +1015,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Width="120"
                                                     Binding="{Binding PayDate, StringFormat=\{0:yyyy/MM/dd\}}"
-                                                    Header="التاريخ" />
+                                                    Header="التاريخ" IsReadOnly="True" />
                                 <DataGridTextColumn Width="120"
                                                     Binding="{Binding PayMoney, StringFormat=\{0:N2\}}"
                                                     FontWeight="SemiBold" Foreground="#5BAE7C" Header="المبلغ" />

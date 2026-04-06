@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Dapper;
 using MotorBike.DataAccess;
 using MotorBike.Models;
 
@@ -11,27 +12,68 @@ namespace MotorBike.ViewModels;
 
 public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment>
 {
+    private readonly IDbConnectionFactory _dbFactory;
     private readonly IRepository<ImportSupplier> _supplierRepo;
     private readonly IRepository<Cash> _cashRepo;
     private readonly IRepository<Omla> _omlaRepo;
     private readonly IRepository<ImportInvoice> _invoiceRepo;
+    private readonly CompositeKeyRepository _compositeRepo;
+
+    private List<Cash> _allCash = [];
 
     [ObservableProperty] private ObservableCollection<ImportSupplier> _suppliers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
     [ObservableProperty] private ObservableCollection<Omla> _omlas = [];
     [ObservableProperty] private ObservableCollection<ImportInvoice> _invoices = [];
 
+    // Fields for tracking old values
+    private int? _oldSuppId;
+    private int? _oldCashId;
+
+    [ObservableProperty] private ImportSupplier? _selectedSupplier;
+
+    partial void OnSelectedSupplierChanged(ImportSupplier? value)
+    {
+        if (value != null)
+        {
+            FormItem.SuppId = value.SuppId;
+            FormItem.OmlaId = value.OmlaId;
+            FormItem.OmlaRate = value.OmlaRate;
+            FilterCashByOmla(value.OmlaId);
+        }
+        else
+        {
+            CashList = new ObservableCollection<Cash>(_allCash);
+        }
+    }
+
+    private void FilterCashByOmla(byte omlaId)
+    {
+        var filtered = _allCash.Where(c => c.OmlaId == omlaId).ToList();
+        CashList = new ObservableCollection<Cash>(filtered);
+
+        // Default to first available cash in filtered list if current CashId is not in it
+        if (filtered.Any() && !filtered.Any(c => c.CashId == FormItem.CashId))
+        {
+            FormItem.CashId = filtered.First().CashId;
+        }
+    }
+
     public ImportPaymentsViewModel(
+        IDbConnectionFactory dbFactory,
         IRepository<ImportPayment> repository,
         IRepository<ImportSupplier> supplierRepo,
         IRepository<Cash> cashRepo,
         IRepository<Omla> omlaRepo,
-        IRepository<ImportInvoice> invoiceRepo) : base(repository)
+        IRepository<ImportInvoice> invoiceRepo,
+        CompositeKeyRepository compositeRepo) : base(repository)
     {
+        _dbFactory = dbFactory;
         _supplierRepo = supplierRepo;
         _cashRepo = cashRepo;
         _omlaRepo = omlaRepo;
         _invoiceRepo = invoiceRepo;
+        _compositeRepo = compositeRepo;
 
         FormItem.PayDate = DateTime.Now;
     }
@@ -42,13 +84,25 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
         try
         {
             var supp = await _supplierRepo.GetAllAsync(); Suppliers = new(supp.Where(x => x.Active));
-            var cash = await _cashRepo.GetAllAsync(); CashList = new(cash.Where(x => x.Active));
+            var cash = await _cashRepo.GetAllAsync(); _allCash = cash.Where(x => x.Active).ToList();
+            CashList = new(_allCash);
             var omlas = await _omlaRepo.GetAllAsync(); Omlas = new(omlas.Where(x => x.Active));
             var invs = await _invoiceRepo.GetAllAsync(); Invoices = new(invs);
         }
         catch (Exception ex)
         {
             StatusMessage = $"خطأ في تحميل البيانات المرتبطة: {ex.Message}";
+        }
+    }
+
+    protected override void OnFormItemChangedHook(ImportPayment value)
+    {
+        base.OnFormItemChangedHook(value);
+        if (value != null)
+        {
+            // Update SelectedSupplier without triggering circular loop too much
+            // Selecting via Suppliers collection to get the object with the same ID
+            SelectedSupplier = Suppliers.FirstOrDefault(s => s.SuppId == value.SuppId);
         }
     }
 
@@ -67,4 +121,69 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
         if (Omlas.Any()) entity.OmlaId = Omlas.First().OmlaId;
     }
 
+    // ── Balance Recalculation Hooks ─────────────────────────────────
+
+    protected override async Task BeforeSaveAsync(bool isInsert)
+    {
+        if (!isInsert && FormItem != null)
+        {
+            // جلب القيم القديمة من قاعدة البيانات قبل التعديل
+            using var db = _dbFactory.CreateConnection();
+            var old = await db.QueryFirstOrDefaultAsync<ImportPayment>(
+                "SELECT SuppID, CashID FROM Import_Payments WHERE Pay_ID = @PayId",
+                new { FormItem.PayId });
+
+            if (old != null)
+            {
+                _oldSuppId = old.SuppId;
+                _oldCashId = old.CashId;
+            }
+        }
+        else
+        {
+            _oldSuppId = null;
+            _oldCashId = null;
+        }
+    }
+
+    protected override async Task AfterSaveAsync(bool wasInsert)
+    {
+        if (FormItem == null) return;
+
+        // إعادة حساب رصيد المورد الاستيراد القديم لو اتغير
+        if (_oldSuppId.HasValue && _oldSuppId.Value != FormItem.SuppId)
+            await _compositeRepo.RecalcBalanceForImportSupplierAsync(_oldSuppId.Value);
+
+        // إعادة حساب رصيد المورد الاستيراد الحالي
+        await _compositeRepo.RecalcBalanceForImportSupplierAsync(FormItem.SuppId);
+
+        // إعادة حساب رصيد الخزينة القديمة لو اتغيرت
+        if (_oldCashId.HasValue && _oldCashId.Value != (FormItem.CashId) && _oldCashId.Value > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+
+        // إعادة حساب رصيد الخزينة الحالية
+        if (FormItem.CashId > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId);
+    }
+
+    protected override Task BeforeDeleteAsync()
+    {
+        // حفظ بيانات السجل المحدد قبل الحذف
+        if (SelectedItem != null)
+        {
+            _oldSuppId = SelectedItem.SuppId;
+            _oldCashId = SelectedItem.CashId;
+        }
+        return Task.CompletedTask;
+    }
+
+    protected override async Task AfterDeleteAsync()
+    {
+        // إعادة حساب الأرصدة بعد الحذف
+        if (_oldSuppId.HasValue)
+            await _compositeRepo.RecalcBalanceForImportSupplierAsync(_oldSuppId.Value);
+
+        if (_oldCashId.HasValue && _oldCashId.Value > 0)
+            await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+    }
 }
