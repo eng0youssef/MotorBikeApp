@@ -1,4 +1,4 @@
-<UserControl x:Class="MotorBike.Views.ImportReportsView"
+<UserControl x:Class="MotorBike.Views.CashReportsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -22,58 +22,35 @@
             </Border.Effect>
             <StackPanel>
                 <WrapPanel Margin="0,0,0,10">
-
-                    <!-- نوع التقرير -->
                     <StackPanel Margin="0,0,20,15">
                         <TextBlock Text="نوع التقرير" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <ComboBox ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}"
                                   Width="260" Padding="8" FontSize="14"/>
                     </StackPanel>
-
-                    <!-- من تاريخ -->
-                    <StackPanel Margin="0,0,20,15">
+                    
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsDateVisible, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <CheckBox IsChecked="{Binding IsFromDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
                             <TextBlock Text="من تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
                         </StackPanel>
                         <DatePicker SelectedDate="{Binding FromDate}" IsEnabled="{Binding IsFromDateChecked}" Width="150" Padding="6" FontSize="14"/>
                     </StackPanel>
-
-                    <!-- إلى تاريخ -->
-                    <StackPanel Margin="0,0,20,15">
+                    
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsDateVisible, Converter={StaticResource BoolToVis}}">
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <CheckBox IsChecked="{Binding IsToDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
                             <TextBlock Text="إلى تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
                         </StackPanel>
                         <DatePicker SelectedDate="{Binding ToDate}" IsEnabled="{Binding IsToDateChecked}" Width="150" Padding="6" FontSize="14"/>
                     </StackPanel>
-
-                    <!-- مورد الاستيراد -->
-                    <StackPanel Margin="0,0,20,15"
-                                Visibility="{Binding IsSupplierVisible, Converter={StaticResource BoolToVis}}">
-                        <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <TextBlock Text="مورد الاستيراد" Foreground="#64748B" FontSize="13"/>
-                            <TextBlock Text=" (مطلوب)" Foreground="#EF4444" FontSize="13"
-                                       Visibility="{Binding IsSupplierRequired, Converter={StaticResource BoolToVis}}"/>
-                        </WrapPanel>
-                        <ComboBox ItemsSource="{Binding ImportSuppliers}"
-                                  SelectedItem="{Binding SelectedImportSupplier}"
-                                  DisplayMemberPath="SuppName"
-                                  Width="220" Padding="8" FontSize="14"/>
+                    
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCashVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="الخزينة/البنك (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding Cashes}" SelectedItem="{Binding SelectedCash}"
+                                  DisplayMemberPath="CashName" Width="200" Padding="8" FontSize="14"/>
                     </StackPanel>
-
-                    <!-- الشحنة -->
-                    <StackPanel Margin="0,0,20,15"
-                                Visibility="{Binding IsInvoiceVisible, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="اختيار الشحنة" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Invoices}"
-                                  SelectedItem="{Binding SelectedInvoice}"
-                                  DisplayMemberPath="InvName"
-                                  Width="220" Padding="8" FontSize="14"/>
-                    </StackPanel>
-
                 </WrapPanel>
-
+                
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="🔍 بحث" Command="{Binding GenerateReportCommand}"
                             Width="120" Height="40" Background="#3B82F6" Foreground="White"
@@ -93,7 +70,6 @@
                 </WrapPanel>
             </StackPanel>
         </Border>
-
         <Border Grid.Row="2" Margin="20,0,20,20" Background="White" CornerRadius="12" Padding="15">
             <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/></Border.Effect>
             <DataGrid ItemsSource="{Binding ReportData}" AutoGenerateColumns="True" IsReadOnly="True"

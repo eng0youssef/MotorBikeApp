@@ -164,6 +164,16 @@
                         <TextBlock Text="شحنات ومصروفات خارجية" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Button>
+
+                <Button Command="{Binding DataContext.NavigateToCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="CashReports" Style="{StaticResource CardButtonStyle}" Width="210" Height="170" Margin="0,0,20,20">
+                    <StackPanel VerticalAlignment="Center">
+                        <Border Style="{StaticResource IconBorderStyle}" Background="#F0FDF4">
+                            <TextBlock Text="💵" Style="{StaticResource IconTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="تقارير الخزينة" Style="{StaticResource TitleTextStyle}"/>
+                        <TextBlock Text="السيولة، بنوك، وحركات يومية" FontSize="13" Foreground="#94A3B8" TextAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
         </StackPanel>
     </ScrollViewer>

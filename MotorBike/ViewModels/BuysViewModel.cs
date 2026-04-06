@@ -655,7 +655,6 @@ public partial class BuysViewModel : ObservableObject
 
             foreach (var itemId in affectedItemIds)
                 await _compositeRepo.RecalcStockForItemAsync(itemId);
-
             if (oldSuppId.HasValue && oldSuppId.Value != FormItem.SuppId)
                 await _compositeRepo.RecalcBalanceForSupplierAsync(oldSuppId.Value);
             await _compositeRepo.RecalcBalanceForSupplierAsync(FormItem.SuppId);

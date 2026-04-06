@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace MotorBike.Views;
 
-public partial class CarsReportsView : UserControl
+public partial class CashReportsView : UserControl
 {
-    public CarsReportsView()
+    public CashReportsView()
     {
         InitializeComponent();
     }

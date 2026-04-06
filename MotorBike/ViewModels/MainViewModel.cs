@@ -57,6 +57,7 @@ public partial class MainViewModel : ObservableObject
             "ProfitsReports"   => (services.GetRequiredService<ProfitsReportsViewModel>(),   "تقارير الأرباح"),
             "CarsReports"      => (services.GetRequiredService<CarsReportsViewModel>(),      "تقارير الموتوسيكلات"),
             "ImportReports"    => (services.GetRequiredService<ImportReportsViewModel>(),    "تقارير الاستيراد"),
+            "CashReports"      => (services.GetRequiredService<CashReportsViewModel>(),      "تقارير الخزينة"),
 
             "PaymentsData"   => (services.GetRequiredService<PaymentsDataViewModel>(),   "المدفوعات والتحويلات"),
 

@@ -14,7 +14,20 @@ public partial class SalesReportsViewModel : ObservableObject
 {
     private readonly IDbConnectionFactory _dbFactory;
 
-    [ObservableProperty] private ObservableCollection<string> _reportTypes = ["المبيعات بالشهور", "المبيعات بالأصناف", "مبيعات عميل معين", "كشف حساب عميل", "كشف حساب تفصيلي للعميل"];
+    [ObservableProperty] private ObservableCollection<string> _reportTypes =
+    [
+        "المبيعات بالشهور",
+        "المبيعات بالأصناف",
+        "مبيعات عميل معين",
+        "كشف حساب عميل",
+        "كشف حساب تفصيلي للعميل",
+        // ── التقارير الإضافية ──
+        "المبيعات اليومية",
+        "مبيعات الموتوسيكلات",
+        "كشف حساب عميل (موتوسيكلات)",
+        "تقرير المرتجعات المفصل",
+        "أعلى العملاء مبيعاً"
+    ];
     [ObservableProperty] private string _selectedReportType = "المبيعات بالشهور";
 
     [ObservableProperty] private DateTime _fromDate = DateTime.Now.AddMonths(-1);
@@ -29,31 +42,45 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Item> _items = [];
     [ObservableProperty] private Item? _selectedItem;
 
+    [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
+    [ObservableProperty] private CarModel? _selectedCarModel;
+
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
 
-    public bool IsCustomerVisible => SelectedReportType == "مبيعات عميل معين" || SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل";
-    public bool IsItemVisible => SelectedReportType == "المبيعات بالأصناف";
+    public bool IsCustomerVisible => SelectedReportType is "مبيعات عميل معين"
+                                                        or "كشف حساب عميل"
+                                                        or "كشف حساب تفصيلي للعميل"
+                                                        or "كشف حساب عميل (موتوسيكلات)";
+    public bool IsItemVisible     => SelectedReportType == "المبيعات بالأصناف";
+    public bool IsCarModelVisible => SelectedReportType is "مبيعات الموتوسيكلات"
+                                                        or "كشف حساب عميل (موتوسيكلات)";
 
     partial void OnSelectedReportTypeChanged(string value)
     {
         OnPropertyChanged(nameof(IsCustomerVisible));
         OnPropertyChanged(nameof(IsItemVisible));
-        ReportData = new System.Data.DataView();
+        OnPropertyChanged(nameof(IsCarModelVisible));
+        ReportData    = new System.Data.DataView();
+        StatusMessage = null;
     }
 
-    public SalesReportsViewModel(IDbConnectionFactory dbFactory, IRepository<Customer> customerRepo, IRepository<Item> itemRepo)
+    public SalesReportsViewModel(IDbConnectionFactory dbFactory,
+        IRepository<Customer> customerRepo,
+        IRepository<Item>     itemRepo,
+        IRepository<CarModel> carModelRepo)
     {
         _dbFactory = dbFactory;
-        LoadLookupsAsync(customerRepo, itemRepo).ConfigureAwait(false);
+        LoadLookupsAsync(customerRepo, itemRepo, carModelRepo).ConfigureAwait(false);
     }
 
-    private async Task LoadLookupsAsync(IRepository<Customer> customerRepo, IRepository<Item> itemRepo)
+    private async Task LoadLookupsAsync(
+        IRepository<Customer> customerRepo,
+        IRepository<Item>     itemRepo,
+        IRepository<CarModel> carModelRepo)
     {
-        var custs = await customerRepo.GetAllAsync();
-        Customers = new ObservableCollection<Customer>(custs);
-        
-        var itms = await itemRepo.GetAllAsync();
-        Items = new ObservableCollection<Item>(itms);
+        Customers = new ObservableCollection<Customer>(await customerRepo.GetAllAsync());
+        Items     = new ObservableCollection<Item>    (await itemRepo.GetAllAsync());
+        CarModels = new ObservableCollection<CarModel>(await carModelRepo.GetAllAsync());
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;
@@ -191,6 +218,162 @@ public partial class SalesReportsViewModel : ObservableObject
                     FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate
                     
                     ORDER BY SortDate ASC";
+            }
+            // ── 6. المبيعات اليومية ────────────────────────────────────────
+            else if (SelectedReportType == "المبيعات اليومية")
+            {
+                sql = @"
+                    SELECT CONVERT(VARCHAR, M.SalesDate, 103)    AS [التاريخ],
+                           COUNT(M.Sales_ID)                      AS [عدد الفواتير],
+                           SUM(M.Total)                          AS [الإجمالي],
+                           SUM(M.Disc)                           AS [الخصم],
+                           SUM(M.Total - M.Disc + M.AddMony)    AS [الصافي],
+                           ISNULL(RET.RetTotal, 0)               AS [المرتجعات],
+                           SUM(M.Total - M.Disc + M.AddMony) - ISNULL(RET.RetTotal, 0) AS [الصافي بعد المرتجعات]
+                    FROM Sales M
+                    OUTER APPLY (
+                        SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS RetTotal
+                        FROM ReSales
+                        WHERE CAST(SalesDate AS DATE) = CAST(M.SalesDate AS DATE)
+                    ) RET
+                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                    GROUP BY CAST(M.SalesDate AS DATE), CONVERT(VARCHAR, M.SalesDate, 103), RET.RetTotal
+                    ORDER BY CAST(M.SalesDate AS DATE) DESC";
+            }
+            // ── 7. مبيعات الموتوسيكلات ────────────────────────────────────
+            else if (SelectedReportType == "مبيعات الموتوسيكلات")
+            {
+                string modelFilter = "";
+                if (SelectedCarModel != null)
+                {
+                    modelFilter = " AND CM.Model_ID = @ModelId ";
+                    parameters.Add("ModelId", SelectedCarModel.ModelId);
+                }
+                if (SelectedCustomer != null)
+                {
+                    parameters.Add("CusId", SelectedCustomer.CusId);
+                    modelFilter += " AND SC.CusID = @CusId ";
+                }
+
+                sql = @"
+                    SELECT CONVERT(VARCHAR, SC.SalesDate, 103)         AS [التاريخ],
+                           SC.Sales_ID                                  AS [رقم الفاتورة],
+                           CU.CusName                                   AS [العميل],
+                           CB.BrandName + ' - ' + CM.ModelName          AS [الموديل],
+                           C.YearNo                                     AS [السنة],
+                           C.ChassisNo                                  AS [رقم الشاسيه],
+                           C.PlateNo                                    AS [رقم اللوحة],
+                           C.PurchasePrice                              AS [سعر الشراء],
+                           SC.Total                                     AS [سعر البيع],
+                           (SC.Total - C.PurchasePrice)                 AS [الربح]
+                    FROM Sales_Car SC
+                    INNER JOIN Cars       C  ON SC.CarID   = C.Car_ID
+                    INNER JOIN CarModels  CM ON C.ModelID  = CM.Model_ID
+                    INNER JOIN CarBrands  CB ON CM.BrandID = CB.Brand_ID
+                    LEFT  JOIN Customers  CU ON SC.CusID   = CU.Cus_ID
+                    WHERE SC.SalesDate >= @FromDate AND SC.SalesDate <= @ToDate
+                    " + modelFilter + @"
+                    ORDER BY SC.SalesDate DESC";
+            }
+            // ── 8. كشف حساب عميل (موتوسيكلات) ───────────────────────────
+            else if (SelectedReportType == "كشف حساب عميل (موتوسيكلات)")
+            {
+                if (SelectedCustomer == null)
+                {
+                    System.Windows.MessageBox.Show("يرجى اختيار العميل أولاً", "تنبيه",
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+                parameters.Add("CusId", SelectedCustomer.CusId);
+
+                sql = @"
+                    SELECT CONVERT(VARCHAR, SC.SalesDate, 103)         AS [التاريخ],
+                           'بيع موتوسيكل رقم ' + CAST(SC.Sales_ID AS VARCHAR) AS [البيان],
+                           CB.BrandName + ' - ' + CM.ModelName         AS [الموديل],
+                           C.ChassisNo                                 AS [الشاسيه],
+                           SC.Total                                    AS [مدين],
+                           0                                           AS [دائن]
+                    FROM Sales_Car SC
+                    INNER JOIN Cars       C  ON SC.CarID   = C.Car_ID
+                    INNER JOIN CarModels  CM ON C.ModelID  = CM.Model_ID
+                    INNER JOIN CarBrands  CB ON CM.BrandID = CB.Brand_ID
+                    WHERE SC.CusID = @CusId
+                      AND SC.SalesDate >= @FromDate AND SC.SalesDate <= @ToDate
+
+                    UNION ALL
+
+                    SELECT CONVERT(VARCHAR, PayDate, 103),
+                           CASE PayType WHEN 0 THEN 'سداد' WHEN 1 THEN 'تحصيل'
+                                        WHEN 2 THEN 'رد'   WHEN 3 THEN 'خصم' END,
+                           ISNULL(Notes, ''), '', 
+                           CASE WHEN PayType = 2 THEN PayMoney ELSE 0 END,
+                           CASE WHEN PayType IN (0,1,3) THEN PayMoney ELSE 0 END
+                    FROM Cus_Payments
+                    WHERE CusId = @CusId
+                      AND PayDate >= @FromDate AND PayDate <= @ToDate
+
+                    ORDER BY [التاريخ] ASC";
+            }
+            // ── 9. تقرير المرتجعات المفصل ─────────────────────────────────
+            else if (SelectedReportType == "تقرير المرتجعات المفصل")
+            {
+                string cusFilter = "";
+                if (SelectedCustomer != null)
+                {
+                    cusFilter = " AND M.CusId = @CusId ";
+                    parameters.Add("CusId", SelectedCustomer.CusId);
+                }
+
+                sql = @"
+                    SELECT CONVERT(VARCHAR, M.SalesDate, 103)          AS [التاريخ],
+                           M.Sales_ID                                   AS [رقم المرتجع],
+                           CU.CusName                                   AS [العميل],
+                           I.ItemName                                   AS [الصنف],
+                           S.Qty                                        AS [الكمية],
+                           S.Price                                      AS [السعر],
+                           S.Disc                                       AS [الخصم],
+                           (S.Qty * (S.Price - S.Disc))                AS [الإجمالي],
+                           M.Notes                                      AS [ملاحظات]
+                    FROM ReSales M
+                    INNER JOIN ReSales_Sub S ON M.Sales_ID = S.SalesId
+                    INNER JOIN Items       I ON S.ItemId   = I.Item_ID
+                    LEFT  JOIN Customers  CU ON M.CusId    = CU.Cus_ID
+                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                    " + cusFilter + @"
+                    ORDER BY M.SalesDate DESC";
+            }
+            // ── 10. أعلى العملاء مبيعاً ──────────────────────────────────
+            else if (SelectedReportType == "أعلى العملاء مبيعاً")
+            {
+                sql = @"
+                    SELECT CU.CusName                                           AS [العميل],
+                           COUNT(DISTINCT M.Sales_ID)                           AS [عدد الفواتير],
+                           SUM(M.Total - M.Disc + M.AddMony)                   AS [إجمالي المبيعات],
+                           ISNULL(RET.TotalReturns, 0)                          AS [إجمالي المرتجعات],
+                           SUM(M.Total - M.Disc + M.AddMony)
+                               - ISNULL(RET.TotalReturns, 0)                   AS [صافي المبيعات],
+                           ISNULL(PAY.TotalPayments, 0)                         AS [إجمالي المتحصل],
+                           SUM(M.Total - M.Disc + M.AddMony)
+                               - ISNULL(RET.TotalReturns, 0)
+                               - ISNULL(PAY.TotalPayments, 0)                  AS [الرصيد المتبقي]
+                    FROM Sales M
+                    LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
+                    OUTER APPLY (
+                        SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS TotalReturns
+                        FROM ReSales
+                        WHERE CusId = M.CusId
+                          AND SalesDate >= @FromDate AND SalesDate <= @ToDate
+                    ) RET
+                    OUTER APPLY (
+                        SELECT ISNULL(SUM(PayMoney), 0) AS TotalPayments
+                        FROM Cus_Payments
+                        WHERE CusId = M.CusId
+                          AND PayDate >= @FromDate AND PayDate <= @ToDate
+                          AND PayType IN (0, 1, 3)
+                    ) PAY
+                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                    GROUP BY CU.CusName, RET.TotalReturns, PAY.TotalPayments
+                    ORDER BY [صافي المبيعات] DESC";
             }
 
             var dt = new System.Data.DataTable();

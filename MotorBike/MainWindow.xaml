@@ -64,6 +64,7 @@
         <DataTemplate DataType="{x:Type vm:ProfitsReportsViewModel}"><views:ProfitsReportsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CarsReportsViewModel}"><views:CarsReportsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ImportReportsViewModel}"><views:ImportReportsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:CashReportsViewModel}"><views:CashReportsView/></DataTemplate>
     </Window.Resources>
 
     <Grid>

@@ -61,10 +61,19 @@
                     </StackPanel>
 
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsItemVisible, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="اختيار الصنف" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <TextBlock Text="اختيار الصنف (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <ComboBox ItemsSource="{Binding Items}" 
                                   SelectedItem="{Binding SelectedItem}" 
                                   DisplayMemberPath="ItemName" 
+                                  Width="200" Padding="8" FontSize="14"/>
+                    </StackPanel>
+
+                    <!-- موديل الموتوسيكل -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCarModelVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="الموديل (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding CarModels}" 
+                                  SelectedItem="{Binding SelectedCarModel}" 
+                                  DisplayMemberPath="ModelName" 
                                   Width="200" Padding="8" FontSize="14"/>
                     </StackPanel>
                 </WrapPanel>
