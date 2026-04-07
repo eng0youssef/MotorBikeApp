@@ -20,7 +20,8 @@ public partial class StoreReportsViewModel : ObservableObject
         "حركة صنف معين",
         "الأصناف الأكثر حركة",
         "الأصناف تحت الحد الأدنى",
-        "رصيد المخازن بالفئات"
+        "رصيد المخازن بالفئات",
+        "عرض الأرصدة الافتتاحية"
     ];
 
     [ObservableProperty] private string _selectedReportType = "رصيد المخزون الحالي";
@@ -43,19 +44,24 @@ public partial class StoreReportsViewModel : ObservableObject
     [ObservableProperty]
     private ObservableCollection<string> _priceTypes =
     [
-        "متوسط  التكلفة",
-        "سعر الشراء"
+        "متوسط التكلفة",
+        "سعر الشراء",
+        "سعر البيع"
     ];
     [ObservableProperty] private string _selectedPriceType = "متوسط التكلفة";
+
+    [RelayCommand] private void ClearStore() => SelectedStore = null;
+    [RelayCommand] private void ClearItem() => SelectedItem = null;
+    [RelayCommand] private void ClearCategory() => SelectedCategory = null;
 
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private string? _statusMessage;
 
     public bool IsDateRangeVisible  => SelectedReportType is "حركة صنف معين" or "الأصناف الأكثر حركة";
-    public bool IsStoreVisible      => SelectedReportType is "رصيد المخزون الحالي" or "رصيد المخازن بالفئات";
-    public bool IsItemVisible       => SelectedReportType == "حركة صنف معين";
-    public bool IsCategoryVisible   => SelectedReportType == "رصيد المخازن بالفئات";
-    public bool IsPriceTypeVisible  => SelectedReportType is "رصيد المخزون الحالي" or "رصيد المخازن بالفئات";
+    public bool IsStoreVisible      => SelectedReportType is "رصيد المخزون الحالي" or "رصيد المخازن بالفئات" or "عرض الأرصدة الافتتاحية" or "الأصناف تحت الحد الأدنى";
+    public bool IsItemVisible       => true;
+    public bool IsCategoryVisible   => true;
+    public bool IsPriceTypeVisible  => SelectedReportType is "رصيد المخزون الحالي" or "رصيد المخازن بالفئات" or "عرض الأرصدة الافتتاحية";
 
     partial void OnSelectedReportTypeChanged(string value)
     {
@@ -64,8 +70,10 @@ public partial class StoreReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsItemVisible));
         OnPropertyChanged(nameof(IsCategoryVisible));
         OnPropertyChanged(nameof(IsPriceTypeVisible));
-        ReportData    = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData           = new System.Data.DataView();
+        StatusMessage        = null;
+        _currentFooterTotals = null;
+        _currentHeaderInfo   = null;
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;
@@ -112,14 +120,28 @@ public partial class StoreReportsViewModel : ObservableObject
             string sql;
 
             // اختيار عمود السعر حسب خيار المستخدم
-            string priceCol = SelectedPriceType == "سعر الشراء" ? "Price0" : "AvrgCost";
-            string priceLabel = SelectedPriceType == "سعر الشراء" ? "سعر الشراء" : "متوسط التكلفة";
+            string priceCol = SelectedPriceType switch
+            {
+                "سعر الشراء" => "Price0",
+                "سعر البيع" => "Price1",
+                _ => "AvrgCost"
+            };
+            string priceLabel = SelectedPriceType switch
+            {
+                "سعر الشراء" => "سعر الشراء",
+                "سعر البيع" => "سعر البيع",
+                _ => "متوسط التكلفة"
+            };
 
             // ── 1. رصيد المخزون الحالي ────────────────────────────────────
             if (SelectedReportType == "رصيد المخزون الحالي")
             {
                 string storeFilter = "";
-                if (SelectedStore != null) { storeFilter = " AND S.StoreID = @StoreId "; p.Add("StoreId", SelectedStore.StoreId); }
+                string itemFilter  = "";
+                string catFilter   = "";
+                if (SelectedStore    != null) { storeFilter = " AND S.StoreID = @StoreId "; p.Add("StoreId", SelectedStore.StoreId); }
+                if (SelectedItem     != null) { itemFilter  = " AND I.Item_ID = @ItemId ";  p.Add("ItemId",  SelectedItem.ItemId); }
+                if (SelectedCategory != null) { catFilter   = " AND IC.Cat_ID = @CatId ";   p.Add("CatId",   SelectedCategory.CatId); }
 
                 sql = $@"
                     SELECT IC.CatName                                      AS [الفئة],
@@ -133,7 +155,7 @@ public partial class StoreReportsViewModel : ObservableObject
                     INNER JOIN Stores        ST ON S.StoreID = ST.Store_ID
                     INNER JOIN Item_Category IC ON I.CatID   = IC.Cat_ID
                     WHERE S.Qty > 0
-                    {storeFilter}
+                    {storeFilter} {itemFilter} {catFilter}
                     ORDER BY IC.CatName, I.ItemName";
             }
             // ── 2. حركة صنف معين ──────────────────────────────────────────
@@ -300,7 +322,12 @@ public partial class StoreReportsViewModel : ObservableObject
             // ── 3. الأصناف الأكثر حركة ───────────────────────────────────
             else if (SelectedReportType == "الأصناف الأكثر حركة")
             {
-                sql = @"
+                string itemFilter  = "";
+                string catFilter   = "";
+                if (SelectedItem     != null) { itemFilter  = " AND I.Item_ID = @ItemId ";  p.Add("ItemId",  SelectedItem.ItemId); }
+                if (SelectedCategory != null) { catFilter   = " AND IC.Cat_ID = @CatId ";   p.Add("CatId",   SelectedCategory.CatId); }
+
+                sql = $@"
                     SELECT I.ItemName                              AS [الصنف],
                            IC.CatName                             AS [الفئة],
                            SUM(SS.Qty)                            AS [إجمالي المباع],
@@ -311,13 +338,21 @@ public partial class StoreReportsViewModel : ObservableObject
                     INNER JOIN Item_Category IC ON I.CatID   = IC.Cat_ID
                     INNER JOIN Sales         M  ON SS.SalesId = M.Sales_ID
                     WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                    {itemFilter} {catFilter}
                     GROUP BY I.ItemName, IC.CatName
                     ORDER BY [إجمالي المباع] DESC";
             }
             // ── 4. الأصناف تحت الحد الأدنى ───────────────────────────────
             else if (SelectedReportType == "الأصناف تحت الحد الأدنى")
             {
-                sql = @"
+                string storeFilter = "";
+                string itemFilter  = "";
+                string catFilter   = "";
+                if (SelectedStore    != null) { storeFilter = " AND S.StoreID = @StoreId "; p.Add("StoreId", SelectedStore.StoreId); }
+                if (SelectedItem     != null) { itemFilter  = " AND I.Item_ID = @ItemId ";  p.Add("ItemId",  SelectedItem.ItemId); }
+                if (SelectedCategory != null) { catFilter   = " AND IC.Cat_ID = @CatId ";   p.Add("CatId",   SelectedCategory.CatId); }
+
+                sql = $@"
                     SELECT IC.CatName                          AS [الفئة],
                            I.ItemName                         AS [الصنف],
                            ST.StoreName                       AS [المخزن],
@@ -329,15 +364,18 @@ public partial class StoreReportsViewModel : ObservableObject
                     INNER JOIN Stores        ST ON S.StoreID = ST.Store_ID
                     INNER JOIN Item_Category IC ON I.CatID   = IC.Cat_ID
                     WHERE I.IsLimit = 1 AND S.Qty < I.Limit
+                    {storeFilter} {itemFilter} {catFilter}
                     ORDER BY [الكمية الناقصة] DESC";
             }
             // ── 5. رصيد المخازن بالفئات ──────────────────────────────────
-            else
+            else if (SelectedReportType == "رصيد المخازن بالفئات")
             {
                 string catFilter   = "";
                 string storeFilter = "";
-                if (SelectedCategory != null) { catFilter   = " AND I.CatID = @CatId ";    p.Add("CatId",   SelectedCategory.CatId); }
+                string itemFilter  = "";
+                if (SelectedCategory != null) { catFilter   = " AND I.CatID = @CatId ";     p.Add("CatId",   SelectedCategory.CatId); }
                 if (SelectedStore    != null) { storeFilter = " AND S.StoreID = @StoreId "; p.Add("StoreId", SelectedStore.StoreId); }
+                if (SelectedItem     != null) { itemFilter  = " AND I.Item_ID = @ItemId ";  p.Add("ItemId",  SelectedItem.ItemId); }
 
                 sql = $@"
                     SELECT IC.CatName                                        AS [الفئة],
@@ -350,9 +388,34 @@ public partial class StoreReportsViewModel : ObservableObject
                     INNER JOIN Stores        ST ON S.StoreID = ST.Store_ID
                     INNER JOIN Item_Category IC ON I.CatID   = IC.Cat_ID
                     WHERE S.Qty > 0
-                    {catFilter} {storeFilter}
+                    {catFilter} {storeFilter} {itemFilter}
                     GROUP BY IC.CatName, ST.StoreName
                     ORDER BY IC.CatName, ST.StoreName";
+            }
+            // ── 6. عرض الأرصدة الافتتاحية ───────────────────────────────
+            else
+            {
+                string catFilter   = "";
+                string storeFilter = "";
+                string itemFilter  = "";
+                if (SelectedCategory != null) { catFilter   = " AND I.CatID = @CatId ";      p.Add("CatId",   SelectedCategory.CatId); }
+                if (SelectedStore    != null) { storeFilter = " AND OS.StoreID = @StoreId "; p.Add("StoreId", SelectedStore.StoreId); }
+                if (SelectedItem     != null) { itemFilter  = " AND I.Item_ID = @ItemId ";   p.Add("ItemId",  SelectedItem.ItemId); }
+
+                sql = $@"
+                    SELECT IC.CatName                                     AS [الفئة],
+                           I.ItemName                                     AS [الصنف],
+                           ST.StoreName                                   AS [المخزن],
+                           OS.QtyAll                                      AS [الرصيد الافتتاحي],
+                           ISNULL(I.{priceCol}, 0)                        AS [{priceLabel}],
+                           (OS.QtyAll * ISNULL(I.{priceCol}, 0))          AS [إجمالي القيمة]
+                    FROM Open_Stock OS
+                    INNER JOIN Items         I  ON OS.ItemID   = I.Item_ID
+                    INNER JOIN Stores        ST ON OS.StoreID  = ST.Store_ID
+                    INNER JOIN Item_Category IC ON I.CatID     = IC.Cat_ID
+                    WHERE OS.QtyAll > 0
+                    {catFilter} {storeFilter} {itemFilter}
+                    ORDER BY IC.CatName, I.ItemName, ST.StoreName";
             }
 
             // ── Execute ───────────────────────────────────────────────────
@@ -378,18 +441,27 @@ public partial class StoreReportsViewModel : ObservableObject
         }
     }
 
-    private async Task BuildFooterTotalsAsync(
+    private Task BuildFooterTotalsAsync(
         System.Data.IDbConnection db, DynamicParameters p, System.Data.DataTable dt)
     {
-        string priceCol = SelectedPriceType == "سعر الشراء" ? "Price0" : "AvrgCost";
-
-        if (SelectedReportType == "رصيد المخزون الحالي")
+        if (SelectedReportType == "رصيد المخزون الحالي" || 
+            SelectedReportType == "رصيد المخازن بالفئات" || 
+            SelectedReportType == "عرض الأرصدة الافتتاحية")
         {
-            var totVal = await db.ExecuteScalarAsync<double>(
-                $"SELECT ISNULL(SUM(S.Qty * ISNULL(I.{priceCol},0)),0) FROM Stock S INNER JOIN Items I ON S.ItemID=I.Item_ID WHERE S.Qty>0");
+            double totVal = 0;
+            if (dt.Columns.Contains("إجمالي القيمة"))
+            {
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row["إجمالي القيمة"] != DBNull.Value)
+                        totVal += Convert.ToDouble(row["إجمالي القيمة"]);
+                }
+            }
+
+            string countLabel = SelectedReportType == "رصيد المخزون الحالي" ? "عدد الأصناف المتاحة" : "عدد السجلات";
             _currentFooterTotals = new Dictionary<string, string>
             {
-                { "عدد الأصناف المتاحة",  dt.Rows.Count.ToString()  },
+                { countLabel,  dt.Rows.Count.ToString()  },
                 { "إجمالي قيمة المخزون", totVal.ToString("N2")      }
             };
         }
@@ -400,15 +472,31 @@ public partial class StoreReportsViewModel : ObservableObject
                 { "عدد الأصناف تحت الحد", dt.Rows.Count.ToString() }
             };
         }
-        else if (SelectedReportType == "رصيد المخازن بالفئات")
+        else if (SelectedReportType == "الأصناف الأكثر حركة")
         {
-            var totVal = await db.ExecuteScalarAsync<double>(
-                $"SELECT ISNULL(SUM(S.Qty * ISNULL(I.{priceCol},0)),0) FROM Stock S INNER JOIN Items I ON S.ItemID=I.Item_ID WHERE S.Qty>0");
+            double totSales = 0;
+            double totRevenue = 0;
+            if (dt.Columns.Contains("إجمالي المباع") && dt.Columns.Contains("إجمالي الإيرادات"))
+            {
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row["إجمالي المباع"] != DBNull.Value) totSales += Convert.ToDouble(row["إجمالي المباع"]);
+                    if (row["إجمالي الإيرادات"] != DBNull.Value) totRevenue += Convert.ToDouble(row["إجمالي الإيرادات"]);
+                }
+            }
             _currentFooterTotals = new Dictionary<string, string>
             {
-                { "إجمالي قيمة المخزون", totVal.ToString("N2") }
+                { "عدد السجلات", dt.Rows.Count.ToString() },
+                { "إجمالي الكمية المباعة", totSales.ToString("N2") },
+                { "إجمالي الإيرادات", totRevenue.ToString("N2") }
             };
         }
+        else
+        {
+            _currentFooterTotals = null;
+        }
+
+        return Task.CompletedTask;
     }
 
     private Dictionary<string, string> BuildHeaderInfo(DateTime from, DateTime to)

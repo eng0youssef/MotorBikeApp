@@ -59,8 +59,10 @@ public partial class ImportReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSupplierVisible));
         OnPropertyChanged(nameof(IsInvoiceVisible));
         OnPropertyChanged(nameof(IsSupplierRequired));
-        ReportData    = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData           = new System.Data.DataView();
+        StatusMessage        = null;
+        _currentFooterTotals = null;
+        _currentHeaderInfo   = null;
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;

@@ -374,7 +374,7 @@ public class CompositeKeyRepository
     {
         // SQL Server DATETIME لا يقبل تواريخ قبل 1753. 
         // DateTime.MinValue تسبب خطأ overflow.
-        if (fromDate < new DateTime(1753, 1, 1))
+        if (fromDate < new DateTime(1753, 1, 1))    
             fromDate = new DateTime(1753, 1, 1);
 
         // SQL query that gathers all movements for the item from @FromDate, ordered by date then type.

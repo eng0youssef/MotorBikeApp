@@ -46,6 +46,8 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private CarModel? _selectedCarModel;
 
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
+    [ObservableProperty] private ObservableCollection<DetailedAccountRow> _detailedReportData = [];
+    [ObservableProperty] private bool _isDetailedReport;
 
     public bool IsCustomerVisible => SelectedReportType is "مبيعات عميل معين"
                                                         or "كشف حساب عميل"
@@ -60,8 +62,12 @@ public partial class SalesReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCustomerVisible));
         OnPropertyChanged(nameof(IsItemVisible));
         OnPropertyChanged(nameof(IsCarModelVisible));
-        ReportData    = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData              = new System.Data.DataView();
+        DetailedReportData      = [];
+        IsDetailedReport        = false;
+        StatusMessage           = null;
+        _currentFooterTotals    = null;
+        _currentHeaderInfo      = null;
     }
 
     public SalesReportsViewModel(IDbConnectionFactory dbFactory,
@@ -107,35 +113,108 @@ public partial class SalesReportsViewModel : ObservableObject
             if (SelectedReportType == "المبيعات بالشهور")
             {
                 sql = @"
-                    SELECT FORMAT(SalesDate, 'yyyy-MM') AS [الشهر], 
-                           COUNT(Sales_ID) AS [عدد الفواتير], 
-                           SUM(Total) AS [الإجمالي], 
-                           SUM(Disc) AS [الخصم], 
-                           SUM(Total - Disc + AddMony) AS [الصافي]
-                    FROM Sales
-                    WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
-                    GROUP BY FORMAT(SalesDate, 'yyyy-MM')
-                    ORDER BY [الشهر] DESC";
+                    ;WITH SalesMonths AS (
+                        SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr,
+                               COUNT(DISTINCT Sales_ID) AS CountBills,
+                               SUM(Total - Disc + AddMony) AS SumTotal
+                        FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate GROUP BY FORMAT(SalesDate, 'yyyy-MM')
+                    ),
+                    ReturnMonths AS (
+                        SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr,
+                               COUNT(DISTINCT Sales_ID) AS CountRet,
+                               SUM(Total - Disc + AddMony) AS SumRetTotal
+                        FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate GROUP BY FORMAT(SalesDate, 'yyyy-MM')
+                    ),
+                    CusMonths AS (
+                        SELECT MonthStr, COUNT(DISTINCT CusId) AS CusCount FROM (
+                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                            UNION
+                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                        ) AS AllCus GROUP BY MonthStr
+                    ),
+                    AllMonths AS (
+                        SELECT MonthStr FROM SalesMonths UNION SELECT MonthStr FROM ReturnMonths
+                    )
+                    SELECT m.MonthStr AS [الشهر],
+                           ISNULL(s.SumTotal, 0) AS [قيمة المبيعات],
+                           ISNULL(r.SumRetTotal, 0) AS [قيمة المرتجعات],
+                           (ISNULL(s.SumTotal, 0) - ISNULL(r.SumRetTotal, 0)) AS [صافي المبيعات],
+                           ISNULL(s.CountBills, 0) AS [عدد الفواتير],
+                           ISNULL(r.CountRet, 0) AS [عدد المرتجعات],
+                           ISNULL(c.CusCount, 0) AS [عدد العملاء]
+                    FROM AllMonths m
+                    LEFT JOIN SalesMonths s ON m.MonthStr = s.MonthStr
+                    LEFT JOIN ReturnMonths r ON m.MonthStr = r.MonthStr
+                    LEFT JOIN CusMonths c ON m.MonthStr = c.MonthStr
+                    ORDER BY m.MonthStr DESC";
             }
             else if (SelectedReportType == "المبيعات بالأصناف")
             {
                 string itemFilter = "";
                 if (SelectedItem != null)
                 {
-                    itemFilter = " AND S.ItemId = @ItemId ";
+                    itemFilter = " AND A.ItemId = @ItemId ";
                     parameters.Add("ItemId", SelectedItem.ItemId);
                 }
                 sql = @"
-                    SELECT I.ItemName AS [الصنف], 
-                           SUM(S.Qty) AS [الكمية المباعة], 
-                           SUM(S.Qty * (S.Price - S.Disc)) AS [إجمالي المبيعات]
-                    FROM Sales_Sub S
-                    INNER JOIN Items I ON S.ItemId = I.Item_ID
-                    INNER JOIN Sales M ON S.SalesId = M.Sales_ID
-                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    " + itemFilter + @"
-                    GROUP BY I.ItemName
-                    ORDER BY [الكمية المباعة] DESC";
+                    ;WITH SalesData AS (
+                        SELECT S.ItemId, 
+                               SUM(S.Qty) AS SQty, 
+                               SUM(S.Qty * (S.Price - S.Disc)) AS SValue,
+                               COUNT(DISTINCT M.Sales_ID) AS SInvCount
+                        FROM Sales_Sub S JOIN Sales M ON S.SalesId = M.Sales_ID
+                        WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                        GROUP BY S.ItemId
+                    ),
+                    ReturnsData AS (
+                        SELECT S.ItemId, 
+                               SUM(S.Qty) AS RQty, 
+                               SUM(S.Qty * (S.Price - S.Disc)) AS RValue,
+                               COUNT(DISTINCT M.Sales_ID) AS RInvCount
+                        FROM ReSales_Sub S JOIN ReSales M ON S.SalesId = M.Sales_ID
+                        WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                        GROUP BY S.ItemId
+                    ),
+                    AllItems AS (
+                        SELECT ItemId FROM SalesData UNION SELECT ItemId FROM ReturnsData
+                    ),
+                    ItemStats AS (
+                        SELECT A.ItemId, I.ItemName, C.CatName,
+                               ISNULL(SD.SQty, 0) AS SQty, ISNULL(SD.SValue, 0) AS SValue, ISNULL(SD.SInvCount, 0) AS SInvCount,
+                               ISNULL(RD.RQty, 0) AS RQty, ISNULL(RD.RValue, 0) AS RValue, ISNULL(RD.RInvCount, 0) AS RInvCount,
+                               (ISNULL(SD.SQty, 0) - ISNULL(RD.RQty, 0)) AS NetQty,
+                               (ISNULL(SD.SValue, 0) - ISNULL(RD.RValue, 0)) AS NetValue,
+                               (SELECT COUNT(DISTINCT CusId) FROM (
+                                   SELECT M.CusId FROM Sales_Sub Sub JOIN Sales M ON Sub.SalesId = M.Sales_ID WHERE Sub.ItemId = A.ItemId AND M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                                   UNION
+                                   SELECT M.CusId FROM ReSales_Sub Sub JOIN ReSales M ON Sub.SalesId = M.Sales_ID WHERE Sub.ItemId = A.ItemId AND M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                               ) T) AS CusCount
+                        FROM AllItems A
+                        JOIN Items I ON A.ItemId = I.Item_ID
+                        JOIN Item_Category C ON I.CatID = C.Cat_ID
+                        LEFT JOIN SalesData SD ON A.ItemId = SD.ItemId
+                        LEFT JOIN ReturnsData RD ON A.ItemId = RD.ItemId
+                        WHERE 1=1 " + itemFilter + @"
+                    )
+                    SELECT 
+                        CatName AS [المجموعة],
+                        ISNULL(ItemName, 'إجمالي المجموعة ->') AS [الصنف],
+                        SUM(SQty) AS [كمية البيع],
+                        SUM(RQty) AS [كمية المرتجع],
+                        SUM(NetQty) AS [صافي الكمية],
+                        SUM(SInvCount) AS [عدد فواتير البيع],
+                        SUM(SValue) AS [قيمة البيع],
+                        SUM(RInvCount) AS [عدد فواتير المرتجع],
+                        SUM(RValue) AS [قيمة المرتجع],
+                        SUM(NetValue) AS [صافي المبيعات],
+                        CASE WHEN SUM(SQty) > 0 THEN SUM(SValue) / SUM(SQty) ELSE 0 END AS [متوسط سعر البيع],
+                        SUM(CusCount) AS [عدد العملاء]
+                    FROM ItemStats
+                    GROUP BY GROUPING SETS (
+                        (CatName, ItemName),
+                        (CatName)
+                    )
+                    ORDER BY CatName, CASE WHEN ItemName IS NULL THEN 1 ELSE 0 END, ItemName";
             }
             else if (SelectedReportType == "مبيعات عميل معين")
             {
@@ -168,13 +247,57 @@ public partial class SalesReportsViewModel : ObservableObject
                 parameters.Add("CusId", SelectedCustomer.CusId);
 
                 sql = @"
-                    SELECT 'رصيد سابق' AS [البيان], 0 AS [مدين], 0 AS [دائن] WHERE 1=0 -- Placeholder for logic if needed
-                    UNION ALL
-                    SELECT 'إجمالي المبيعات' AS [البيان], ISNULL(SUM(Total - Disc + AddMony), 0) AS [مدين], 0 AS [دائن] FROM Sales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
-                    UNION ALL
-                    SELECT 'إجمالي المرتجعات' AS [البيان], 0 AS [مدين], ISNULL(SUM(Total - Disc + AddMony), 0) AS [دائن] FROM ReSales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
-                    UNION ALL
-                    SELECT 'إجمالي المدفوعات' AS [البيان], 0 AS [مدين], ISNULL(SUM(PayMoney), 0) AS [دائن] FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate AND PayType IN (0, 1, 3)";
+                    SELECT SortDate, 
+                           CONVERT(VARCHAR, SortDate, 103) AS [التاريخ], 
+                           RefNo AS [رقم الحركة],
+                           TransType AS [نوع الحركة],
+                           Details AS [البيان],
+                           Debit AS [مدين (عليه)],
+                           Credit AS [دائن (له)]
+                    FROM (
+                        -- فواتير مبيعات الأصناف
+                        SELECT SalesDate AS SortDate, CAST(Sales_ID AS VARCHAR) AS RefNo, 'فاتورة مبيعات' AS TransType, ISNULL(Notes, '') AS Details, (Total - Disc + AddMony) AS Debit, 0 AS Credit 
+                        FROM Sales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
+                        
+                        UNION ALL
+                        
+                        -- مدفوعات فواتير الأصناف المعموله مع الفاتورة
+                        SELECT SP.PayDate, CAST(SP.SalesId AS VARCHAR), 'تحصيل مع الفاتورة', ISNULL(SP.Notes, ''), 0, SP.PayMoney
+                        FROM Sales_Payments SP
+                        INNER JOIN Sales S ON SP.SalesId = S.Sales_ID
+                        WHERE S.CusId = @CusId AND SP.PayDate >= @FromDate AND SP.PayDate <= @ToDate
+
+                        UNION ALL
+                        
+                        -- فواتير بيع موتوسيكلات
+                        SELECT SalesDate, CAST(Sales_ID AS VARCHAR), 'بيع موتوسيكل', ISNULL(Notes, ''), Total, 0 
+                        FROM Sales_Car WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
+
+                        UNION ALL
+                        
+                        -- مدفوعات فواتير الموتوسيكلات المعموله مع الفاتورة
+                        SELECT SCP.PayDate, CAST(SCP.SalesId AS VARCHAR), 'تحصيل مع الفاتورة', ISNULL(SCP.Notes, ''), 0, SCP.PayMoney
+                        FROM Sales_Car_Payments SCP
+                        INNER JOIN Sales_Car SC ON SCP.SalesId = SC.Sales_ID
+                        WHERE SC.CusId = @CusId AND SCP.PayDate >= @FromDate AND SCP.PayDate <= @ToDate
+
+                        UNION ALL
+                        
+                        -- مرتجعات المبيعات
+                        SELECT SalesDate, CAST(Sales_ID AS VARCHAR), 'مرتجع بيع', ISNULL(Notes, ''), 0, (Total - Disc + AddMony) 
+                        FROM ReSales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
+
+                        UNION ALL
+                        
+                        -- تحصيلات ومدفوعات منفصلة
+                        SELECT PayDate, CAST(Pay_ID AS VARCHAR), 
+                               CASE PayType WHEN 0 THEN 'تحصيل' WHEN 1 THEN 'تحصيل' WHEN 2 THEN 'رد نقدي' WHEN 3 THEN 'خصم مسموح' END, 
+                               ISNULL(Notes, ''), 
+                               CASE WHEN PayType = 2 THEN PayMoney ELSE 0 END, 
+                               CASE WHEN PayType IN (0, 1, 3) THEN PayMoney ELSE 0 END 
+                        FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate
+                    ) T
+                    ORDER BY SortDate ASC";
             }
             else if (SelectedReportType == "كشف حساب تفصيلي للعميل")
             {
@@ -183,42 +306,10 @@ public partial class SalesReportsViewModel : ObservableObject
                     System.Windows.MessageBox.Show("يرجى اختيار العميل أولاً", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
-                parameters.Add("CusId", SelectedCustomer.CusId);
-
-                sql = @"
-                    -- Sales Invoices with Items
-                    SELECT M.SalesDate AS [SortDate], CONVERT(VARCHAR, M.SalesDate, 103) AS [التاريخ], 
-                           'فاتورة مبيعات رقم ' + CAST(M.Sales_ID AS VARCHAR) AS [البيان],
-                           I.ItemName AS [اسم الصنف], S.Qty AS [الكمية], S.Price AS [السعر], (S.Qty * (S.Price - S.Disc)) AS [مدين], 0 AS [دائن] 
-                    FROM Sales M 
-                    INNER JOIN Sales_Sub S ON M.Sales_ID = S.SalesId 
-                    INNER JOIN Items I ON S.ItemId = I.Item_ID
-                    WHERE M.CusId = @CusId AND M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    
-                    UNION ALL
-                    
-                    -- Returns with Items
-                    SELECT M.SalesDate AS [SortDate], CONVERT(VARCHAR, M.SalesDate, 103) AS [التاريخ], 
-                           'مرتجع مبيعات رقم ' + CAST(M.Sales_ID AS VARCHAR) AS [البيان],
-                           I.ItemName AS [اسم الصنف], S.Qty AS [الكمية], S.Price AS [السعر], 0 AS [مدين], (S.Qty * (S.Price - S.Disc)) AS [دائن] 
-                    FROM ReSales M 
-                    INNER JOIN ReSales_Sub S ON M.Sales_ID = S.SalesId 
-                    INNER JOIN Items I ON S.ItemId = I.Item_ID
-                    WHERE M.CusId = @CusId AND M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    
-                    UNION ALL
-                    
-                    -- Payments
-                    SELECT PayDate AS [SortDate], CONVERT(VARCHAR, PayDate, 103) AS [التاريخ], 
-                           CASE PayType WHEN 0 THEN 'سداد عميل' WHEN 1 THEN 'تحصيل عميل' WHEN 2 THEN 'رد' WHEN 3 THEN 'خصم' END AS [البيان],
-                           ISNULL(Notes, '') AS [اسم الصنف],
-                           0 AS [الكمية], 0 AS [السعر],
-                           CASE WHEN PayType IN (2) THEN PayMoney ELSE 0 END AS [مدين],
-                           CASE WHEN PayType IN (0, 1, 3) THEN PayMoney ELSE 0 END AS [دائن] 
-                    FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate
-                    
-                    ORDER BY SortDate ASC";
+                await GenerateDetailedStatementAsync(db, parameters, queryFromDate, queryToDate);
+                return;  // early return — no further DataTable processing needed
             }
+
             // ── 6. المبيعات اليومية ────────────────────────────────────────
             else if (SelectedReportType == "المبيعات اليومية")
             {
@@ -382,54 +473,81 @@ public partial class SalesReportsViewModel : ObservableObject
                 dt.Load(reader);
             }
 
-            if (SelectedReportType == "كشف حساب تفصيلي للعميل")
+            if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل")
             {
-                // Add الرصيد column for running balance
-                dt.Columns.Add("الرصيد", typeof(double));
-                double runningBalance = 0;
+                // Add الرصيد columns
+                dt.Columns.Add("رصيد مدين", typeof(double));
+                dt.Columns.Add("رصيد دائن", typeof(double));
 
-                // We need to fetch the initial balance BEFORE @FromDate if applicable.
-                // For simplicity, let's start from 0 or calculate it.
+                double runningBalance = 0; // Positive = Debit, Negative = Credit
+                
                 var opParams = new DynamicParameters();
                 opParams.Add("CusId", SelectedCustomer.CusId);
                 opParams.Add("FromDate", queryFromDate);
 
-                var opSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM Sales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
-                var opReturns = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
-                var opPayments = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
-                var opRefunds = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
+                // Initial Balance from Customers table
+                var customerInfo = await db.QueryFirstOrDefaultAsync<dynamic>("SELECT ISNULL(Debit, 0) AS Debit, ISNULL(Credit, 0) AS Credit, OpenDate FROM Customers WHERE Cus_ID = @CusId", opParams);
+                double cusIniDebit = Convert.ToDouble(customerInfo?.Debit ?? 0);
+                double cusIniCredit = Convert.ToDouble(customerInfo?.Credit ?? 0);
+
+                // Previous Transactions before FromDate
+                double prevSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM Sales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
+                double prevSalesCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Sales_Car WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
+                double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
+                double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
+                double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
+
+                double prevDebit = prevSales + prevSalesCar + prevPaymentsDebit;
+                double prevCredit = prevReSales + prevPaymentsCredit;
                 
-                runningBalance = opSales - opReturns - opPayments + opRefunds;
-
-                // Add Opening Balance Row at the top if it's not zero
-                var opRow = dt.NewRow();
-                if (dt.Columns.Contains("SortDate"))
-                {
-                    dt.Columns["SortDate"]!.AllowDBNull = true;
-                    opRow["SortDate"] = queryFromDate; // Or DBNull.Value
-                }
-                if (dt.Columns.Contains("الكمية")) dt.Columns["الكمية"]!.AllowDBNull = true;
-                if (dt.Columns.Contains("السعر")) dt.Columns["السعر"]!.AllowDBNull = true;
-
-                opRow["التاريخ"] = queryFromDate.ToString("dd/MM/yyyy");
-                opRow["اسم الصنف"] = "رصيد سابق";
-                opRow["الكمية"] = 0;
-                opRow["السعر"] = 0;
-                opRow["مدين"] = 0;
-                opRow["دائن"] = 0;
-                opRow["الرصيد"] = runningBalance;
-                dt.Rows.InsertAt(opRow, 0);
-
-                // Calculate running balance for each row (starting from index 1 because index 0 is Balance Forward)
-                for (int i = 1; i < dt.Rows.Count; i++)
-                {
-                    double debit = Convert.ToDouble(dt.Rows[i]["مدين"] == DBNull.Value ? 0 : dt.Rows[i]["مدين"]);
-                    double credit = Convert.ToDouble(dt.Rows[i]["دائن"] == DBNull.Value ? 0 : dt.Rows[i]["دائن"]);
-                    runningBalance += (debit - credit);
-                    dt.Rows[i]["الرصيد"] = runningBalance;
-                }
+                if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
                 
-                // Remove the SortDate column from being visible in PDF
+                int insertedRows = 0;
+
+                string colDebit  = "مدين (عليه)";
+                string colCredit = "دائن (له)";
+
+                if (dt.Columns.Contains("نوع الحركة")) dt.Columns["نوع الحركة"]!.AllowDBNull = true;
+                if (dt.Columns.Contains("رقم الحركة")) dt.Columns["رقم الحركة"]!.AllowDBNull = true;
+
+                var rowSabiq = dt.NewRow();
+                rowSabiq["التاريخ"] = queryFromDate.ToString("dd/MM/yyyy");
+                rowSabiq["نوع الحركة"] = "ما قبله";
+                rowSabiq["البيان"] = "الرصيد السابق";
+                rowSabiq[colDebit] = prevDebit;
+                rowSabiq[colCredit] = prevCredit;
+                runningBalance += (prevDebit - prevCredit);
+
+                rowSabiq["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                rowSabiq["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
+                dt.Rows.InsertAt(rowSabiq, insertedRows++);
+
+                // 2. Raseed Iftitahy
+                if (cusIniDebit > 0 || cusIniCredit > 0)
+                {
+                    runningBalance += (cusIniDebit - cusIniCredit);
+                    var rowIft = dt.NewRow();
+                    rowIft["التاريخ"] = (customerInfo?.OpenDate != null) ? $"{Convert.ToDateTime((object?)customerInfo.OpenDate):dd/MM/yyyy}" : "";
+                    rowIft["نوع الحركة"] = "افتتاحي";
+                    rowIft["البيان"] = "الرصيد الافتتاحي";
+                    rowIft[colDebit] = cusIniDebit;
+                    rowIft[colCredit] = cusIniCredit;
+
+                    rowIft["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                    rowIft["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
+                    dt.Rows.InsertAt(rowIft, insertedRows++);
+                }
+
+                // Loop Data
+                for (int i = insertedRows; i < dt.Rows.Count; i++)
+                {
+                    double d = Convert.ToDouble(dt.Rows[i][colDebit] == DBNull.Value ? 0 : dt.Rows[i][colDebit]);
+                    double c = Convert.ToDouble(dt.Rows[i][colCredit] == DBNull.Value ? 0 : dt.Rows[i][colCredit]);
+                    runningBalance += (d - c);
+                    
+                    dt.Rows[i]["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                    dt.Rows[i]["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
+                }
                 if (dt.Columns.Contains("SortDate")) dt.Columns.Remove("SortDate");
             }
 
@@ -441,38 +559,54 @@ public partial class SalesReportsViewModel : ObservableObject
 
             if (SelectedReportType == "المبيعات بالأصناف")
             {
-                string itemFilterS = SelectedItem != null ? " AND S.ItemId = @ItemId " : "";
-                var salesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(DISTINCT M.Sales_ID) AS Cnt, ISNULL(SUM(S.Qty * (S.Price - S.Disc)), 0) AS Tot FROM Sales M INNER JOIN Sales_Sub S ON M.Sales_ID = S.SalesId WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate " + itemFilterS, parameters);
-                countSales = salesSum?.Cnt ?? 0;
-                totalSales = salesSum?.Tot ?? 0;
+                double sumSQty = 0, sumRQty = 0, sumNetQty = 0;
+                double sumSVal = 0, sumRVal = 0, sumNetVal = 0;
+                int itemsCount = 0;
 
-                var resalesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(DISTINCT M.Sales_ID) AS Cnt, ISNULL(SUM(S.Qty * (S.Price - S.Disc)), 0) AS Tot FROM ReSales M INNER JOIN ReSales_Sub S ON M.Sales_ID = S.SalesId WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate " + itemFilterS, parameters);
-                countReturns = resalesSum?.Cnt ?? 0;
-                totalReturns = resalesSum?.Tot ?? 0;
-            }
-            else if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل")
-            {
-                parameters.Add("CusId", SelectedCustomer?.CusId ?? 0);
-                var salesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM Sales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
-                totalSales = salesSum?.Tot ?? 0;
-
-                var resalesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM ReSales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
-                totalReturns = resalesSum?.Tot ?? 0;
-
-                var paymentsSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT ISNULL(SUM(PayMoney), 0) AS Tot FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate AND PayType IN (0, 1, 3)", parameters);
-                double totalPayments = paymentsSum?.Tot ?? 0;
+                foreach (System.Data.DataRowView row in dt.DefaultView)
+                {
+                    if (row["الصنف"].ToString() != "إجمالي المجموعة ->")
+                    {
+                        itemsCount++;
+                        sumSQty += Convert.ToDouble(row["كمية البيع"] == DBNull.Value ? 0 : row["كمية البيع"]);
+                        sumRQty += Convert.ToDouble(row["كمية المرتجع"] == DBNull.Value ? 0 : row["كمية المرتجع"]);
+                        sumNetQty += Convert.ToDouble(row["صافي الكمية"] == DBNull.Value ? 0 : row["صافي الكمية"]);
+                        sumSVal += Convert.ToDouble(row["قيمة البيع"] == DBNull.Value ? 0 : row["قيمة البيع"]);
+                        sumRVal += Convert.ToDouble(row["قيمة المرتجع"] == DBNull.Value ? 0 : row["قيمة المرتجع"]);
+                        sumNetVal += Convert.ToDouble(row["صافي المبيعات"] == DBNull.Value ? 0 : row["صافي المبيعات"]);
+                    }
+                }
 
                 _currentFooterTotals = new Dictionary<string, string>
                 {
-                    { "إجمالي المديونية", totalSales.ToString("N2") },
-                    { "إجمالي المرتجعات", totalReturns.ToString("N2") },
-                    { "إجمالي المدفوعات", totalPayments.ToString("N2") },
-                    { "الرصيد المتبقي", (totalSales - totalReturns - totalPayments).ToString("N2") }
+                    { "عدد الأصناف", itemsCount.ToString() },
+                    { "كمية البيع", sumSQty.ToString("N2") },
+                    { "كمية المرتجع", sumRQty.ToString("N2") },
+                    { "صافي الكمية", sumNetQty.ToString("N2") },
+                    { "إجمالي المبيعات", sumSVal.ToString("N2") },
+                    { "إجمالي المرتجعات", sumRVal.ToString("N2") },
+                    { "صافي المبيعات", sumNetVal.ToString("N2") }
+                };
+            }
+            else if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل")
+            {
+                double sumDebit = 0, sumCredit = 0;
+                string colDebit  = "مدين (عليه)";
+                string colCredit = "دائن (له)";
+
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row[colDebit] != DBNull.Value) sumDebit += Convert.ToDouble(row[colDebit]);
+                    if (row[colCredit] != DBNull.Value) sumCredit += Convert.ToDouble(row[colCredit]);
+                }
+                
+                double finalBal = sumDebit - sumCredit;
+
+                _currentFooterTotals = new Dictionary<string, string>
+                {
+                    { "إجمالي مدين", sumDebit.ToString("N2") },
+                    { "إجمالي دائن", sumCredit.ToString("N2") },
+                    { "الرصيد", finalBal >= 0 ? finalBal.ToString("N2") + " (مدين)" : Math.Abs(finalBal).ToString("N2") + " (دائن)" }
                 };
             }
             else
@@ -503,6 +637,16 @@ public partial class SalesReportsViewModel : ObservableObject
                 _currentFooterTotals.Add("عدد الشهور", dt.Rows.Count.ToString());
             }
 
+            if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل" || SelectedReportType == "كشف حساب عميل (موتوسيكلات)")
+            {
+                _currentHeaderInfo = new Dictionary<string, string>
+                {
+                    { "اسم العميل", SelectedCustomer?.CusName ?? "" },
+                    { "الفترة من", IsFromDateChecked ? queryFromDate.ToString("yyyy/MM/dd") : "بداية التعامل" },
+                    { "الفترة إلى", IsToDateChecked ? queryToDate.ToString("yyyy/MM/dd") : "حتى الآن" }
+                };
+            }
+
             StatusMessage = dt.Rows.Count > 0 ? $"تم العثور على {dt.Rows.Count} سجل" : "⚠️ لا توجد بيانات في الفترة المحددة";
         }
         catch (Exception ex)
@@ -515,7 +659,11 @@ public partial class SalesReportsViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportPdfAsync()
     {
-        if (ReportData == null || ReportData.Count == 0)
+        bool hasData = IsDetailedReport 
+            ? (DetailedReportData != null && DetailedReportData.Count > 0)
+            : (ReportData != null && ReportData.Count > 0);
+
+        if (!hasData)
         {
             System.Windows.MessageBox.Show("لا توجد بيانات ليتم تصديرها", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
@@ -535,7 +683,9 @@ public partial class SalesReportsViewModel : ObservableObject
         {
             try
             {
-                var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                var pdfBytes = IsDetailedReport 
+                    ? MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                    : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
                 System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
                 System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
@@ -549,7 +699,11 @@ public partial class SalesReportsViewModel : ObservableObject
     [RelayCommand]
     private async Task PrintPdfAsync()
     {
-         if (ReportData == null || ReportData.Count == 0)
+        bool hasData = IsDetailedReport 
+            ? (DetailedReportData != null && DetailedReportData.Count > 0)
+            : (ReportData != null && ReportData.Count > 0);
+
+        if (!hasData)
         {
             System.Windows.MessageBox.Show("لا توجد بيانات ليتم طباعتها", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
@@ -560,7 +714,9 @@ public partial class SalesReportsViewModel : ObservableObject
 
         try
         {
-            var pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+            var pdfBytes = IsDetailedReport 
+                ? MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
             string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
             System.IO.File.WriteAllBytes(tempFile, pdfBytes);
             MotorBike.Services.ReportGenerator.PrintPdf(tempFile);
@@ -570,4 +726,278 @@ public partial class SalesReportsViewModel : ObservableObject
             System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
+
+    private async Task GenerateDetailedStatementAsync(
+        System.Data.IDbConnection db,
+        DynamicParameters parameters,
+        DateTime queryFromDate,
+        DateTime queryToDate)
+    {
+        int cusId = SelectedCustomer!.CusId;
+
+        // ── 1. الرصيد السابق (قبل الفترة) ──
+        var opParams = new DynamicParameters();
+        opParams.Add("CusId", cusId);
+        opParams.Add("FromDate", queryFromDate);
+
+        var customerInfo = await db.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT ISNULL(Debit,0) AS Debit, ISNULL(Credit,0) AS Credit, OpenDate FROM Customers WHERE Cus_ID=@CusId", opParams);
+
+        double cusIniDebit  = Convert.ToDouble(customerInfo?.Debit  ?? 0);
+        double cusIniCredit = Convert.ToDouble(customerInfo?.Credit ?? 0);
+
+        double prevSales        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total-Disc+AddMony),0) FROM Sales         WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
+        double prevSalesCar     = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total),0)              FROM Sales_Car     WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
+        double prevReSales      = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total-Disc+AddMony),0) FROM ReSales       WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
+        double prevPayCC        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType IN(0,1,3)", opParams);
+        double prevPayCD        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType=2", opParams);
+        double prevSalPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney),0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId=S.Sales_ID WHERE S.CusId=@CusId AND SP.PayDate<@FromDate", opParams);
+        double prevCarPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney),0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId=SC.Sales_ID WHERE SC.CusId=@CusId AND SCP.PayDate<@FromDate", opParams);
+
+        double prevDebit  = prevSales + prevSalesCar + prevPayCD;
+        double prevCredit = prevReSales + prevPayCC + prevSalPay + prevCarPay;
+
+        double runBal = 0;
+        var rows = new List<DetailedAccountRow>();
+
+        // سطر الرصيد السابق
+        runBal += prevDebit - prevCredit;
+        rows.Add(new DetailedAccountRow {
+            RawDate = queryFromDate.AddSeconds(-1),
+            Date = queryFromDate.ToString("dd/MM/yyyy"),
+            TransType = "ما قبله",
+            Notes = "الرصيد السابق",
+            Debit = prevDebit, Credit = prevCredit,
+            RunningDebit  = runBal > 0 ? runBal : 0,
+            RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+        });
+
+        // سطر الرصيد الافتتاحي
+        if (cusIniDebit > 0 || cusIniCredit > 0)
+        {
+            runBal += cusIniDebit - cusIniCredit;
+            DateTime rawIftDate = (customerInfo?.OpenDate != null) ? Convert.ToDateTime((object?)customerInfo.OpenDate) : queryFromDate;
+            rows.Add(new DetailedAccountRow {
+                RawDate = rawIftDate,
+                Date = rawIftDate.ToString("dd/MM/yyyy"),
+                TransType = "افتتاحي",
+                Notes = "الرصيد الافتتاحي",
+                Debit = cusIniDebit, Credit = cusIniCredit,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+            });
+        }
+
+        // ── 2. جلب الحركات في الفترة ──
+        var txParams = new DynamicParameters();
+        txParams.Add("CusId", cusId);
+        txParams.Add("FromDate", queryFromDate);
+        txParams.Add("ToDate", queryToDate);
+
+        // فواتير مبيعات الأصناف
+        var sales = await db.QueryAsync<dynamic>(@"
+            SELECT M.Sales_ID AS Id, M.SalesDate AS TxDate, CAST(M.Sales_ID AS VARCHAR) AS RefNo,
+                   'فاتورة مبيعات' AS TransType, ISNULL(M.Notes,'') AS Notes,
+                   (M.Total-M.Disc+M.AddMony) AS Debit, 0 AS Credit,
+                   ISNULL(ST.StoreName,'') AS Branch, ISNULL(U.UserName,'') AS Agent
+            FROM Sales M
+            LEFT JOIN Sales_Sub SS ON SS.SalesId=M.Sales_ID
+            LEFT JOIN Stores ST ON SS.StoreId=ST.Store_ID
+            LEFT JOIN Users U ON M.AddUser=U.User_ID
+            WHERE M.CusId=@CusId AND M.SalesDate>=@FromDate AND M.SalesDate<=@ToDate
+            GROUP BY M.Sales_ID, M.SalesDate, M.Total, M.Disc, M.AddMony, M.Notes, ST.StoreName, U.UserName", txParams);
+
+        foreach (var s in sales)
+        {
+            int sid = Convert.ToInt32(s.Id);
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, UN.UnitName AS Unit, SS.Qty, SS.Price, SS.DiscPer, (SS.Qty*(SS.Price-SS.Disc)) AS Total
+                FROM Sales_Sub SS
+                JOIN Items I ON SS.ItemId=I.Item_ID
+                LEFT JOIN Units UN ON SS.UnitId=UN.Unit_ID
+                WHERE SS.SalesId=@SalesId", new { SalesId = sid });
+
+            double d = Convert.ToDouble(s.Debit);
+            runBal += d;
+            DateTime txDate = Convert.ToDateTime((object)s.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = s.RefNo, Branch = s.Branch, Agent = s.Agent,
+                TransType = s.TransType, Notes = s.Notes,
+                Debit = d, Credit = 0,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                Items = subItems.Select(x => new InvoiceSubItem {
+                    ItemName = x.ItemName, Unit = x.Unit ?? "",
+                    Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
+                    DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
+                }).ToList()
+            });
+
+            // مدفوعات مع الفاتورة
+            var salPays = await db.QueryAsync<dynamic>(
+                "SELECT CAST(SalesId AS VARCHAR) AS RefNo, PayDate, PayMoney, ISNULL(Notes,'') AS Notes FROM Sales_Payments WHERE SalesId=@SalesId", new { SalesId = sid });
+            foreach (var p in salPays)
+            {
+                double c = Convert.ToDouble(p.PayMoney);
+                runBal -= c;
+                DateTime pDate = Convert.ToDateTime((object)p.PayDate);
+                rows.Add(new DetailedAccountRow {
+                    RawDate = pDate.AddSeconds(1), // To show payment right after its invoice if same second
+                    Date = pDate.ToString("dd/MM/yyyy"),
+                    RefNo = p.RefNo, TransType = "تحصيل مع الفاتورة", Notes = p.Notes,
+                    Debit = 0, Credit = c,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
+        }
+
+        // مبيعات الموتوسيكلات
+        var salesCar = await db.QueryAsync<dynamic>(@"
+            SELECT M.Sales_ID AS Id, M.SalesDate AS TxDate, CAST(M.Sales_ID AS VARCHAR) AS RefNo,
+                   'بيع موتوسيكل' AS TransType, ISNULL(M.Notes,'') AS Notes, M.Total AS Debit, 0 AS Credit,
+                   ISNULL(CB.BrandName,'') AS Brand, ISNULL(CM.ModelName,'') AS ModelName, 
+                   ISNULL(C.ChassisNo,'') AS Chassis, ISNULL(C.MotorNo,'') AS MotorNo, ISNULL(C.PlateNo,'') AS PlateNo, ISNULL(C.Mileage,0) AS Mileage
+            FROM Sales_Car M
+            LEFT JOIN Cars C ON M.CarID=C.Car_ID
+            LEFT JOIN CarModels CM ON C.ModelID=CM.Model_ID
+            LEFT JOIN CarBrands CB ON CM.BrandID=CB.Brand_ID
+            WHERE M.CusId=@CusId AND M.SalesDate>=@FromDate AND M.SalesDate<=@ToDate", txParams);
+
+        foreach (var sc in salesCar)
+        {
+            int scid = Convert.ToInt32(sc.Id);
+            double d = Convert.ToDouble(sc.Debit);
+            runBal += d;
+            DateTime txDate = Convert.ToDateTime((object)sc.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = sc.RefNo, TransType = sc.TransType, Notes = sc.Notes,
+                Debit = d, Credit = 0,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                IsCarTransaction = true,
+                Items = new List<InvoiceSubItem> {
+                    new() { ItemName = $"{sc.Brand} - {sc.ModelName}", 
+                            ChassisNo = sc.Chassis, MotorNo = sc.MotorNo, PlateNo = sc.PlateNo, Mileage = sc.Mileage,
+                            Price = d, Total = d }
+                }
+            });
+
+            var carPays = await db.QueryAsync<dynamic>(
+                "SELECT CAST(SalesId AS VARCHAR) AS RefNo, PayDate, PayMoney, ISNULL(Notes,'') AS Notes FROM Sales_Car_Payments WHERE SalesId=@SalesId", new { SalesId = scid });
+            foreach (var p in carPays)
+            {
+                double c = Convert.ToDouble(p.PayMoney);
+                runBal -= c;
+                DateTime pDate = Convert.ToDateTime((object)p.PayDate);
+                rows.Add(new DetailedAccountRow {
+                    RawDate = pDate.AddSeconds(1),
+                    Date = pDate.ToString("dd/MM/yyyy"),
+                    RefNo = p.RefNo, TransType = "تحصيل مع الفاتورة", Notes = p.Notes,
+                    Debit = 0, Credit = c,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
+        }
+
+        // مرتجعات المبيعات
+        var resales = await db.QueryAsync<dynamic>(@"
+            SELECT M.Sales_ID AS Id, M.SalesDate AS TxDate, CAST(M.Sales_ID AS VARCHAR) AS RefNo,
+                   'مرتجع بيع' AS TransType, ISNULL(M.Notes,'') AS Notes, 0 AS Debit, (M.Total-M.Disc+M.AddMony) AS Credit
+            FROM ReSales M WHERE M.CusId=@CusId AND M.SalesDate>=@FromDate AND M.SalesDate<=@ToDate", txParams);
+
+        foreach (var r in resales)
+        {
+            int rid = Convert.ToInt32(r.Id);
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, UN.UnitName AS Unit, SS.Qty, SS.Price, SS.DiscPer, (SS.Qty*(SS.Price-SS.Disc)) AS Total
+                FROM ReSales_Sub SS
+                JOIN Items I ON SS.ItemId=I.Item_ID
+                LEFT JOIN Units UN ON SS.UnitId=UN.Unit_ID
+                WHERE SS.SalesId=@SalesId", new { SalesId = rid });
+
+            double c = Convert.ToDouble(r.Credit);
+            runBal -= c;
+            DateTime txDate = Convert.ToDateTime((object)r.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = r.RefNo, TransType = r.TransType, Notes = r.Notes,
+                Debit = 0, Credit = c,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                Items = subItems.Select(x => new InvoiceSubItem {
+                    ItemName = x.ItemName, Unit = x.Unit ?? "",
+                    Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
+                    DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
+                }).ToList()
+            });
+        }
+
+        // تحصيلات منفصلة
+        var cuspays = await db.QueryAsync<dynamic>(@"
+            SELECT Pay_ID AS Id, PayDate, CAST(Pay_ID AS VARCHAR) AS RefNo, PayType, PayMoney, ISNULL(Notes,'') AS Notes
+            FROM Cus_Payments WHERE CusId=@CusId AND PayDate>=@FromDate AND PayDate<=@ToDate", txParams);
+
+        foreach (var p in cuspays)
+        {
+            string typeName = Convert.ToInt32(p.PayType) switch {
+                0 => "تحصيل", 1 => "تحصيل", 2 => "رد نقدي", 3 => "خصم مسموح", _ => "تحصيل"
+            };
+            int pt = Convert.ToInt32(p.PayType);
+            double amount = Convert.ToDouble(p.PayMoney);
+            double d2 = pt == 2 ? amount : 0;
+            double c2 = pt != 2 ? amount : 0;
+            runBal += d2 - c2;
+            DateTime pDate = Convert.ToDateTime((object)p.PayDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = pDate,
+                Date = pDate.ToString("dd/MM/yyyy"),
+                RefNo = p.RefNo, TransType = typeName, Notes = p.Notes,
+                Debit = d2, Credit = c2,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+            });
+        }
+
+        // ── 3. ترتيب حسب التاريخ (الخام) ثم رقم الحركة ──
+        var sorted = rows.OrderBy(r => r.RawDate).ThenBy(r => r.RefNo).ToList();
+        // إعادة حساب الرصيد بعد الترتيب
+        double rb = 0;
+        foreach (var row in sorted)
+        {
+            rb += row.Debit - row.Credit;
+            row.RunningDebit  = rb > 0 ? rb : 0;
+            row.RunningCredit = rb < 0 ? Math.Abs(rb) : 0;
+        }
+
+        DetailedReportData = new ObservableCollection<DetailedAccountRow>(sorted);
+        IsDetailedReport   = true;
+
+        double sumD = sorted.Sum(r => r.Debit);
+        double sumC = sorted.Sum(r => r.Credit);
+        double bal  = sumD - sumC;
+
+        _currentHeaderInfo = new Dictionary<string, string> {
+            { "اسم العميل", SelectedCustomer.CusName },
+            { "الفترة من", IsFromDateChecked ? queryFromDate.ToString("yyyy/MM/dd") : "بداية التعامل" },
+            { "الفترة إلى", IsToDateChecked  ? queryToDate.ToString("yyyy/MM/dd")  : "حتى الآن" }
+        };
+
+        _currentFooterTotals = new Dictionary<string, string> {
+            { "إجمالي مدين", sumD.ToString("N2") },
+            { "إجمالي دائن", sumC.ToString("N2") },
+            { "الرصيد", bal >= 0 ? bal.ToString("N2") + " (مدين)" : Math.Abs(bal).ToString("N2") + " (دائن)" }
+        };
+
+        StatusMessage = sorted.Count > 0
+            ? $"تم العثور على {sorted.Count} حركة"
+            : "⚠️ لا توجد بيانات في الفترة المحددة";
+    }
 }
+
