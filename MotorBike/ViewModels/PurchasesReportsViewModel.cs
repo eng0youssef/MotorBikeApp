@@ -54,8 +54,10 @@ public partial class PurchasesReportsViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsSupplierVisible));
         OnPropertyChanged(nameof(IsItemVisible));
-        ReportData = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData           = new System.Data.DataView();
+        StatusMessage        = null;
+        _currentFooterTotals = null;
+        _currentHeaderInfo   = null;
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;

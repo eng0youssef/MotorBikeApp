@@ -47,8 +47,10 @@ public partial class ProfitsReportsViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(IsItemVisible));
         OnPropertyChanged(nameof(IsExpGroupVisible));
-        ReportData    = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData           = new System.Data.DataView();
+        StatusMessage        = null;
+        _currentFooterTotals = null;
+        _currentHeaderInfo   = null;
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;

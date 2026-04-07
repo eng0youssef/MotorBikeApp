@@ -55,8 +55,10 @@ public partial class CarsReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsDateRangeVisible));
         OnPropertyChanged(nameof(IsCarModelVisible));
         OnPropertyChanged(nameof(IsCarVisible));
-        ReportData    = new System.Data.DataView();
-        StatusMessage = null;
+        ReportData           = new System.Data.DataView();
+        StatusMessage        = null;
+        _currentFooterTotals = null;
+        _currentHeaderInfo   = null;
     }
 
     private Dictionary<string, string>? _currentHeaderInfo;

@@ -46,6 +46,26 @@ public class ReportGenerator
         return document.GeneratePdf();
     }
 
+    public static byte[] GenerateDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1, QuestPDF.Infrastructure.Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(11).DirectionFromRightToLeft());
+
+                page.Header().Element(c => ComposeHeader(c, company, reportTitle, headerInfo));
+                page.Content().Element(c => ComposeDetailedContent(c, data.ToList(), footerTotals));
+                page.Footer().Element(ComposeFooter);
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
     private static void ComposeHeader(IContainer container, Company company, string reportTitle, Dictionary<string, string>? headerInfo)
     {
         container.Column(column =>
@@ -210,6 +230,148 @@ public class ReportGenerator
                 {
                     // Reverse dictionary to display from Right-To-Left
                     foreach (var kv in footerTotals.Reverse())
+                    {
+                        r.RelativeItem().Column(c =>
+                        {
+                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(11).FontColor("#334155");
+
+                            var valueContainer = c.Item().PaddingTop(2).MaxWidth(120).AlignCenter();
+
+                            bool isNumericOrDate = kv.Value?.Any(ch => char.IsDigit(ch) && !char.IsLetter(ch)) ?? false;
+                            var textElement = valueContainer
+                                .Border(0.5f)
+                                .BorderColor(Colors.Black)
+                                .CornerRadius(15) 
+                                .PaddingVertical(4)
+                                .PaddingHorizontal(12)
+                                .AlignCenter()
+                                .Text(kv.Value)
+                                .FontSize(12)
+                                .FontColor("#1E293B");
+
+                            if (isNumericOrDate && !string.IsNullOrWhiteSpace(kv.Value))
+                                textElement.DirectionFromLeftToRight();
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private static void ComposeDetailedContent(IContainer container, List<DetailedAccountRow> data, Dictionary<string, string>? footerTotals)
+    {
+        container.PaddingVertical(1).Column(colContainer =>
+        {
+            colContainer.Item().Table(table =>
+            {
+                table.ColumnsDefinition(columnsDefinition =>
+                {
+                    columnsDefinition.ConstantColumn(80); // رصيد دائن
+                    columnsDefinition.ConstantColumn(80); // رصيد مدين
+                    columnsDefinition.ConstantColumn(70); // دائن
+                    columnsDefinition.ConstantColumn(70); // مدين
+                    columnsDefinition.RelativeColumn();   // البيان
+                    columnsDefinition.ConstantColumn(90); // نوع الحركة
+                    columnsDefinition.ConstantColumn(60); // رقم الحركة
+                    columnsDefinition.ConstantColumn(70); // التاريخ
+                });
+
+                table.Header(header =>
+                {
+                    string[] cols = { "رصيد دائن", "رصيد مدين", "دائن (له)", "مدين (عليه)", "البيان", "نوع الحركة", "رقم الحركة", "التاريخ" };
+                    foreach (var col in cols)
+                    {
+                        header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text(col).SemiBold().FontSize(11);
+                    }
+                });
+
+                foreach (var row in data)
+                {
+                    Func<IContainer, IContainer> cStyle = c => c.Border(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().AlignMiddle();
+
+                    table.Cell().Element(cStyle).Text(row.RunningCredit > 0 ? row.RunningCredit.ToString("N2") : "0").FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.RunningDebit > 0 ? row.RunningDebit.ToString("N2") : "0").FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.Credit > 0 ? row.Credit.ToString("N2") : "0").FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.Debit > 0 ? row.Debit.ToString("N2") : "0").FontSize(10);
+                    table.Cell().Element(cStyle).AlignRight().Text(row.Notes).FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.TransType ?? "").FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.RefNo ?? "").FontSize(10);
+                    table.Cell().Element(cStyle).Text(row.Date ?? "").FontSize(10).DirectionFromLeftToRight();
+
+                    if (row.HasItems)
+                    {
+                        table.Cell().ColumnSpan(8).Background("#F8FAFC").Border(1).BorderColor(Colors.Grey.Lighten1).PaddingRight(100).PaddingLeft(10).PaddingVertical(4).Table(innerTable =>
+                        {
+                            if (row.IsCarTransaction)
+                            {
+                                innerTable.ColumnsDefinition(innerDef =>
+                                {
+                                    innerDef.ConstantColumn(80); // السعر
+                                    innerDef.ConstantColumn(80); // العداد
+                                    innerDef.ConstantColumn(80); // اللوحة
+                                    innerDef.ConstantColumn(100); // الماتور
+                                    innerDef.ConstantColumn(100); // الشاسيه
+                                    innerDef.RelativeColumn();   // الماركة والموديل
+                                });
+
+                                innerTable.Header(innerHeader =>
+                                {
+                                    string[] innerCols = { "السعر", "العداد", "اللوحة", "الماتور", "الشاسيه", "الماركة والموديل" };
+                                    foreach (var c in innerCols)
+                                        innerHeader.Cell().Border(1).BorderColor(Colors.Grey.Medium).Background("#DCFCE7").Padding(3).AlignCenter().Text(c).FontSize(10).FontColor("#166534").SemiBold();
+                                });
+
+                                foreach (var item in row.Items)
+                                {
+                                    Func<IContainer, IContainer> innerStyle = c => c.Border(1).BorderColor(Colors.Grey.Lighten1).Background("#F0FDF4").Padding(3).AlignCenter().AlignMiddle();
+                                    innerTable.Cell().Element(innerStyle).Text(item.Price.ToString("N2")).FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.Mileage.ToString()).FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.PlateNo ?? "").FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.MotorNo ?? "").FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.ChassisNo ?? "").FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).AlignRight().Text(item.ItemName ?? "").FontSize(10);
+                                }
+                            }
+                            else
+                            {
+                                innerTable.ColumnsDefinition(innerDef =>
+                                {
+                                    innerDef.ConstantColumn(80); // إجمالي
+                                    innerDef.ConstantColumn(60); // خصم%
+                                    innerDef.ConstantColumn(70); // السعر
+                                    innerDef.ConstantColumn(50); // الكمية
+                                    innerDef.ConstantColumn(60); // الوحدة
+                                    innerDef.RelativeColumn();   // الصنف
+                                });
+
+                                innerTable.Header(innerHeader =>
+                                {
+                                    string[] innerCols = { "إجمالي", "خصم%", "السعر", "الكمية", "الوحدة", "الصنف" };
+                                    foreach (var c in innerCols)
+                                        innerHeader.Cell().Border(1).BorderColor(Colors.Grey.Medium).Background("#FEF3C7").Padding(3).AlignCenter().Text(c).FontSize(10).FontColor("#92400E").SemiBold();
+                                });
+
+                                foreach (var item in row.Items)
+                                {
+                                    Func<IContainer, IContainer> innerStyle = c => c.Border(1).BorderColor(Colors.Grey.Lighten1).Background("#FFFBEB").Padding(3).AlignCenter().AlignMiddle();
+                                    innerTable.Cell().Element(innerStyle).Text(item.Total.ToString("N2")).FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.DiscPer.ToString("N0") + "%").FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.Price.ToString("N2")).FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.Qty.ToString("N2")).FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).Text(item.Unit ?? "").FontSize(10);
+                                    innerTable.Cell().Element(innerStyle).AlignRight().Text(item.ItemName ?? "").FontSize(10);
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (footerTotals != null && footerTotals.Count > 0)
+            {
+                colContainer.Item().PaddingTop(10).Padding(10).Row(r =>
+                {
+                    foreach (var kv in Enumerable.Reverse(footerTotals))
                     {
                         r.RelativeItem().Column(c =>
                         {
