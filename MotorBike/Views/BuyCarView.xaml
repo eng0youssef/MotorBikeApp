@@ -205,13 +205,13 @@
                             <TextBlock Grid.Row="0" Grid.Column="6" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
                                        Text="اسم المالك" />
-                            <TextBox Grid.Row="0" Grid.Column="7"
-                                     Style="{StaticResource FormTextBox}"
+                            <TextBox Grid.Row="0" Grid.Column="7" IsEnabled="False"
+                                     Style="{StaticResource FormTextBox}" Foreground="White"
                                      Text="{Binding FormItem.OwnerName, UpdateSourceTrigger=PropertyChanged}" />
 
                             <!--  Row 2 : Phone | National ID | Address  -->
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
-                                       Style="{StaticResource FormLabel}"
+                                       Style="{StaticResource FormLabel}" 
                                        Text="التليفون" />
                             <TextBox Grid.Row="2" Grid.Column="1"
                                      Style="{StaticResource FormTextBox}"
@@ -411,7 +411,7 @@
                                                             <ItemsControl ItemsSource="{Binding FilteredSuppliersList}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
-                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right" Background="Transparent" BorderThickness="0"
+                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right" Background="Transparent" BorderThickness="0" HorizontalAlignment="Left"
                                                                                 Command="{Binding DataContext.SelectSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                 CommandParameter="{Binding}"
                                                                                 Content="{Binding SuppName}"
@@ -454,10 +454,10 @@
                                                             <ItemsControl ItemsSource="{Binding FilteredCustomersList}">
                                                                 <ItemsControl.ItemTemplate>
                                                                     <DataTemplate>
-                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right" Background="Transparent" BorderThickness="0"
+                                                                        <Button Padding="12,8" HorizontalContentAlignment="Right" Background="Transparent" BorderThickness="0" 
                                                                                 Command="{Binding DataContext.SelectCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                                 CommandParameter="{Binding}"
-                                                                                Content="{Binding CusName}"
+                                                                                Content="{Binding CusName}" HorizontalAlignment="Left"
                                                                                 Cursor="Hand" FontSize="13" Foreground="#C8CEE0" />
                                                                     </DataTemplate>
                                                                 </ItemsControl.ItemTemplate>

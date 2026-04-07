@@ -854,6 +854,13 @@ public partial class ReBuyViewModel : ObservableObject
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
             double previousBalance = await _compositeRepo.GetSupplierOldBalanceAsync(FormItem.SuppId, FormItem.BuyDate);
 
+            var paymentsList = new System.Collections.Generic.List<(double Amount, string CashName, string Notes)>();
+            foreach (var p in FormPayments)
+            {
+                var cashName = Cashes.FirstOrDefault(c => c.CashId == p.CashId)?.CashName ?? "";
+                paymentsList.Add((p.PayMoney, cashName, p.Notes ?? ""));
+            }
+
             var model = new MotorBike.Services.ReBuyInvoiceModel
             {
                 InvoiceNo = FormItem.BuyId.ToString(),
@@ -871,7 +878,8 @@ public partial class ReBuyViewModel : ObservableObject
                 NetAmount = FormItem.Net,
                 PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
-                RemainingAmount = Remaining
+                RemainingAmount = Remaining,
+                Payments = paymentsList
             };
 
             foreach (var sub in FormSubItems)

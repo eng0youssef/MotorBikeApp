@@ -218,10 +218,10 @@
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding FormItem.AvrgCost, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="9" VerticalAlignment="Center" Foreground="#1D4ED8"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="سعر الاستيراد" />
-                                <TextBox Grid.Row="2" Grid.Column="10" BorderBrush="#1D4ED8"
+                                <TextBlock Grid.Row="2" Grid.Column="9" VerticalAlignment="Center" Foreground="#E8A54B"
+                                           Style="{StaticResource FormLabel}" 
+                                           Text="سعر الاستيراد" /> 
+                                <TextBox Grid.Row="2" Grid.Column="10" BorderBrush="#E8A54B"
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding FormItem.ImpPrice, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
@@ -282,7 +282,7 @@
                                 <TextBox Grid.Row="8" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <!--  Row 10: IsLimit, Limit, IsStock  -->
-                                <CheckBox Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Content="تفعيل حد الطلب" FontSize="14"
+                                <CheckBox Grid.Row="10" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center" Foreground="White" Content="تفعيل حد الطلب" FontSize="14"
                                           IsChecked="{Binding FormItem.IsLimit}"
                                           Style="{StaticResource ToggleSwitchStyle}" />
 
@@ -294,7 +294,7 @@
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding FormItem.Limit, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <CheckBox Grid.Row="10" Grid.Column="6" Grid.ColumnSpan="2" VerticalAlignment="Center" Content="صنف مخزني" FontSize="14"
+                                <CheckBox Grid.Row="10" Grid.Column="6" Grid.ColumnSpan="2" VerticalAlignment="Center" Foreground="White" Content="صنف مخزني" FontSize="14"
                                           IsChecked="{Binding FormItem.IsStock}"
                                           Style="{StaticResource ToggleSwitchStyle}" />
                             </Grid>
