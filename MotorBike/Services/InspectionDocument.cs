@@ -98,7 +98,10 @@ public class InspectionDocument : IDocument
         {
             new("رقم الكشف", _model.InspNo), new("التاريخ", _model.IssueDate),
             new("البائع", _model.Seller), new("المشتري", _model.Buyer),
+            new("تكلفة الكشف", _model.Total.ToString("N2")),
+            new("الخزينة", _model.CashName),
         };
+        fields.Reverse();
         container.Table(table =>
         {
             table.ColumnsDefinition(def => { for (int i = 0; i < fields.Count; i++) def.RelativeColumn(); });
@@ -155,7 +158,7 @@ public class InspectionDocument : IDocument
             });
 
             // Inspection items table
-            colContainer.Item().PaddingTop(10).PaddingBottom(5).Text("بنود الفحص").FontSize(13).SemiBold().FontColor(Colors.Blue.Darken3);
+            colContainer.Item().PaddingTop(10).PaddingBottom(5).Text("بنود الفحص").FontSize(13).SemiBold().FontColor(Colors.Blue.Darken3).AlignCenter();
             colContainer.Item().Table(table =>
             {
                 table.ColumnsDefinition(columns =>
@@ -178,7 +181,7 @@ public class InspectionDocument : IDocument
             });
 
             // Totals
-            colContainer.Item().PaddingTop(10).Element(ComposeTotals);
+           // colContainer.Item().PaddingTop(10).Element(ComposeTotals);
         });
     }
 
@@ -190,38 +193,38 @@ public class InspectionDocument : IDocument
         else cell.Text(val).FontSize(10);
     }
 
-    private void ComposeTotals(IContainer container)
-    {
-        var totals = new List<KeyValuePair<string, string>>
-        {
-            new("تكلفة الكشف", _model.Total.ToString("N2")),
-            new("الخزينة", _model.CashName),
-        };
-        if (!string.IsNullOrWhiteSpace(_model.Notes)) totals.Add(new("ملاحظات", _model.Notes));
+    //private void ComposeTotals(IContainer container)
+    //{
+    //    var totals = new List<KeyValuePair<string, string>>
+    //    {
+    //        new("تكلفة الكشف", _model.Total.ToString("N2")),
+    //        new("الخزينة", _model.CashName),
+    //    };
+    //    if (!string.IsNullOrWhiteSpace(_model.Notes)) totals.Add(new("ملاحظات", _model.Notes));
 
-        const int itemsPerRow = 3;
-        container.Padding(5).Column(column =>
-        {
-            foreach (var rowTotals in totals.Chunk(itemsPerRow))
-            {
-                var items = rowTotals.Reverse().ToList();
-                column.Item().PaddingBottom(8).Row(row =>
-                {
-                    foreach (var kv in items)
-                    {
-                        row.RelativeItem().PaddingHorizontal(3).Column(c =>
-                        {
-                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(10).FontColor("#334155");
-                            c.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
-                                .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                .Text(kv.Value).FontSize(11).FontColor("#1E293B").DirectionFromLeftToRight();
-                        });
-                    }
-                    for (int i = items.Count; i < itemsPerRow; i++) row.RelativeItem();
-                });
-            }
-        });
-    }
+    //    const int itemsPerRow = 3;
+    //    container.Padding(5).Column(column =>
+    //    {
+    //        foreach (var rowTotals in totals.Chunk(itemsPerRow))
+    //        {
+    //            var items = rowTotals.Reverse().ToList();
+    //            column.Item().PaddingBottom(8).Row(row =>
+    //            {
+    //                foreach (var kv in items)
+    //                {
+    //                    row.RelativeItem().PaddingHorizontal(3).Column(c =>
+    //                    {
+    //                        c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(10).FontColor("#334155");
+    //                        c.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+    //                            .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
+    //                            .Text(kv.Value).FontSize(11).FontColor("#1E293B").DirectionFromLeftToRight();
+    //                    });
+    //                }
+    //                for (int i = items.Count; i < itemsPerRow; i++) row.RelativeItem();
+    //            });
+    //        }
+    //    });
+    //}
 
     private static void ComposeFooter(IContainer container)
     {

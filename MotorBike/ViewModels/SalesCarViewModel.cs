@@ -168,7 +168,7 @@ public partial class SalesCarViewModel : ObservableObject
             Cashes = new ObservableCollection<Cash>(cashes.Where(c => c.OmlaId == 0 || c.OmlaId == null));
 
             var cars = await _carRepository.GetAllAsync();
-            var activeCars = cars.Where(c => c.IsStock).ToList();
+            var activeCars = cars.ToList();
             Cars = new ObservableCollection<Car>(activeCars);
             FilteredCarsList = new ObservableCollection<Car>(activeCars);
 

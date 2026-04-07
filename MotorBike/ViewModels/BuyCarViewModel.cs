@@ -299,12 +299,9 @@ public partial class BuyCarViewModel : ObservableObject
 
 
 
-            Task.Run(async () =>
-            {
-                await LoadPaymentsAsync(value.BuyId);
-                if (value.CarId.HasValue)
-                    await LoadCarDetailsAsync(value.CarId.Value);
-            });
+            _ = LoadPaymentsAsync(value.BuyId);
+            if (value.CarId.HasValue)
+                _ = LoadCarDetailsAsync(value.CarId.Value);
         }
     }
 

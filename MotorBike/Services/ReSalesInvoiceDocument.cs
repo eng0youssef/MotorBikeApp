@@ -205,6 +205,7 @@ public class ReSalesInvoiceDocument : IDocument
         {
             col.Item().Row(mainRow =>
             {
+                // ── Left totals column (unchanged) ──
                 mainRow.ConstantItem(130).Column(leftCol =>
                 {
                     foreach (var (label, value) in leftItems)
@@ -225,45 +226,67 @@ public class ReSalesInvoiceDocument : IDocument
                 mainRow.ConstantItem(8).AlignCenter().AlignMiddle()
                     .LineVertical(1).LineColor(Colors.Grey.Lighten2);
 
-                mainRow.RelativeItem().PaddingHorizontal(4).Row(rightRow =>
+                // ── Right side: price fields + payments table ──
+                mainRow.RelativeItem().PaddingHorizontal(4).Column(rightCol =>
                 {
-                    foreach (var (label, value) in rightItems)
+                    // Price / tax fields (top)
+                    rightCol.Item().Row(rightRow =>
                     {
-                        rightRow.RelativeItem().PaddingHorizontal(3).Column(c =>
+                        foreach (var (label, value) in rightItems)
                         {
-                            c.Item().AlignCenter()
-                                .Text(label).SemiBold().FontSize(10).FontColor("#334155");
-                            c.Item().PaddingTop(3)
-                                .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
-                                .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                .Text(value).FontSize(11).FontColor("#1E293B")
-                                .DirectionFromLeftToRight();
+                            rightRow.RelativeItem().PaddingHorizontal(3).Column(c =>
+                            {
+                                c.Item().AlignCenter()
+                                    .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                                c.Item().PaddingTop(3)
+                                    .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+                                    .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
+                                    .Text(value).FontSize(11).FontColor("#1E293B")
+                                    .DirectionFromLeftToRight();
+                            });
+                        }
+                    });
+
+                    // ── Payments table rendered in the same right area ──
+                    if (!_model.IsCash && _model.Payments.Any())
+                    {
+                        rightCol.Item().PaddingTop(8)
+                            .Text("المدفوعات").SemiBold().FontSize(11)
+                            .FontColor(Colors.Blue.Darken3).AlignCenter();
+
+                        rightCol.Item().PaddingTop(4).Table(table =>
+                        {
+                            table.ColumnsDefinition(def =>
+                            {
+                                def.RelativeColumn(2);
+                                def.RelativeColumn(2);
+                                def.RelativeColumn(3);
+                            });
+                            table.Header(header =>
+                            {
+                                foreach (var title in new[] { "الملاحظات", "الخزينة", "المبلغ" })
+                                    header.Cell().Background("#F1F5F9")
+                                        .Border(1).BorderColor(Colors.Grey.Medium)
+                                        .Padding(4).AlignCenter()
+                                        .Text(title).SemiBold().FontSize(10);
+                            });
+                            foreach (var (amt, cash, notes) in _model.Payments)
+                            {
+
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(notes ?? "").FontSize(10);
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(cash).FontSize(10);
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(amt.ToString("N2")).FontSize(10).DirectionFromLeftToRight();
+                            }
                         });
                     }
                 });
             });
-
-            if (!_model.IsCash && _model.Payments.Any())
-            {
-                col.Item().PaddingTop(10).Text("المدفوعات").SemiBold().FontSize(11).FontColor(Colors.Blue.Darken3).AlignCenter();
-                col.Item().PaddingTop(4).Table(table =>
-                {
-                    table.ColumnsDefinition(def => { def.RelativeColumn(2); def.RelativeColumn(2); def.RelativeColumn(3); });
-                    table.Header(header =>
-                    {
-                        foreach (var title in new[] { "المبلغ", "الخزينة", "الملاحظات" })
-                            header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium)
-                                .Padding(4).AlignCenter().Text(title).SemiBold().FontSize(10);
-                    });
-                    foreach (var (amt, cash, notes) in _model.Payments)
-                    {
-                        table.Cell().Border(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter()
-                            .Text(amt.ToString("N2")).FontSize(10).DirectionFromLeftToRight();
-                        table.Cell().Border(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text(cash).FontSize(10);
-                        table.Cell().Border(1).BorderColor(Colors.Grey.Medium).Padding(4).AlignCenter().Text(notes ?? "").FontSize(10);
-                    }
-                });
-            }
         });
     }
 

@@ -145,6 +145,12 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
             return;
         }
 
+        if (CurrentItemOpenStocks.Any(x => x.StoreId == NewOS_StoreId))
+        {
+            System.Windows.MessageBox.Show("تم ادخال الرصيد الافتتاحي الي المخزن المحدد من قبل", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return;
+        }
+
         double unitQtyValue = 1.0;
         if (NewOS_UnitId == FormItem.Unit2 && FormItem.Unit2Qty > 0)
         {
