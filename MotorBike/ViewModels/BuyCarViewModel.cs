@@ -1099,6 +1099,21 @@ public partial class BuyCarViewModel : ObservableObject
             using var db = _dbFactory.CreateConnection();
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
 
+            // الرصيد السابق: مورد أو عميل حسب مصدر الموتوسيكل
+            double previousBalance = 0;
+            if (IsFromCustomer && SelectedSourceCustomerId > 0)
+                previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(SelectedSourceCustomerId, FormItem.BuyDate);
+            else if (!IsFromCustomer && SelectedSupplierId > 0)
+                previousBalance = await _compositeRepo.GetSupplierOldBalanceAsync(SelectedSupplierId, FormItem.BuyDate);
+
+            // قائمة المدفوعات للفاتورة الآجلة
+            var paymentsList = new System.Collections.Generic.List<(double Amount, string CashName, string Notes)>();
+            foreach (var p in FormPayments)
+            {
+                var cashName = Cashes.FirstOrDefault(c => c.CashId == p.CashId)?.CashName ?? "";
+                paymentsList.Add((p.PayMoney, cashName, p.Notes ?? ""));
+            }
+
             var model = new MotorBike.Services.BuyCarInvoiceModel
             {
                 InvoiceNo = FormItem.BuyId.ToString(),
@@ -1123,8 +1138,10 @@ public partial class BuyCarViewModel : ObservableObject
                 VatTax = FormItem.VatTax,
                 WhtTax = FormItem.Tax,
                 NetAmount = FormItem.Net,
+                PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
-                RemainingAmount = Remaining
+                RemainingAmount = Remaining,
+                Payments = paymentsList
             };
 
             var document = new MotorBike.Services.BuyCarInvoiceDocument(model, company);

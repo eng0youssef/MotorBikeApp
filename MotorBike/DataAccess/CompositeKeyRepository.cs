@@ -333,6 +333,21 @@ public class CompositeKeyRepository
     /// يعيد حساب رصيد مورد الاستيراد (Bal) من كل الحركات:
     /// رصيد افتتاحي + إجمالي فواتير الاستيراد (بالعملة المحلية) - مدفوعات فواتير الاستيراد (بالعملة المحلية)
     /// </summary>
+    public async Task<double> GetImportSupplierOldBalanceAsync(int suppId, DateTime toDate)
+    {
+        using var db = _connectionFactory.CreateConnection();
+        const string sql = @"
+            DECLARE @Bal FLOAT = 
+                (CASE WHEN (SELECT TOP 1 OpenDate FROM Import_Suppliers WHERE Supp_ID = @SuppId) < @ToDate 
+                      THEN ISNULL((SELECT Credit - Debit FROM Import_Suppliers WHERE Supp_ID = @SuppId), 0) 
+                      ELSE 0 END)
+                + ISNULL((SELECT SUM(InvTotal) FROM Import_Invoice WHERE SuppID = @SuppId AND InvDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0);
+            SELECT @Bal;";
+
+        return await db.QueryFirstOrDefaultAsync<double>(sql, new { SuppId = suppId, ToDate = toDate });
+    }
+
     public async Task RecalcBalanceForImportSupplierAsync(int suppId)
     {
         using var db = _connectionFactory.CreateConnection();

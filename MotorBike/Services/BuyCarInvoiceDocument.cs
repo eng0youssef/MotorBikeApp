@@ -38,8 +38,12 @@ public class BuyCarInvoiceModel
     public double VatTax { get; set; }
     public double WhtTax { get; set; }
     public double NetAmount { get; set; }
+    public double PreviousBalance { get; set; }
     public double PaidAmount { get; set; }
     public double RemainingAmount { get; set; }
+
+    // Payments table (for credit invoices)
+    public List<(double Amount, string CashName, string Notes)> Payments { get; set; } = new();
 }
 
 public class BuyCarInvoiceDocument : IDocument
@@ -214,44 +218,124 @@ public class BuyCarInvoiceDocument : IDocument
 
     private void ComposeTotals(IContainer container)
     {
-        var totals = BuildTotals();
-        const int itemsPerRow = 3;
-        container.Padding(5).Column(column =>
+        double totalAccount = _model.NetAmount + _model.PreviousBalance;
+        double remaining = totalAccount - _model.PaidAmount;
+
+        var leftItems = new[]
         {
-            foreach (var rowTotals in totals.Chunk(itemsPerRow))
+        ("الإجمالي",      _model.NetAmount.ToString("N2")),
+        ("الرصيد السابق", _model.PreviousBalance.ToString("N2")),
+        ("الإجمالي",      totalAccount.ToString("N2")),
+        ("المدفوع",       _model.PaidAmount.ToString("N2")),
+        ("المتبقي",       remaining.ToString("N2")),
+    };
+
+        var rightItems = BuildRightTotals_BuyCar();
+
+        container.Padding(5).Column(col =>
+        {
+            col.Item().Row(mainRow =>
             {
-                var items = rowTotals.Reverse().ToList();
-                column.Item().PaddingBottom(8).Row(row =>
+                // ── Left totals column (unchanged) ──
+                mainRow.ConstantItem(130).Column(leftCol =>
                 {
-                    foreach (var kv in items)
+                    foreach (var (label, value) in leftItems)
                     {
-                        row.RelativeItem().PaddingHorizontal(3).Column(c =>
+                        leftCol.Item().PaddingBottom(5).Column(c =>
                         {
-                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(10).FontColor("#334155");
-                            c.Item().PaddingTop(3).Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+                            c.Item().AlignCenter()
+                                .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                            c.Item().PaddingTop(2)
+                                .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
                                 .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                .Text(kv.Value).FontSize(11).FontColor("#1E293B").DirectionFromLeftToRight();
+                                .Text(value).FontSize(11).FontColor("#1E293B")
+                                .DirectionFromLeftToRight();
                         });
                     }
-                    for (int i = items.Count; i < itemsPerRow; i++) row.RelativeItem();
                 });
-            }
+
+                mainRow.ConstantItem(8).AlignCenter().AlignMiddle()
+                    .LineVertical(1).LineColor(Colors.Grey.Lighten2);
+
+                // ── Right side: price fields + payments table ──
+                mainRow.RelativeItem().PaddingHorizontal(4).Column(rightCol =>
+                {
+                    // Price / tax fields (top)
+                    rightCol.Item().Row(rightRow =>
+                    {
+                        foreach (var (label, value) in rightItems)
+                        {
+                            rightRow.RelativeItem().PaddingHorizontal(3).Column(c =>
+                            {
+                                c.Item().AlignCenter()
+                                    .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                                c.Item().PaddingTop(3)
+                                    .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
+                                    .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
+                                    .Text(value).FontSize(11).FontColor("#1E293B")
+                                    .DirectionFromLeftToRight();
+                            });
+                        }
+                    });
+
+                    // ── Payments table rendered in the same right area ──
+                    if (!_model.IsCash && _model.Payments.Any())
+                    {
+                        rightCol.Item().PaddingTop(8)
+                            .Text("المدفوعات").SemiBold().FontSize(11)
+                            .FontColor(Colors.Blue.Darken3).AlignCenter();
+
+                        rightCol.Item().PaddingTop(4).Table(table =>
+                        {
+                            table.ColumnsDefinition(def =>
+                            {
+                                def.RelativeColumn(2);
+                                def.RelativeColumn(2);
+                                def.RelativeColumn(3);
+                            });
+                            table.Header(header =>
+                            {
+                                foreach (var title in new[] {  "الملاحظات", "الخزينة", "المبلغ" })
+                                    header.Cell().Background("#F1F5F9")
+                                        .Border(1).BorderColor(Colors.Grey.Medium)
+                                        .Padding(4).AlignCenter()
+                                        .Text(title).SemiBold().FontSize(10);
+                            });
+                            foreach (var (amt, cash, notes) in _model.Payments)
+                            {
+
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(notes ?? "").FontSize(10);
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(cash).FontSize(10);
+                                table.Cell().Border(1).BorderColor(Colors.Grey.Medium)
+                                    .Padding(4).AlignCenter()
+                                    .Text(amt.ToString("N2")).FontSize(10).DirectionFromLeftToRight();
+                            }
+                        });
+                    }
+                });
+            });
         });
     }
 
-    private List<KeyValuePair<string, string>> BuildTotals()
+    private List<(string Label, string Value)> BuildRightTotals_BuyCar()
     {
-        var list = new List<KeyValuePair<string, string>> { new("السعر", _model.Total.ToString("N2")) };
+        var list = new List<(string, string)>();
+
         if (_model.IsTax)
         {
             double vatPct = _model.Total > 0 ? Math.Round((_model.VatTax / _model.Total) * 100, 2) : 0;
             double whtPct = _model.Total > 0 ? Math.Round((_model.WhtTax / _model.Total) * 100, 2) : 0;
-            list.Add(new("ضريبة القيمة المضافة", $"{_model.VatTax:N2}    % {vatPct:0.##}"));
-            list.Add(new("ضريبة الأرباح التجارية والصناعية", $"{_model.WhtTax:N2}    % {whtPct:0.##}"));
+
+            list.Add(($"ض. قيمة مضافة {vatPct:0.##}%", _model.VatTax.ToString("N2")));
+            list.Add(($"ض. الأرباح {whtPct:0.##}%", _model.WhtTax.ToString("N2")));
         }
-        list.Add(new("الصافي", _model.NetAmount.ToString("N2")));
-        list.Add(new("المدفوع", _model.PaidAmount.ToString("N2")));
-        list.Add(new("المتبقي", (_model.NetAmount - _model.PaidAmount).ToString("N2")));
+
+        list.Add(("السعر", _model.Total.ToString("N2")));
+
         return list;
     }
 

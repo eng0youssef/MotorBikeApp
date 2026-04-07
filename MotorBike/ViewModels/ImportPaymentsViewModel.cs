@@ -186,4 +186,65 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
         if (_oldCashId.HasValue && _oldCashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
     }
+
+    [RelayCommand]
+    private async Task PrintReceiptAsync()
+    {
+        if (FormItem == null || FormItem.PayId <= 0)
+        {
+            System.Windows.MessageBox.Show("يجب حفظ الإيصال قبل الطباعة", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
+        try
+        {
+            using var db = _dbFactory.CreateConnection();
+            var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+            double previousBalance = await _compositeRepo.GetImportSupplierOldBalanceAsync(FormItem.SuppId, FormItem.PayDate);
+
+            // Import payments are payouts that decrease debt
+            double amount = FormItem.PayMoney;
+            double balanceAfter = previousBalance - amount;
+
+            var model = new MotorBike.Services.ImportPaymentReceiptModel
+            {
+                ReceiptNo = FormItem.PayId.ToString(),
+                IssueDate = FormItem.PayDate.ToString("yyyy-MM-dd"),
+                SupplierName = Suppliers.FirstOrDefault(s => s.SuppId == FormItem.SuppId)?.SuppName ?? "",
+                CashName = CashList.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
+                OmlaName = Omlas.FirstOrDefault(o => o.OmlaId == FormItem.OmlaId)?.OmlaName ?? "",
+                OmlaRate = FormItem.OmlaRate,
+                Amount = amount,
+                // If the payment is linked to a specific import invoice, look it up
+                InvNo = FormItem.InvId > 0 ? Invoices.FirstOrDefault(i => i.InvId == FormItem.InvId)?.InvName : null,
+                Notes = FormItem.Notes ?? "",
+                PreviousBalance = previousBalance,
+                BalanceAfter = balanceAfter
+            };
+
+            var document = new MotorBike.Services.ImportPaymentReceiptDocument(model, company);
+            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "PDF Document (*.pdf)|*.pdf",
+                DefaultExt = "pdf",
+                Title = "حفظ الإيصال كـ PDF",
+                FileName = $"إيصال_مورد_استيراد_{FormItem.PayId}_{DateTime.Now:yyyyMMdd}"
+            };
+
+            if (saveFileDialog.ShowDialog() == true)
+            {
+                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
+                var result = System.Windows.MessageBox.Show("تم حفظ الإيصال بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
+                if (result == System.Windows.MessageBoxResult.Yes)
+                {
+                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
+                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 }

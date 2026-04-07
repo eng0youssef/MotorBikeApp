@@ -103,6 +103,24 @@
                 <DockPanel>
                     <WrapPanel Orientation="Horizontal" DockPanel.Dock="Left">
                         <Button Content="➕ دفعة جديدة" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding AddNewCommand}"/>
+                        <Button Margin="0,0,10,0" Padding="16,10"
+                                        Command="{Binding PrintReceiptCommand}"
+                                        Content="🖨️ طباعة الفاتورة">
+                            <Button.Style>
+                                <Style BasedOn="{StaticResource SecondaryButton}"
+                                               TargetType="Button">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Setter Property="Background" Value="#3B82F6" />
+                                    <Setter Property="Foreground" Value="White" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsEditing}"
+                                                             Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <Button Content="✏️ تـعـديل" Style="{StaticResource SecondaryButton}" Margin="0,0,8,8" Command="{Binding EditSelectedCommand}"/>
                         <Button Content="💾 حـفـظ" Style="{StaticResource PrimaryButton}" Margin="0,0,8,8" Command="{Binding SaveCommand}" IsEnabled="{Binding IsEditing}"/>
                         <Button Content="🗑️ حـذف" Style="{StaticResource DangerButton}" Margin="0,0,8,8" Command="{Binding DeleteCommand}"/>

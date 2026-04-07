@@ -769,6 +769,13 @@ public partial class SalesCarViewModel : ObservableObject
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
             double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.SalesDate);
 
+            var paymentsList = new System.Collections.Generic.List<(double Amount, string CashName, string Notes)>();
+            foreach (var p in FormPayments)
+            {
+                var cashName = Cashes.FirstOrDefault(c => c.CashId == p.CashId)?.CashName ?? "";
+                paymentsList.Add((p.PayMoney, cashName, p.Notes ?? ""));
+            }
+
             // Load car details for printing
             string carModel = "", carBrand = "", chassisNo = "", motorNo = "", plateNo = "", colorName = "";
             int yearNo = 0, mileage = (int)FormItem.Mileage;
@@ -821,7 +828,8 @@ public partial class SalesCarViewModel : ObservableObject
                 NetAmount = FormItem.Net,
                 PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
-                RemainingAmount = Remaining
+                RemainingAmount = Remaining,
+                Payments = paymentsList
             };
 
             var document = new MotorBike.Services.SalesCarInvoiceDocument(model, company);
