@@ -786,7 +786,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Width="150" Binding="{Binding Net}" Header="الصافي" />
+                                <DataGridTextColumn Width="150" Binding="{Binding Net, StringFormat=\{0:N2\}}" Header="الصافي" />
                                 <DataGridTextColumn Width="*" Binding="{Binding Notes}" Header="الملاحظات" />
                             </DataGrid.Columns>
                         </DataGrid>

@@ -9,27 +9,24 @@ public class IdToNameConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
-        if (values.Length == 2 && values[0] is int id && values[1] is IEnumerable collection && parameter is string props)
+        if (values.Length == 2 && values[0] is int id && values[1] is IEnumerable collection)
         {
-            var parts = props.Split(',');
-            if (parts.Length == 2)
+            foreach (var item in collection)
             {
-                string idProp = parts[0].Trim();
-                string nameProp = parts[1].Trim();
+                var type = item.GetType();
 
-                foreach (var item in collection)
+                var idProp = type.GetProperty("CashId");
+                var nameProp = type.GetProperty("CashName");
+
+                if (idProp != null && nameProp != null)
                 {
-                    var type = item.GetType();
-                    var propInfoId = type.GetProperty(idProp);
-                    if (propInfoId != null && propInfoId.GetValue(item) is int itemId && itemId == id)
-                    {
-                        var propInfoName = type.GetProperty(nameProp);
-                        return propInfoName?.GetValue(item)?.ToString() ?? string.Empty;
-                    }
+                    var itemId = idProp.GetValue(item);
+                    if (itemId is int i && i == id)
+                        return nameProp.GetValue(item)?.ToString() ?? "";
                 }
             }
         }
-        return string.Empty;
+        return "";
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)

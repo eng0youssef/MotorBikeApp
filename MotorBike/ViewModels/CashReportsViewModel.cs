@@ -18,9 +18,11 @@ public partial class CashReportsViewModel : ObservableObject
     private ObservableCollection<string> _reportTypes =
     [
         "أرصدة الخزائن الحالية",
-        "حركة الصندوق اليومية",
-        "كشف حساب خزينة",
-        "تحويلات الخزائن والبنوك"
+        "حركة الخزينة-البنك اليومية",
+        "كشف حساب خزينة-بنك",
+        "تحويلات الخزائن والبنوك",
+        "كشف حساب مصروف",
+        "إجمالي المصروفات",
     ];
 
     [ObservableProperty] private string _selectedReportType = "أرصدة الخزائن الحالية";
@@ -36,13 +38,19 @@ public partial class CashReportsViewModel : ObservableObject
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private string? _statusMessage;
 
-    public bool IsCashVisible => SelectedReportType is "كشف حساب خزينة" or "حركة الصندوق اليومية";
-    public bool IsDateVisible => SelectedReportType is "حركة الصندوق اليومية" or "كشف حساب خزينة" or "تحويلات الخزائن والبنوك";
+    [ObservableProperty] private ObservableCollection<Expense> _expenses = [];
+    [ObservableProperty] private Expense? _selectedExpense;
+
+    public bool IsExpenseVisible => SelectedReportType == "كشف حساب مصروف";
+
+    public bool IsCashVisible => SelectedReportType is "كشف حساب خزينة-بنك" or "حركة الخزينة-البنك اليومية";
+    public bool IsDateVisible => SelectedReportType is "حركة الخزينة-البنك اليومية" or "كشف حساب خزينة-بنك" or "تحويلات الخزائن والبنوك";
 
     partial void OnSelectedReportTypeChanged(string value)
     {
         OnPropertyChanged(nameof(IsCashVisible));
         OnPropertyChanged(nameof(IsDateVisible));
+        OnPropertyChanged(nameof(IsExpenseVisible));
         ReportData           = new System.Data.DataView();
         StatusMessage        = null;
         _currentFooterTotals = null;
@@ -54,16 +62,19 @@ public partial class CashReportsViewModel : ObservableObject
 
     public CashReportsViewModel(
         IDbConnectionFactory dbFactory,
-        IRepository<Cash> cashRepo)
+        IRepository<Cash> cashRepo,
+        IRepository<Expense> expRepo)
     {
         _dbFactory = dbFactory;
-        LoadLookupsAsync(cashRepo).ConfigureAwait(false);
+        LoadLookupsAsync(cashRepo,expRepo).ConfigureAwait(false);
     }
 
-    private async Task LoadLookupsAsync(IRepository<Cash> cashRepo)
+    private async Task LoadLookupsAsync(IRepository<Cash> cashRepo, IRepository<Expense> expRepo)
     {
         Cashes = new ObservableCollection<Cash>(await cashRepo.GetAllAsync());
+        Expenses = new ObservableCollection<Expense>(await expRepo.GetAllAsync());
     }
+
 
     [RelayCommand]
     private async Task GenerateReportAsync()
@@ -75,7 +86,7 @@ public partial class CashReportsViewModel : ObservableObject
 
             var p = new DynamicParameters();
             DateTime qFrom = IsFromDateChecked ? FromDate.Date : new DateTime(1900, 1, 1);
-            DateTime qTo   = IsToDateChecked   ? ToDate.Date.AddDays(1).AddSeconds(-1) : new DateTime(9999, 12, 31);
+            DateTime qTo = IsToDateChecked ? ToDate.Date.AddDays(1).AddSeconds(-1) : new DateTime(9999, 12, 31);
             p.Add("FromDate", qFrom);
             p.Add("ToDate", qTo);
 
@@ -86,75 +97,82 @@ public partial class CashReportsViewModel : ObservableObject
 
             if (SelectedReportType == "أرصدة الخزائن الحالية")
             {
-                // This is a snapshot of all current balances
+                // تم إضافة الربط مع جدول العملات وحساب المعادل بالعملة المحلية
                 sql = @"
-                    SELECT CashName AS [الخزينة/البنك],
-                           CASE TypeId WHEN 0 THEN 'خزينة' WHEN 1 THEN 'بنك' WHEN 2 THEN 'جاري' ELSE 'أخرى' END AS [النوع],
-                           OpenDate AS [تاريخ الافتتاح],
-                           ISNULL(Bal, 0) AS [الرصيد الحالي]
-                    FROM Cash
-                    WHERE Active = 1
-                    ORDER BY TypeId, CashName";
+                SELECT 
+                    ROW_NUMBER() OVER (ORDER BY C.OpenDate ASC) AS [م],
+                    C.CashName AS [الخزينة-البنك],
+                    CASE C.TypeId 
+                        WHEN 0 THEN 'خزينة' 
+                        WHEN 1 THEN 'بنك' 
+                        WHEN 2 THEN 'جاري' 
+                        ELSE 'أخرى' 
+                    END AS [النوع],
+                    O.OmlaName AS [العملة],
+                    C.OmlaRate AS [سعر الصرف],
+                    ISNULL(C.Bal, 0) AS [الرصيد الحالي],
+                    (ISNULL(C.Bal, 0) * C.OmlaRate) AS [الرصيد بالمحلي],
+                    C.OpenDate AS [تاريخ الافتتاح]
+                FROM Cash C
+                LEFT JOIN Omla O ON C.OmlaID = O.Omla_ID
+                WHERE C.Active = 1
+                ORDER BY C.TypeId ASC";
             }
-            else if (SelectedReportType == "حركة الصندوق اليومية")
+            else if (SelectedReportType == "حركة الخزينة-البنك اليومية")
             {
+                if (SelectedCash == null)
+                {
+                    System.Windows.MessageBox.Show("يرجى اختيار الخزينة أولاً", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
                 string cashFilter1 = "";
-                string cashFilter2 = "";
                 if (SelectedCash != null)
                 {
                     cashFilter1 = " AND CashID = @CashId ";
-                    cashFilter2 = " AND (CashID = @CashId OR CashTo = @CashId) ";
                     p.Add("CashId", SelectedCash.CashId);
                 }
 
                 sql = @"
-                    SELECT CONVERT(VARCHAR, T.LogDate, 103) AS [التاريخ],
-                           T.SourceType AS [المصدر],
-                           T.Details AS [البيان],
-                           T.Debit AS [وارد],
-                           T.Credit AS [صادر]
-                    FROM (
-                        -- Sales Invoices
-                        SELECT PayDate AS LogDate, 'مبيعات' AS SourceType, 'سداد فاتورة بيع رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, '') AS Details, PayMoney AS Debit, 0 AS Credit FROM Sales_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        SELECT PayDate, 'مبيعات موتوسيكلات', 'سداد بيع موتوسيكل رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM Sales_Car_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Purchases Invoices
-                        SELECT PayDate, 'مشتريات', 'سداد فاتورة شراء رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        SELECT PayDate, 'مشتريات موتوسيكلات', 'سداد شراء موتوسيكل رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Car_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Import
-                        SELECT PayDate, 'استيراد', 'سداد استيراد رقم ' + ISNULL(CAST(InvID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Import_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Returns
-                        SELECT PayDate, 'مرتجع مشتريات', 'استرداد مشتريات رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM ReBuy_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        SELECT PayDate, 'مرتجع مبيعات', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Direct Customer Payments
-                        SELECT PayDate, 'مقبوضات عملاء', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
-                        UNION ALL
-                        SELECT PayDate, 'مقبوضات عملاء', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE PayType = 2 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Direct Supplier Payments
-                        SELECT PayDate, 'مدفوعات موردين', 'دفعة لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
-                        UNION ALL
-                        SELECT PayDate, 'مدفوعات موردين', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE PayType = 2 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Expenses
-                        SELECT PayDate, 'مصروفات', 'صرف ' + ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Transfers (Out)
-                        SELECT PayDate, 'تحويل', 'تحويل صادر إلى خزينة: ' + CAST(CashTo AS VARCHAR) + ' - ' + ISNULL(Notes,''), 0, PayMoney FROM Cash_Transfer WHERE 1=1 " + cashFilter1 + @"
-                        UNION ALL
-                        -- Transfers (In)
-                        SELECT PayDate, 'تحويل', 'تحويل وارد من خزينة: ' + CAST(CashId AS VARCHAR) + ' - ' + ISNULL(Notes,''), PayMoney, 0 FROM Cash_Transfer WHERE 1=1 AND CashTo = @CashId
-                    ) T
-                    WHERE T.LogDate >= @FromDate AND T.LogDate <= @ToDate
-                    ORDER BY T.LogDate DESC";
+                     SELECT 
+                        ROW_NUMBER() OVER (ORDER BY T.LogDate ASC) AS [م],
+                        CONVERT(VARCHAR, T.LogDate, 103) AS [التاريخ],
+                        T.SourceType AS [المصدر],
+                        T.Details AS [البيان],
+                        T.Debit AS [وارد],
+                        T.Credit AS [صادر]
+                FROM (
+                    SELECT PayDate AS LogDate, 'مبيعات' AS SourceType, 'سداد فاتورة بيع رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, '') AS Details, PayMoney AS Debit, 0 AS Credit FROM Sales_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مبيعات موتوسيكلات', 'سداد بيع موتوسيكل رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM Sales_Car_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مشتريات', 'سداد فاتورة شراء رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مشتريات موتوسيكلات', 'سداد شراء موتوسيكل رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Car_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'استيراد', 'سداد استيراد رقم ' + ISNULL(CAST(InvID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Import_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مرتجع مشتريات', 'استرداد مشتريات رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM ReBuy_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مرتجع مبيعات', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مقبوضات عملاء', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مقبوضات عملاء', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE PayType = 2 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مدفوعات موردين', 'دفعة لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مدفوعات موردين', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE PayType = 2 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'مصروفات', 'صرف ' + ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'تحويل صادر', 'إلى خزينة: ' + CAST(CashTo AS VARCHAR) + ' - ' + ISNULL(Notes,''), 0, PayMoney FROM Cash_Transfer WHERE 1=1 " + cashFilter1 + @"
+                    UNION ALL
+                    SELECT PayDate, 'تحويل وارد', 'من خزينة: ' + CAST(CashId AS VARCHAR) + ' - ' + ISNULL(Notes,''), PayMoney, 0 FROM Cash_Transfer WHERE 1=1 AND CashTo = @CashId
+                ) T
+                WHERE T.LogDate >= @FromDate AND T.LogDate <= @ToDate
+                ORDER BY T.LogDate ASC";
             }
-            else if (SelectedReportType == "كشف حساب خزينة")
+            else if (SelectedReportType == "كشف حساب خزينة-بنك")
             {
                 if (SelectedCash == null)
                 {
@@ -164,52 +182,96 @@ public partial class CashReportsViewModel : ObservableObject
                 p.Add("CashId", SelectedCash.CashId);
 
                 sql = @"
-                    SELECT LogDate AS [SortDate], CONVERT(VARCHAR, LogDate, 103) AS [التاريخ], SourceType AS [الحركة], Details AS [البيان], Debit AS [وارد], Credit AS [صادر]
-                    FROM (
-                        SELECT PayDate AS LogDate, 'سداد مبيعات' AS SourceType, 'سداد فاتورة بيع رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, '') AS Details, PayMoney AS Debit, 0 AS Credit FROM Sales_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'سداد مبيعات', 'سداد بيع موتوسيكل رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM Sales_Car_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'سداد مشتريات', 'سداد فاتورة شراء رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'سداد مشتريات', 'سداد شراء موتوسيكل رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Car_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'سداد استيراد', 'سداد استيراد رقم ' + ISNULL(CAST(InvID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Import_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'مقبوضات مرتجع', 'استرداد مشتريات رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM ReBuy_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'مدفوعات مرتجع', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'مقبوضات عميل', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1)
-                        UNION ALL
-                        SELECT PayDate, 'رد عميل', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2
-                        UNION ALL
-                        SELECT PayDate, 'دفع مورد', 'لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1)
-                        UNION ALL
-                        SELECT PayDate, 'استرداد مورد', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2
-                        UNION ALL
-                        SELECT PayDate, 'مصروفات', ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'تحويل صادر', ISNULL(Notes,''), 0, PayMoney FROM Cash_Transfer WHERE CashID = @CashId
-                        UNION ALL
-                        SELECT PayDate, 'تحويل وارد', ISNULL(Notes,''), PayMoney, 0 FROM Cash_Transfer WHERE CashTo = @CashId
-                    ) T
-                    WHERE LogDate >= @FromDate AND LogDate <= @ToDate
-                    ORDER BY SortDate ASC";
+                SELECT ROW_NUMBER() OVER (ORDER BY LogDate ASC) AS [م], LogDate AS [SortDate], CONVERT(VARCHAR, LogDate, 103) AS [التاريخ], SourceType AS [الحركة], Details AS [البيان], Debit AS [وارد], Credit AS [صادر]
+                FROM (
+                    SELECT PayDate AS LogDate, 'سداد مبيعات' AS SourceType, 'سداد فاتورة بيع رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, '') AS Details, PayMoney AS Debit, 0 AS Credit FROM Sales_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'سداد مبيعات', 'سداد بيع موتوسيكل رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM Sales_Car_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'سداد مشتريات', 'سداد فاتورة شراء رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'سداد مشتريات', 'سداد شراء موتوسيكل رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Buy_Car_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'سداد استيراد', 'سداد استيراد رقم ' + ISNULL(CAST(InvID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM Import_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'مقبوضات مرتجع', 'استرداد مشتريات رقم ' + ISNULL(CAST(BuyID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), PayMoney, 0 FROM ReBuy_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'مدفوعات مرتجع', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'مقبوضات عميل', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1)
+                    UNION ALL
+                    SELECT PayDate, 'رد عميل', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2
+                    UNION ALL
+                    SELECT PayDate, 'دفع مورد', 'لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1)
+                    UNION ALL
+                    SELECT PayDate, 'استرداد مورد', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2
+                    UNION ALL
+                    SELECT PayDate, 'مصروفات', ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'تحويل صادر', ISNULL(Notes,''), 0, PayMoney FROM Cash_Transfer WHERE CashID = @CashId
+                    UNION ALL
+                    SELECT PayDate, 'تحويل وارد', ISNULL(Notes,''), PayMoney, 0 FROM Cash_Transfer WHERE CashTo = @CashId
+                ) T
+                WHERE LogDate >= @FromDate AND LogDate <= @ToDate
+                ORDER BY SortDate ASC";
             }
             else if (SelectedReportType == "تحويلات الخزائن والبنوك")
             {
                 sql = @"
-                    SELECT CONVERT(VARCHAR, CT.PayDate, 103) AS [التاريخ],
-                           C1.CashName AS [من خزينة/بنك (صادر)],
-                           C2.CashName AS [إلى خزينة/بنك (وارد)],
-                           CT.PayMoney AS [المبلغ],
-                           CT.Notes AS [ملاحظات]
-                    FROM Cash_Transfer CT
-                    INNER JOIN Cash C1 ON CT.CashID = C1.Cash_ID
-                    INNER JOIN Cash C2 ON CT.CashTo = C2.Cash_ID
-                    WHERE CT.PayDate >= @FromDate AND CT.PayDate <= @ToDate
-                    ORDER BY CT.PayDate DESC";
+                SELECT ROW_NUMBER() OVER (ORDER BY C1.CashName ASC) AS [م],
+                       CONVERT(VARCHAR, CT.PayDate, 103) AS [التاريخ],
+                       C1.CashName AS [من خزينة-بنك (صادر)],
+                       C2.CashName AS [إلى خزينة-بنك (وارد)],
+                       CT.PayMoney AS [المبلغ],
+                       CT.Notes AS [ملاحظات]
+                FROM Cash_Transfer CT
+                INNER JOIN Cash C1 ON CT.CashID = C1.Cash_ID
+                INNER JOIN Cash C2 ON CT.CashTo = C2.Cash_ID
+                WHERE CT.PayDate >= @FromDate AND CT.PayDate <= @ToDate
+                ORDER BY CT.PayDate ASC";
+            }
+            else if (SelectedReportType == "إجمالي المصروفات")
+            {
+                sql = @"
+                SELECT 
+                    ROW_NUMBER() OVER (ORDER BY E.Exp_ID ASC) AS [م],
+                    G.GroupName AS [التصنيف],
+                    E.Exp_ID       AS [كود المصروف],
+                    E.ExpName     AS [اسم المصروف],
+                    ISNULL(SUM(EP.PayMoney), 0) AS [اجمالي]
+                FROM Expenses E
+                LEFT JOIN Exp_Group G  ON E.GroupID = G.Group_ID
+                LEFT JOIN Exp_Payments EP ON E.Exp_ID = EP.ExpID
+                    AND EP.PayDate >= @FromDate 
+                    AND EP.PayDate <= @ToDate
+                WHERE E.Active = 1
+                GROUP BY E.Exp_ID, E.ExpName, G.GroupName
+                ORDER BY E.Exp_ID ASC";
+            }
+            else if (SelectedReportType == "كشف حساب مصروف")
+            {
+                string expFilter = "";
+                if (SelectedExpense != null)
+                {
+                    expFilter = " AND EP.ExpID = @ExpId ";
+                    p.Add("ExpId", SelectedExpense.ExpId);
+                }
+
+                sql = @"
+                SELECT 
+                    EP.Pay_ID AS [رقم الحركة],
+                    CONVERT(VARCHAR, EP.PayDate, 103) AS [التاريخ],
+                    E.ExpName AS [المصروف],
+                    C.CashName AS [الخزينة],
+                    ISNULL(EP.Notes, '') AS [البيان],
+                    EP.PayMoney AS [المبلغ]
+                FROM Exp_Payments EP
+                INNER JOIN Expenses E ON EP.ExpID = E.Exp_ID
+                LEFT JOIN Cash C ON EP.CashID = C.Cash_ID
+                WHERE EP.PayDate >= @FromDate
+                  AND EP.PayDate <= @ToDate
+                " + expFilter + @"
+                ORDER BY EP.PayDate ASC, EP.Pay_ID ASC";
             }
 
             var dt = new System.Data.DataTable();
@@ -218,7 +280,8 @@ public partial class CashReportsViewModel : ObservableObject
                 dt.Load(reader);
             }
 
-            if (SelectedReportType == "كشف حساب خزينة")
+            // معالجة الرصيد التراكمي لكشف الحساب
+            if (SelectedReportType == "كشف حساب خزينة-بنك")
             {
                 dt.Columns.Add("الرصيد", typeof(double));
 
@@ -226,53 +289,44 @@ public partial class CashReportsViewModel : ObservableObject
                 opParams.Add("CashId", SelectedCash!.CashId);
                 opParams.Add("FromDate", qFrom);
 
-                var openBalInfo = await db.QueryFirstOrDefaultAsync<dynamic>("SELECT ISNULL(Debit,0) - ISNULL(Credit,0) AS Ini FROM Cash WHERE Cash_ID = @CashId", opParams) ?? new {Ini = 0.0};
-                double initialVal = (double)(openBalInfo.Ini);
+                // الحصول على الرصيد الأولي من جدول الخزينة مباشرة (Debit - Credit)
+                var openBalInfo = await db.QueryFirstOrDefaultAsync<dynamic>("SELECT (ISNULL(Debit,0) - ISNULL(Credit,0)) AS Ini FROM Cash WHERE Cash_ID = @CashId", opParams) ?? new { Ini = 0.0 };
+                double initialVal = Convert.ToDouble(openBalInfo.Ini);
 
+                // حساب الحركات التي تمت قبل تاريخ البداية المختار لتحديد الرصيد الافتتاحي الفعلي
                 double moveBeforeFromDate = await db.ExecuteScalarAsync<double>(@"
-                    SELECT ISNULL(SUM(Debit),0) - ISNULL(SUM(Credit),0) 
-                    FROM (
-                        SELECT PayMoney AS Debit, 0 AS Credit FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
-                        UNION ALL SELECT PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Cash_Transfer WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT PayMoney, 0 FROM Cash_Transfer WHERE CashTo = @CashId AND PayDate < @FromDate
-
-                        UNION ALL SELECT PayMoney, 0 FROM Sales_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT PayMoney, 0 FROM Sales_Car_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Buy_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Buy_Car_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM Import_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT PayMoney, 0 FROM ReBuy_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                        UNION ALL SELECT 0, PayMoney FROM ReSales_Payments WHERE CashID = @CashId AND PayDate < @FromDate
-                    ) T
-                ", opParams);
+                SELECT ISNULL(SUM(Debit),0) - ISNULL(SUM(Credit),0) 
+                FROM (
+                    SELECT PayMoney AS Debit, 0 AS Credit FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Cash_Transfer WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM Cash_Transfer WHERE CashTo = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM Sales_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM Sales_Car_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Buy_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Buy_Car_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Import_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM ReBuy_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM ReSales_Payments WHERE CashID = @CashId AND PayDate < @FromDate
+                ) T", opParams);
 
                 double runningBalance = initialVal + moveBeforeFromDate;
 
+                // إضافة سطر الرصيد الافتتاحي في بداية الجدول
                 var opRow = dt.NewRow();
                 if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
-                if (dt.Columns.Contains("الحركة")) dt.Columns["الحركة"]!.AllowDBNull = true;
-
                 opRow["التاريخ"] = qFrom.ToString("dd/MM/yyyy");
                 opRow["الحركة"] = "رصيد افتتاحي";
-                opRow["البيان"] = "رصيد سابق افتتاحي";
-                if (runningBalance >= 0)
-                {
-                    opRow["وارد"] = runningBalance;
-                    opRow["صادر"] = 0;
-                }
-                else
-                {
-                    opRow["وارد"] = 0;
-                    opRow["صادر"] = Math.Abs(runningBalance);
-                }
+                opRow["البيان"] = "رصيد ما قبل الفترة المختارة";
+                opRow["وارد"] = runningBalance >= 0 ? runningBalance : 0;
+                opRow["صادر"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
                 opRow["الرصيد"] = runningBalance;
-                
                 dt.Rows.InsertAt(opRow, 0);
 
+                // حساب الرصيد التراكمي لكل سطر
                 for (int i = 1; i < dt.Rows.Count; i++)
                 {
                     double d = Convert.ToDouble(dt.Rows[i]["وارد"] == DBNull.Value ? 0 : dt.Rows[i]["وارد"]);
@@ -310,7 +364,7 @@ public partial class CashReportsViewModel : ObservableObject
                 { "الإجمالي الكلي", tTotal.ToString("N2") }
             };
         }
-        else if (SelectedReportType is "حركة الصندوق اليومية" or "كشف حساب خزينة")
+        else if (SelectedReportType is "حركة الخزينة-البنك اليومية" or "كشف حساب خزينة-بنك")
         {
             double totIn = 0, totOut = 0;
             foreach (System.Data.DataRow r in dt.Rows)
@@ -336,6 +390,28 @@ public partial class CashReportsViewModel : ObservableObject
                 { "إجمالي التحويلات", sum.ToString("N2") }
             };
         }
+        else if (SelectedReportType == "إجمالي المصروفات")
+        {
+            double total = 0;
+            foreach (System.Data.DataRow r in dt.Rows)
+                if (r["اجمالي"] != DBNull.Value) total += Convert.ToDouble(r["اجمالي"]);
+
+            _currentFooterTotals = new Dictionary<string, string>
+            {
+                { "الإجمالي الكلي", total.ToString("N2") }
+            };
+        }
+        else if (SelectedReportType == "كشف حساب مصروف")
+        {
+            double total = 0;
+            foreach (System.Data.DataRow r in dt.Rows)
+                if (r["المبلغ"] != DBNull.Value) total += Convert.ToDouble(r["المبلغ"]);
+
+            _currentFooterTotals = new Dictionary<string, string>
+            {
+                { "إجمالي المصروفات", total.ToString("N2") }
+            };
+        }
     }
 
     private Dictionary<string, string> BuildHeaderInfo(DateTime from, DateTime to)
@@ -346,7 +422,7 @@ public partial class CashReportsViewModel : ObservableObject
             d.Add("من تاريخ",  from.ToString("dd/MM/yyyy"));
             d.Add("إلى تاريخ", to.ToString("dd/MM/yyyy"));
         }
-        if (SelectedCash != null) d.Add("الخزينة/البنك", SelectedCash.CashName);
+       // if (SelectedCash != null) d.Add("الخزينة-البنك", SelectedCash.CashName);
         return d;
     }
 

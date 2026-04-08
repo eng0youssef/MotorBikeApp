@@ -1,99 +1,120 @@
-<UserControl x:Class="MotorBike.Views.CashReportsView"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignHeight="800" d:DesignWidth="1000"
-             FlowDirection="RightToLeft">
+<UserControl x:Class="MotorBike.Views.CashReportsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" d:DesignHeight="800" d:DesignWidth="1000" FlowDirection="RightToLeft"
+             mc:Ignorable="d">
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
     <Grid Background="#F8FAFC">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="1" Text="{Binding StatusMessage}"
-                   Foreground="#6366F1" FontSize="14" FontWeight="SemiBold" Margin="25,0,25,5"/>
-        <Border Grid.Row="0" Margin="20" Background="White" CornerRadius="12" Padding="20">
+        <TextBlock Grid.Row="1" Margin="25,0,25,5" FontSize="14" FontWeight="SemiBold" Foreground="#6366F1"
+                   Text="{Binding StatusMessage}" />
+        <Border Grid.Row="0" Margin="20" Padding="20" Background="White" CornerRadius="12">
             <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/>
+                <DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.05" ShadowDepth="2" Color="#0F172A" />
             </Border.Effect>
             <StackPanel>
                 <WrapPanel Margin="0,0,0,10">
                     <StackPanel Margin="0,0,20,15">
-                        <TextBlock Text="نوع التقرير" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}"
-                                  Width="260" Padding="8" FontSize="14"/>
+                        <TextBlock Margin="0,0,0,4" FontSize="13" Foreground="#64748B" Text="نوع التقرير" />
+                        <ComboBox Width="260" Padding="8" FontSize="14"
+                                  ItemsSource="{Binding ReportTypes}"
+                                  SelectedItem="{Binding SelectedReportType}" />
                     </StackPanel>
-                    
+
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsDateVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <CheckBox IsChecked="{Binding IsFromDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="من تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
+                        <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
+                            <CheckBox Margin="0,0,5,0" VerticalAlignment="Center" IsChecked="{Binding IsFromDateChecked}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#64748B" Text="من تاريخ" />
                         </StackPanel>
-                        <DatePicker SelectedDate="{Binding FromDate}" IsEnabled="{Binding IsFromDateChecked}" Width="150" Padding="6" FontSize="14"/>
+                        <DatePicker Width="150" Padding="6" FontSize="14"
+                                    IsEnabled="{Binding IsFromDateChecked}"
+                                    SelectedDate="{Binding FromDate}" />
                     </StackPanel>
-                    
+
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsDateVisible, Converter={StaticResource BoolToVis}}">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <CheckBox IsChecked="{Binding IsToDateChecked}" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="إلى تاريخ" Foreground="#64748B" FontSize="13" VerticalAlignment="Center"/>
+                        <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
+                            <CheckBox Margin="0,0,5,0" VerticalAlignment="Center" IsChecked="{Binding IsToDateChecked}" />
+                            <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#64748B" Text="إلى تاريخ" />
                         </StackPanel>
-                        <DatePicker SelectedDate="{Binding ToDate}" IsEnabled="{Binding IsToDateChecked}" Width="150" Padding="6" FontSize="14"/>
+                        <DatePicker Width="150" Padding="6" FontSize="14"
+                                    IsEnabled="{Binding IsToDateChecked}"
+                                    SelectedDate="{Binding ToDate}" />
                     </StackPanel>
-                    
+
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCashVisible, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="الخزينة/البنك (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Cashes}" SelectedItem="{Binding SelectedCash}"
-                                  DisplayMemberPath="CashName" Width="200" Padding="8" FontSize="14"/>
+                        <TextBlock Margin="0,0,0,4" FontSize="13" Foreground="#64748B" Text="الخزينة/البنك (اختياري)" />
+                        <ComboBox Width="200" Padding="8" DisplayMemberPath="CashName" FontSize="14"
+                                  ItemsSource="{Binding Cashes}"
+                                  SelectedItem="{Binding SelectedCash}" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsExpenseVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Margin="0,0,0,4" FontSize="13" Foreground="#64748B" Text="كل المصروفات (اختياري)" />
+                        <ComboBox Width="200" Padding="8" DisplayMemberPath="ExpName" FontSize="14"
+                                  ItemsSource="{Binding Expenses}"
+                                  SelectedItem="{Binding SelectedExpense}" />
                     </StackPanel>
                 </WrapPanel>
-                
-                <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="🔍 بحث" Command="{Binding GenerateReportCommand}"
-                            Width="120" Height="40" Background="#3B82F6" Foreground="White"
-                            FontSize="15" FontWeight="SemiBold" BorderThickness="0" Margin="10,0,0,0">
-                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+
+                <WrapPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                    <Button Width="120" Height="40" Margin="10,0,0,0" Background="#3B82F6" BorderThickness="0"
+                            Command="{Binding GenerateReportCommand}"
+                            Content="🔍 بحث" FontSize="15" FontWeight="SemiBold" Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8" />
+                            </Style>
+                        </Button.Resources>
                     </Button>
-                    <Button Content="🖨️ طباعة التقرير" Command="{Binding PrintPdfCommand}"
-                            Width="150" Height="40" Background="#10B981" Foreground="White"
-                            FontSize="15" FontWeight="SemiBold" BorderThickness="0" Margin="10,0,0,10">
-                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                    <Button Width="150" Height="40" Margin="10,0,0,10" Background="#10B981" BorderThickness="0"
+                            Command="{Binding PrintPdfCommand}"
+                            Content="🖨️ طباعة التقرير" FontSize="15" FontWeight="SemiBold" Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8" />
+                            </Style>
+                        </Button.Resources>
                     </Button>
-                    <Button Content="📄 تصدير PDF" Command="{Binding ExportPdfCommand}"
-                            Width="140" Height="40" Background="#F59E0B" Foreground="White"
-                            FontSize="15" FontWeight="SemiBold" BorderThickness="0" Margin="10,0,0,10">
-                        <Button.Resources><Style TargetType="Border"><Setter Property="CornerRadius" Value="8"/></Style></Button.Resources>
+                    <Button Width="140" Height="40" Margin="10,0,0,10" Background="#F59E0B" BorderThickness="0"
+                            Command="{Binding ExportPdfCommand}"
+                            Content="📄 تصدير PDF" FontSize="15" FontWeight="SemiBold" Foreground="White">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="8" />
+                            </Style>
+                        </Button.Resources>
                     </Button>
                 </WrapPanel>
             </StackPanel>
         </Border>
-        <Border Grid.Row="2" Margin="20,0,20,20" Background="White" CornerRadius="12" Padding="15">
-            <Border.Effect><DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/></Border.Effect>
-            <DataGrid ItemsSource="{Binding ReportData}" AutoGenerateColumns="True" IsReadOnly="True"
-                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#E2E8F0" BorderThickness="0"
-                      Background="White" RowBackground="White" AlternatingRowBackground="#F8FAFC">
+        <Border Grid.Row="2" Margin="20,0,20,20" Padding="15" Background="White" CornerRadius="12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="10" Direction="270" Opacity="0.05" ShadowDepth="2" Color="#0F172A" />
+            </Border.Effect>
+            <DataGrid AlternatingRowBackground="#F8FAFC" AutoGenerateColumns="True" Background="White" BorderThickness="0" GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#E2E8F0" IsReadOnly="True"
+                      ItemsSource="{Binding ReportData}"
+                      RowBackground="White">
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F1F5F9"/>
-                        <Setter Property="Foreground" Value="#334155"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Padding"    Value="12,10"/>
-                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="Background" Value="#F1F5F9" />
+                        <Setter Property="Foreground" Value="#334155" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="Padding" Value="12,10" />
+                        <Setter Property="BorderBrush" Value="#E2E8F0" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.CellStyle>
                     <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="12,10"/>
-                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="12,10" />
+                        <Setter Property="BorderThickness" Value="0" />
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E0E7FF"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
+                                <Setter Property="Background" Value="#E0E7FF" />
+                                <Setter Property="Foreground" Value="#1E293B" />
                             </Trigger>
                         </Style.Triggers>
                     </Style>

@@ -815,7 +815,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Width="150" Binding="{Binding Net}" Foreground="#5BAE7C" Header="الإجمالي" />
+                                <DataGridTextColumn Width="150" Binding="{Binding Net, StringFormat=\{0:N2\}}" Foreground="#5BAE7C" Header="الإجمالي" />
                                 <DataGridTextColumn Width="*" Binding="{Binding Notes}" Header="الملاحظات" />
                             </DataGrid.Columns>
                         </DataGrid>
