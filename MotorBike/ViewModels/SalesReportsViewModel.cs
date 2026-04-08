@@ -18,7 +18,7 @@ public partial class SalesReportsViewModel : ObservableObject
     [
         "المبيعات بالشهور",
         "المبيعات بالأصناف",
-        "مبيعات عميل معين",
+        "المبيعات بالعملاء",
         "كشف حساب عميل",
         "كشف حساب تفصيلي للعميل",
         // ── التقارير الإضافية ──
@@ -45,23 +45,37 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private CarModel? _selectedCarModel;
 
+    [ObservableProperty] private ObservableCollection<CarBrand> _carBrands = [];
+    [ObservableProperty] private CarBrand? _selectedCarBrand;
+
+    [ObservableProperty] private ObservableCollection<Color> _carColors = [];
+    [ObservableProperty] private Color? _selectedCarColor;
+
+    [ObservableProperty] private ObservableCollection<short> _carYears = [];
+    [ObservableProperty] private short? _selectedCarYear;
+
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private ObservableCollection<DetailedAccountRow> _detailedReportData = [];
     [ObservableProperty] private bool _isDetailedReport;
 
-    public bool IsCustomerVisible => SelectedReportType is "مبيعات عميل معين"
+    public bool IsCustomerVisible => SelectedReportType is "المبيعات بالعملاء"
                                                         or "كشف حساب عميل"
                                                         or "كشف حساب تفصيلي للعميل"
                                                         or "كشف حساب عميل (موتوسيكلات)";
     public bool IsItemVisible     => SelectedReportType == "المبيعات بالأصناف";
     public bool IsCarModelVisible => SelectedReportType is "مبيعات الموتوسيكلات"
                                                         or "كشف حساب عميل (موتوسيكلات)";
+    public bool IsMotorcycleReport => SelectedReportType == "مبيعات الموتوسيكلات";
+
+    [ObservableProperty] private int _motorcyclesCount;
+    [ObservableProperty] private double _motorcyclesTotalSales;
 
     partial void OnSelectedReportTypeChanged(string value)
     {
         OnPropertyChanged(nameof(IsCustomerVisible));
         OnPropertyChanged(nameof(IsItemVisible));
         OnPropertyChanged(nameof(IsCarModelVisible));
+        OnPropertyChanged(nameof(IsMotorcycleReport));
         ReportData              = new System.Data.DataView();
         DetailedReportData      = [];
         IsDetailedReport        = false;
@@ -87,7 +101,19 @@ public partial class SalesReportsViewModel : ObservableObject
         Customers = new ObservableCollection<Customer>(await customerRepo.GetAllAsync());
         Items     = new ObservableCollection<Item>    (await itemRepo.GetAllAsync());
         CarModels = new ObservableCollection<CarModel>(await carModelRepo.GetAllAsync());
+
+        using var db = _dbFactory.CreateConnection();
+        CarBrands = new ObservableCollection<CarBrand>(await db.QueryAsync<CarBrand>("SELECT * FROM CarBrands WHERE Active = 1"));
+        CarColors = new ObservableCollection<Color>(await db.QueryAsync<Color>("SELECT Color_ID AS ColorId, ColorName, Notes, Active FROM Colors WHERE Active = 1"));
+        CarYears  = new ObservableCollection<short>(await db.QueryAsync<short>("SELECT DISTINCT YearNo FROM Cars ORDER BY YearNo DESC"));
     }
+
+    [RelayCommand] private void ClearCustomer()   => SelectedCustomer  = null;
+    [RelayCommand] private void ClearItem()        => SelectedItem      = null;
+    [RelayCommand] private void ClearCarBrand()    => SelectedCarBrand  = null;
+    [RelayCommand] private void ClearCarModel()    => SelectedCarModel  = null;
+    [RelayCommand] private void ClearCarColor()    => SelectedCarColor  = null;
+    [RelayCommand] private void ClearCarYear()     => SelectedCarYear   = null;
 
     private Dictionary<string, string>? _currentHeaderInfo;
     private Dictionary<string, string>? _currentFooterTotals;
@@ -216,26 +242,54 @@ public partial class SalesReportsViewModel : ObservableObject
                     )
                     ORDER BY CatName, CASE WHEN ItemName IS NULL THEN 1 ELSE 0 END, ItemName";
             }
-            else if (SelectedReportType == "مبيعات عميل معين")
+            else if (SelectedReportType == "المبيعات بالعملاء")
             {
                 string cusFilter = "";
                 if (SelectedCustomer != null)
                 {
-                    cusFilter = " AND M.CusId = @CusId ";
+                    cusFilter = " AND CusId = @CusId ";
                     parameters.Add("CusId", SelectedCustomer.CusId);
                 }
+
                 sql = @"
-                    SELECT CONVERT(VARCHAR, M.SalesDate, 103) AS [التاريخ], 
-                           M.Sales_ID AS [رقم الفاتورة], 
-                           C.CusName AS [العميل], 
-                           M.Total AS [الإجمالي], 
-                           M.Disc AS [الخصم], 
-                           (M.Total - M.Disc + M.AddMony) AS [الصافي]
-                    FROM Sales M
-                    LEFT JOIN Customers C ON M.CusId = C.Cus_ID
-                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    " + cusFilter + @"
-                    ORDER BY M.SalesDate DESC";
+                    ;WITH SalesData AS (
+                        SELECT CusId, 
+                               COUNT(Sales_ID) AS SalesCount, 
+                               SUM(Total - Disc + AddMony) AS SalesTotal
+                        FROM Sales
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                        " + cusFilter + @"
+                        GROUP BY CusId
+                    ),
+                    ReturnsData AS (
+                        SELECT CusId, 
+                               COUNT(Sales_ID) AS ReturnsCount, 
+                               SUM(Total - Disc + AddMony) AS ReturnsTotal
+                        FROM ReSales
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                        " + cusFilter + @"
+                        GROUP BY CusId
+                    ),
+                    AllCustomers AS (
+                        SELECT CusId FROM SalesData
+                        UNION
+                        SELECT CusId FROM ReturnsData
+                    )
+                    SELECT 
+                        ISNULL(C.Cus_ID, 0) AS [الكود],
+                        ISNULL(C.CusName, 'عميل نقدي/غير محدد') AS [الاسم],
+                        ISNULL(S.SalesCount, 0) AS [عدد فواتير بيع],
+                        ISNULL(S.SalesTotal, 0) AS [قيمة المبيعات],
+                        ISNULL(R.ReturnsCount, 0) AS [عدد فواتير مرتجع],
+                        ISNULL(R.ReturnsTotal, 0) AS [قيمة المرتجعات],
+                        (ISNULL(S.SalesTotal, 0) - ISNULL(R.ReturnsTotal, 0)) AS [صافي المبيعات],
+                        0 AS [ض.ق.م],
+                        0 AS [ض.أ.ت.ص]
+                    FROM AllCustomers A
+                    LEFT JOIN Customers C ON A.CusId = C.Cus_ID
+                    LEFT JOIN SalesData S ON A.CusId = S.CusId
+                    LEFT JOIN ReturnsData R ON A.CusId = R.CusId
+                    ORDER BY [صافي المبيعات] DESC";
             }
             else if (SelectedReportType == "كشف حساب عميل")
             {
@@ -288,6 +342,23 @@ public partial class SalesReportsViewModel : ObservableObject
                         FROM ReSales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
 
                         UNION ALL
+
+                        -- فواتير شراء موتوسيكلات من العميل
+                        SELECT BC.BuyDate, CAST(BC.Buy_ID AS VARCHAR), 'شراء موتوسيكل', ISNULL(BC.Notes, ''), 0, BC.Net 
+                        FROM Buy_Car BC
+                        INNER JOIN Cars C ON BC.CarID = C.Car_ID
+                        WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate >= @FromDate AND BC.BuyDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مدفوعات فواتير شراء الموتوسيكلات من العميل
+                        SELECT BCP.PayDate, CAST(BCP.BuyID AS VARCHAR), 'سداد مع فاتورة الشراء', ISNULL(BCP.Notes, ''), BCP.PayMoney, 0
+                        FROM Buy_Car_Payments BCP
+                        INNER JOIN Buy_Car BC ON BCP.BuyID = BC.Buy_ID
+                        INNER JOIN Cars C ON BC.CarID = C.Car_ID
+                        WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BCP.PayDate >= @FromDate AND BCP.PayDate <= @ToDate
+
+                        UNION ALL
                         
                         -- تحصيلات ومدفوعات منفصلة
                         SELECT PayDate, CAST(Pay_ID AS VARCHAR), 
@@ -314,31 +385,65 @@ public partial class SalesReportsViewModel : ObservableObject
             else if (SelectedReportType == "المبيعات اليومية")
             {
                 sql = @"
-                    SELECT CONVERT(VARCHAR, M.SalesDate, 103)    AS [التاريخ],
-                           COUNT(M.Sales_ID)                      AS [عدد الفواتير],
-                           SUM(M.Total)                          AS [الإجمالي],
-                           SUM(M.Disc)                           AS [الخصم],
-                           SUM(M.Total - M.Disc + M.AddMony)    AS [الصافي],
-                           ISNULL(RET.RetTotal, 0)               AS [المرتجعات],
-                           SUM(M.Total - M.Disc + M.AddMony) - ISNULL(RET.RetTotal, 0) AS [الصافي بعد المرتجعات]
-                    FROM Sales M
-                    OUTER APPLY (
-                        SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS RetTotal
-                        FROM ReSales
-                        WHERE CAST(SalesDate AS DATE) = CAST(M.SalesDate AS DATE)
-                    ) RET
-                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    GROUP BY CAST(M.SalesDate AS DATE), CONVERT(VARCHAR, M.SalesDate, 103), RET.RetTotal
-                    ORDER BY CAST(M.SalesDate AS DATE) DESC";
+        ;WITH SalesDaily AS (
+            SELECT CAST(SalesDate AS DATE) AS TransDate,
+                   COUNT(Sales_ID) AS SalesCount,
+                   SUM(Total) AS SumTotal,
+                   SUM(Disc) AS SumDisc,
+                   SUM(Total - Disc + AddMony) AS NetSales
+            FROM Sales
+            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+            GROUP BY CAST(SalesDate AS DATE)
+        ),
+        ReturnsDaily AS (
+            SELECT CAST(SalesDate AS DATE) AS TransDate,
+                   COUNT(Sales_ID) AS RetCount,
+                   SUM(Total - Disc + AddMony) AS NetReturns
+            FROM ReSales
+            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+            GROUP BY CAST(SalesDate AS DATE)
+        ),
+        AllDates AS (
+            SELECT TransDate FROM SalesDaily
+            UNION
+            SELECT TransDate FROM ReturnsDaily
+        )
+        SELECT 
+            CONVERT(VARCHAR, D.TransDate, 103)               AS [التاريخ],
+            ISNULL(S.SalesCount, 0)                          AS [عدد فواتير البيع],
+            ISNULL(S.SumTotal, 0)                            AS [الإجمالي],
+            ISNULL(S.SumDisc, 0)                             AS [الخصم],
+            ISNULL(S.NetSales, 0)                            AS [قيمة المبيعات],
+            ISNULL(R.RetCount, 0)                            AS [عدد فواتير المرتجع],
+            ISNULL(R.NetReturns, 0)                          AS [قيمة المرتجعات],
+            (ISNULL(S.NetSales, 0) - ISNULL(R.NetReturns, 0)) AS [صافي المبيعات]
+        FROM AllDates D
+        LEFT JOIN SalesDaily S ON D.TransDate = S.TransDate
+        LEFT JOIN ReturnsDaily R ON D.TransDate = R.TransDate
+        ORDER BY D.TransDate DESC";
             }
-            // ── 7. مبيعات الموتوسيكلات ────────────────────────────────────
             else if (SelectedReportType == "مبيعات الموتوسيكلات")
             {
                 string modelFilter = "";
                 if (SelectedCarModel != null)
                 {
-                    modelFilter = " AND CM.Model_ID = @ModelId ";
+                    modelFilter += " AND CM.Model_ID = @ModelId ";
                     parameters.Add("ModelId", SelectedCarModel.ModelId);
+                }
+                if (SelectedCarBrand != null)
+                {
+                    modelFilter += " AND CB.Brand_ID = @BrandId ";
+                    parameters.Add("BrandId", SelectedCarBrand.BrandId);
+                }
+                if (SelectedCarColor != null)
+                {
+                    modelFilter += " AND C.ColorId = @ColorId ";
+                    parameters.Add("ColorId", SelectedCarColor.ColorId);
+                }
+                if (SelectedCarYear.HasValue)
+                {
+                    modelFilter += " AND C.YearNo = @YearNo ";
+                    parameters.Add("YearNo", SelectedCarYear.Value);
                 }
                 if (SelectedCustomer != null)
                 {
@@ -347,21 +452,21 @@ public partial class SalesReportsViewModel : ObservableObject
                 }
 
                 sql = @"
-                    SELECT CONVERT(VARCHAR, SC.SalesDate, 103)         AS [التاريخ],
+                    SELECT CONVERT(VARCHAR, SC.SalesDate, 103)          AS [التاريخ],
                            SC.Sales_ID                                  AS [رقم الفاتورة],
                            CU.CusName                                   AS [العميل],
                            CB.BrandName + ' - ' + CM.ModelName          AS [الموديل],
+                           COL.ColorName                                AS [اللون],
                            C.YearNo                                     AS [السنة],
                            C.ChassisNo                                  AS [رقم الشاسيه],
                            C.PlateNo                                    AS [رقم اللوحة],
-                           C.PurchasePrice                              AS [سعر الشراء],
-                           SC.Total                                     AS [سعر البيع],
-                           (SC.Total - C.PurchasePrice)                 AS [الربح]
+                           SC.Total                                     AS [سعر البيع]
                     FROM Sales_Car SC
-                    INNER JOIN Cars       C  ON SC.CarID   = C.Car_ID
-                    INNER JOIN CarModels  CM ON C.ModelID  = CM.Model_ID
-                    INNER JOIN CarBrands  CB ON CM.BrandID = CB.Brand_ID
-                    LEFT  JOIN Customers  CU ON SC.CusID   = CU.Cus_ID
+                    INNER JOIN Cars       C   ON SC.CarID   = C.Car_ID
+                    INNER JOIN CarModels  CM  ON C.ModelID  = CM.Model_ID
+                    INNER JOIN CarBrands  CB  ON CM.BrandID = CB.Brand_ID
+                    LEFT  JOIN Colors     COL ON C.ColorId  = COL.Color_ID
+                    LEFT  JOIN Customers  CU  ON SC.CusID   = CU.Cus_ID
                     WHERE SC.SalesDate >= @FromDate AND SC.SalesDate <= @ToDate
                     " + modelFilter + @"
                     ORDER BY SC.SalesDate DESC";
@@ -496,9 +601,13 @@ public partial class SalesReportsViewModel : ObservableObject
                 double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
                 double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
+                double prevSalPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney), 0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId = S.Sales_ID WHERE S.CusId = @CusId AND SP.PayDate < @FromDate", opParams);
+                double prevSalCarPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney), 0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId = SC.Sales_ID WHERE SC.CusId = @CusId AND SCP.PayDate < @FromDate", opParams);
+                double prevBuyCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net), 0) FROM Buy_Car BC JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate < @FromDate", opParams);
+                double prevBuyCarPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney), 0) FROM Buy_Car_Payments BCP JOIN Buy_Car BC ON BCP.BuyID = BC.Buy_ID JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BCP.PayDate < @FromDate", opParams);
 
-                double prevDebit = prevSales + prevSalesCar + prevPaymentsDebit;
-                double prevCredit = prevReSales + prevPaymentsCredit;
+                double prevDebit = prevSales + prevSalesCar + prevPaymentsDebit + prevBuyCarPay;
+                double prevCredit = prevReSales + prevPaymentsCredit + prevSalPay + prevSalCarPay + prevBuyCar;
                 
                 if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
                 
@@ -609,16 +718,63 @@ public partial class SalesReportsViewModel : ObservableObject
                     { "الرصيد", finalBal >= 0 ? finalBal.ToString("N2") + " (مدين)" : Math.Abs(finalBal).ToString("N2") + " (دائن)" }
                 };
             }
+            else if (SelectedReportType == "المبيعات بالعملاء")
+            {
+                double sumSalesVal = 0, sumReturnsVal = 0, sumNetVal = 0;
+                int sumSalesCount = 0, sumReturnsCount = 0;
+                int customersCount = dt.Rows.Count;
+
+                foreach (System.Data.DataRowView row in dt.DefaultView)
+                {
+                    sumSalesCount += Convert.ToInt32(row["عدد فواتير بيع"] == DBNull.Value ? 0 : row["عدد فواتير بيع"]);
+                    sumReturnsCount += Convert.ToInt32(row["عدد فواتير مرتجع"] == DBNull.Value ? 0 : row["عدد فواتير مرتجع"]);
+
+                    sumSalesVal += Convert.ToDouble(row["قيمة المبيعات"] == DBNull.Value ? 0 : row["قيمة المبيعات"]);
+                    sumReturnsVal += Convert.ToDouble(row["قيمة المرتجعات"] == DBNull.Value ? 0 : row["قيمة المرتجعات"]);
+                    sumNetVal += Convert.ToDouble(row["صافي المبيعات"] == DBNull.Value ? 0 : row["صافي المبيعات"]);
+                }
+
+                _currentFooterTotals = new Dictionary<string, string>
+                {
+                    { "عدد العملاء", customersCount.ToString() },
+                    { "عدد فواتير بيع", sumSalesCount.ToString() },
+                    { "عدد فواتير مرتجع", sumReturnsCount.ToString() },
+                    { "إجمالي المبيعات", sumSalesVal.ToString("N2") },
+                    { "إجمالي المرتجعات", sumReturnsVal.ToString("N2") },
+                    { "صافي المبيعات", sumNetVal.ToString("N2") },
+                    { "إجمالي ض.ق.م", "0.00" },   // مجرد شكل للطباعة
+                    { "إجمالي ض.أ.ت.ص", "0.00" } // مجرد شكل للطباعة
+                };
+            }
+            else if (SelectedReportType == "مبيعات الموتوسيكلات")
+            {
+                double sumNetVal = 0;
+                int countCars = dt.Rows.Count;
+
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row["سعر البيع"] != DBNull.Value)
+                        sumNetVal += Convert.ToDouble(row["سعر البيع"]);
+                }
+
+                MotorcyclesCount = countCars;
+                MotorcyclesTotalSales = sumNetVal;
+
+                _currentFooterTotals = new Dictionary<string, string>
+                {
+                    { "عدد الموتوسيكلات", countCars.ToString() },
+                    { "إجمالي المبيعات", sumNetVal.ToString("N2") }
+                };
+            }
             else
             {
-                string cusFilter = (SelectedReportType == "مبيعات عميل معين" && SelectedCustomer != null) ? " AND CusId = @CusId " : "";
                 var salesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate " + cusFilter, parameters);
+                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
                 countSales = salesSum?.Cnt ?? 0;
                 totalSales = salesSum?.Tot ?? 0;
 
                 var resalesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate " + cusFilter, parameters);
+                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
                 countReturns = resalesSum?.Cnt ?? 0;
                 totalReturns = resalesSum?.Tot ?? 0;
 
@@ -631,7 +787,6 @@ public partial class SalesReportsViewModel : ObservableObject
                     { "صافي المبيعات", (totalSales - totalReturns).ToString("N2") }
                 };
             }
-
             if (SelectedReportType == "المبيعات بالشهور")
             {
                 _currentFooterTotals.Add("عدد الشهور", dt.Rows.Count.ToString());
@@ -753,9 +908,11 @@ public partial class SalesReportsViewModel : ObservableObject
         double prevPayCD        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType=2", opParams);
         double prevSalPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney),0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId=S.Sales_ID WHERE S.CusId=@CusId AND SP.PayDate<@FromDate", opParams);
         double prevCarPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney),0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId=SC.Sales_ID WHERE SC.CusId=@CusId AND SCP.PayDate<@FromDate", opParams);
+        double prevBuyCar       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net),0) FROM Buy_Car BC JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsFromCustomer=1 AND C.SourceCustomerID=@CusId AND BC.BuyDate<@FromDate", opParams);
+        double prevBuyCarPay    = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney),0) FROM Buy_Car_Payments BCP JOIN Buy_Car BC ON BCP.BuyID=BC.Buy_ID JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsFromCustomer=1 AND C.SourceCustomerID=@CusId AND BCP.PayDate<@FromDate", opParams);
 
-        double prevDebit  = prevSales + prevSalesCar + prevPayCD;
-        double prevCredit = prevReSales + prevPayCC + prevSalPay + prevCarPay;
+        double prevDebit  = prevSales + prevSalesCar + prevPayCD + prevBuyCarPay;
+        double prevCredit = prevReSales + prevPayCC + prevSalPay + prevCarPay + prevBuyCar;
 
         double runBal = 0;
         var rows = new List<DetailedAccountRow>();
@@ -899,6 +1056,57 @@ public partial class SalesReportsViewModel : ObservableObject
                     Date = pDate.ToString("dd/MM/yyyy"),
                     RefNo = p.RefNo, TransType = "تحصيل مع الفاتورة", Notes = p.Notes,
                     Debit = 0, Credit = c,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
+        }
+
+        // شراء موتوسيكلات من العميل
+        var buyCarRows = await db.QueryAsync<dynamic>(@"
+            SELECT BC.Buy_ID AS Id, BC.BuyDate AS TxDate, CAST(BC.Buy_ID AS VARCHAR) AS RefNo,
+                   'شراء موتوسيكل' AS TransType, ISNULL(BC.Notes,'') AS Notes, 0 AS Debit, BC.Net AS Credit,
+                   ISNULL(CB.BrandName,'') AS Brand, ISNULL(CM.ModelName,'') AS ModelName, 
+                   ISNULL(C.ChassisNo,'') AS Chassis, ISNULL(C.MotorNo,'') AS MotorNo, ISNULL(C.PlateNo,'') AS PlateNo, ISNULL(C.Mileage,0) AS Mileage
+            FROM Buy_Car BC
+            INNER JOIN Cars C ON BC.CarID = C.Car_ID
+            LEFT JOIN CarModels CM ON C.ModelID = CM.Model_ID
+            LEFT JOIN CarBrands CB ON CM.BrandID = CB.Brand_ID
+            WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate >= @FromDate AND BC.BuyDate <= @ToDate", txParams);
+
+        foreach (var bc in buyCarRows)
+        {
+            int bcid = Convert.ToInt32(bc.Id);
+            double c = Convert.ToDouble(bc.Credit);
+            runBal -= c;
+            DateTime txDate = Convert.ToDateTime((object)bc.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = bc.RefNo, TransType = bc.TransType, Notes = bc.Notes,
+                Debit = 0, Credit = c,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                IsCarTransaction = true,
+                Items = new List<InvoiceSubItem> {
+                    new() { ItemName = $"{bc.Brand} - {bc.ModelName}", 
+                            ChassisNo = bc.Chassis, MotorNo = bc.MotorNo, PlateNo = bc.PlateNo, Mileage = bc.Mileage,
+                            Price = c, Total = c }
+                }
+            });
+
+            var buyCarPays = await db.QueryAsync<dynamic>(
+                "SELECT CAST(BuyID AS VARCHAR) AS RefNo, PayDate, PayMoney, ISNULL(Notes,'') AS Notes FROM Buy_Car_Payments WHERE BuyID=@BuyId", new { BuyId = bcid });
+            foreach (var p in buyCarPays)
+            {
+                double d = Convert.ToDouble(p.PayMoney);
+                runBal += d; // payment TO customer is debit for them
+                DateTime pDate = Convert.ToDateTime((object)p.PayDate);
+                rows.Add(new DetailedAccountRow {
+                    RawDate = pDate.AddSeconds(1),
+                    Date = pDate.ToString("dd/MM/yyyy"),
+                    RefNo = p.RefNo, TransType = "سداد مع فاتورة الشراء", Notes = p.Notes,
+                    Debit = d, Credit = 0,
                     RunningDebit  = runBal > 0 ? runBal : 0,
                     RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
                 });
