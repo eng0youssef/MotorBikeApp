@@ -288,6 +288,23 @@ public partial class SalesReportsViewModel : ObservableObject
                         FROM ReSales WHERE CusId = @CusId AND SalesDate >= @FromDate AND SalesDate <= @ToDate
 
                         UNION ALL
+
+                        -- فواتير شراء موتوسيكلات من العميل
+                        SELECT BC.BuyDate, CAST(BC.Buy_ID AS VARCHAR), 'شراء موتوسيكل', ISNULL(BC.Notes, ''), 0, BC.Net 
+                        FROM Buy_Car BC
+                        INNER JOIN Cars C ON BC.CarID = C.Car_ID
+                        WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate >= @FromDate AND BC.BuyDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مدفوعات فواتير شراء الموتوسيكلات من العميل
+                        SELECT BCP.PayDate, CAST(BCP.BuyID AS VARCHAR), 'سداد مع فاتورة الشراء', ISNULL(BCP.Notes, ''), BCP.PayMoney, 0
+                        FROM Buy_Car_Payments BCP
+                        INNER JOIN Buy_Car BC ON BCP.BuyID = BC.Buy_ID
+                        INNER JOIN Cars C ON BC.CarID = C.Car_ID
+                        WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BCP.PayDate >= @FromDate AND BCP.PayDate <= @ToDate
+
+                        UNION ALL
                         
                         -- تحصيلات ومدفوعات منفصلة
                         SELECT PayDate, CAST(Pay_ID AS VARCHAR), 
@@ -496,9 +513,13 @@ public partial class SalesReportsViewModel : ObservableObject
                 double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
                 double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
+                double prevSalPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney), 0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId = S.Sales_ID WHERE S.CusId = @CusId AND SP.PayDate < @FromDate", opParams);
+                double prevSalCarPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney), 0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId = SC.Sales_ID WHERE SC.CusId = @CusId AND SCP.PayDate < @FromDate", opParams);
+                double prevBuyCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net), 0) FROM Buy_Car BC JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate < @FromDate", opParams);
+                double prevBuyCarPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney), 0) FROM Buy_Car_Payments BCP JOIN Buy_Car BC ON BCP.BuyID = BC.Buy_ID JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BCP.PayDate < @FromDate", opParams);
 
-                double prevDebit = prevSales + prevSalesCar + prevPaymentsDebit;
-                double prevCredit = prevReSales + prevPaymentsCredit;
+                double prevDebit = prevSales + prevSalesCar + prevPaymentsDebit + prevBuyCarPay;
+                double prevCredit = prevReSales + prevPaymentsCredit + prevSalPay + prevSalCarPay + prevBuyCar;
                 
                 if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
                 
@@ -753,9 +774,11 @@ public partial class SalesReportsViewModel : ObservableObject
         double prevPayCD        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType=2", opParams);
         double prevSalPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney),0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId=S.Sales_ID WHERE S.CusId=@CusId AND SP.PayDate<@FromDate", opParams);
         double prevCarPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney),0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId=SC.Sales_ID WHERE SC.CusId=@CusId AND SCP.PayDate<@FromDate", opParams);
+        double prevBuyCar       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net),0) FROM Buy_Car BC JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsFromCustomer=1 AND C.SourceCustomerID=@CusId AND BC.BuyDate<@FromDate", opParams);
+        double prevBuyCarPay    = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney),0) FROM Buy_Car_Payments BCP JOIN Buy_Car BC ON BCP.BuyID=BC.Buy_ID JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsFromCustomer=1 AND C.SourceCustomerID=@CusId AND BCP.PayDate<@FromDate", opParams);
 
-        double prevDebit  = prevSales + prevSalesCar + prevPayCD;
-        double prevCredit = prevReSales + prevPayCC + prevSalPay + prevCarPay;
+        double prevDebit  = prevSales + prevSalesCar + prevPayCD + prevBuyCarPay;
+        double prevCredit = prevReSales + prevPayCC + prevSalPay + prevCarPay + prevBuyCar;
 
         double runBal = 0;
         var rows = new List<DetailedAccountRow>();
@@ -899,6 +922,57 @@ public partial class SalesReportsViewModel : ObservableObject
                     Date = pDate.ToString("dd/MM/yyyy"),
                     RefNo = p.RefNo, TransType = "تحصيل مع الفاتورة", Notes = p.Notes,
                     Debit = 0, Credit = c,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
+        }
+
+        // شراء موتوسيكلات من العميل
+        var buyCarRows = await db.QueryAsync<dynamic>(@"
+            SELECT BC.Buy_ID AS Id, BC.BuyDate AS TxDate, CAST(BC.Buy_ID AS VARCHAR) AS RefNo,
+                   'شراء موتوسيكل' AS TransType, ISNULL(BC.Notes,'') AS Notes, 0 AS Debit, BC.Net AS Credit,
+                   ISNULL(CB.BrandName,'') AS Brand, ISNULL(CM.ModelName,'') AS ModelName, 
+                   ISNULL(C.ChassisNo,'') AS Chassis, ISNULL(C.MotorNo,'') AS MotorNo, ISNULL(C.PlateNo,'') AS PlateNo, ISNULL(C.Mileage,0) AS Mileage
+            FROM Buy_Car BC
+            INNER JOIN Cars C ON BC.CarID = C.Car_ID
+            LEFT JOIN CarModels CM ON C.ModelID = CM.Model_ID
+            LEFT JOIN CarBrands CB ON CM.BrandID = CB.Brand_ID
+            WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate >= @FromDate AND BC.BuyDate <= @ToDate", txParams);
+
+        foreach (var bc in buyCarRows)
+        {
+            int bcid = Convert.ToInt32(bc.Id);
+            double c = Convert.ToDouble(bc.Credit);
+            runBal -= c;
+            DateTime txDate = Convert.ToDateTime((object)bc.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = bc.RefNo, TransType = bc.TransType, Notes = bc.Notes,
+                Debit = 0, Credit = c,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                IsCarTransaction = true,
+                Items = new List<InvoiceSubItem> {
+                    new() { ItemName = $"{bc.Brand} - {bc.ModelName}", 
+                            ChassisNo = bc.Chassis, MotorNo = bc.MotorNo, PlateNo = bc.PlateNo, Mileage = bc.Mileage,
+                            Price = c, Total = c }
+                }
+            });
+
+            var buyCarPays = await db.QueryAsync<dynamic>(
+                "SELECT CAST(BuyID AS VARCHAR) AS RefNo, PayDate, PayMoney, ISNULL(Notes,'') AS Notes FROM Buy_Car_Payments WHERE BuyID=@BuyId", new { BuyId = bcid });
+            foreach (var p in buyCarPays)
+            {
+                double d = Convert.ToDouble(p.PayMoney);
+                runBal += d; // payment TO customer is debit for them
+                DateTime pDate = Convert.ToDateTime((object)p.PayDate);
+                rows.Add(new DetailedAccountRow {
+                    RawDate = pDate.AddSeconds(1),
+                    Date = pDate.ToString("dd/MM/yyyy"),
+                    RefNo = p.RefNo, TransType = "سداد مع فاتورة الشراء", Notes = p.Notes,
+                    Debit = d, Credit = 0,
                     RunningDebit  = runBal > 0 ? runBal : 0,
                     RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
                 });
