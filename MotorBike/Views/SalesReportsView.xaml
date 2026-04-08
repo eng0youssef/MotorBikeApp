@@ -54,27 +54,71 @@
                     <!-- Dynamic elements based on selection -->
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCustomerVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار العميل" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Customers}" 
-                                  SelectedItem="{Binding SelectedCustomer}" 
-                                  DisplayMemberPath="CusName" 
-                                  Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Customers}" 
+                                      SelectedItem="{Binding SelectedCustomer}" 
+                                      DisplayMemberPath="CusName" 
+                                      Width="200" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCustomerCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsItemVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار الصنف (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Items}" 
-                                  SelectedItem="{Binding SelectedItem}" 
-                                  DisplayMemberPath="ItemName" 
-                                  Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Items}" 
+                                      SelectedItem="{Binding SelectedItem}" 
+                                      DisplayMemberPath="ItemName" 
+                                      Width="200" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearItemCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- الماركة -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsMotorcycleReport, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="الماركة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding CarBrands}" 
+                                      SelectedItem="{Binding SelectedCarBrand}" 
+                                      DisplayMemberPath="BrandName" 
+                                      Width="150" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarBrandCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- موديل الموتوسيكل -->
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCarModelVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="الموديل (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding CarModels}" 
-                                  SelectedItem="{Binding SelectedCarModel}" 
-                                  DisplayMemberPath="ModelName" 
-                                  Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding CarModels}" 
+                                      SelectedItem="{Binding SelectedCarModel}" 
+                                      DisplayMemberPath="ModelName" 
+                                      Width="180" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarModelCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- اللون -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsMotorcycleReport, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="اللون (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding CarColors}" 
+                                      SelectedItem="{Binding SelectedCarColor}" 
+                                      DisplayMemberPath="ColorName" 
+                                      Width="150" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarColorCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- سنة التصنيع -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsMotorcycleReport, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="سنة التصنيع (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding CarYears}" 
+                                      SelectedItem="{Binding SelectedCarYear}" 
+                                      Width="150" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarYearCommand}"/>
+                        </StackPanel>
                     </StackPanel>
                 </WrapPanel>
 
