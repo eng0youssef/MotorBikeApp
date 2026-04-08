@@ -51,6 +51,14 @@
                         <DatePicker SelectedDate="{Binding ToDate}" IsEnabled="{Binding IsToDateChecked}" Width="150" Padding="6" FontSize="14"/>
                     </StackPanel>
 
+                    <!-- نوع الفاتورة (ضريبي / عادي / الكل) -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsTaxFilterVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="نوع الفاتورة" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding InvoiceFilterTypes}" 
+                                  SelectedItem="{Binding SelectedInvoiceFilter}" 
+                                  Width="130" Padding="8" FontSize="14"/>
+                    </StackPanel>
+
                     <!-- Dynamic elements based on selection -->
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCustomerVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار العميل" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>

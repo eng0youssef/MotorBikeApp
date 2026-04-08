@@ -54,6 +54,16 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<short> _carYears = [];
     [ObservableProperty] private short? _selectedCarYear;
 
+    // ── فلتر نوع الفاتورة ──
+    public ObservableCollection<string> InvoiceFilterTypes { get; } = ["الكل", "ضريبي", "عادي"];
+    [ObservableProperty] private string _selectedInvoiceFilter = "الكل";
+
+    // فلتر نوع الفاتورة يظهر فقط للتقارير التي تدعمه
+    public bool IsTaxFilterVisible => SelectedReportType is "المبيعات بالشهور" or "المبيعات بالعملاء"
+                                                          or "المبيعات اليومية" or "أعلى العملاء مبيعاً";
+    // هل الفلتر الحالي ضريبي (لإظهار أعمدة الضريبة)
+    public bool IsShowingTax => SelectedInvoiceFilter == "ضريبي";
+
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private ObservableCollection<DetailedAccountRow> _detailedReportData = [];
     [ObservableProperty] private bool _isDetailedReport;
@@ -70,12 +80,18 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private int _motorcyclesCount;
     [ObservableProperty] private double _motorcyclesTotalSales;
 
+    partial void OnSelectedInvoiceFilterChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsShowingTax));
+    }
+
     partial void OnSelectedReportTypeChanged(string value)
     {
         OnPropertyChanged(nameof(IsCustomerVisible));
         OnPropertyChanged(nameof(IsItemVisible));
         OnPropertyChanged(nameof(IsCarModelVisible));
         OnPropertyChanged(nameof(IsMotorcycleReport));
+        OnPropertyChanged(nameof(IsTaxFilterVisible));
         ReportData              = new System.Data.DataView();
         DetailedReportData      = [];
         IsDetailedReport        = false;
@@ -136,24 +152,34 @@ public partial class SalesReportsViewModel : ObservableObject
             parameters.Add("FromDate", queryFromDate);
             parameters.Add("ToDate", queryToDate);
             
+            // بناء فلتر نوع الفاتورة
+            string taxFilter = SelectedInvoiceFilter == "ضريبي" ? " AND IsTax = 1 "
+                             : SelectedInvoiceFilter == "عادي"  ? " AND IsTax = 0 "
+                             : "";
+            bool showTax = SelectedInvoiceFilter == "ضريبي";
+
             if (SelectedReportType == "المبيعات بالشهور")
             {
-                sql = @"
+                string taxCols = showTax ? ", SUM(VatTax) AS SumVatTax, SUM(Tax) AS SumTax" : "";
+                string taxSelectCols = showTax
+                    ? ", ISNULL(s.SumVatTax, 0) AS [ض.ق.م], ISNULL(s.SumTax, 0) AS [ض.أ.ت.ص]"
+                    : "";
+                sql = $@"
                     ;WITH SalesMonths AS (
                         SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr,
                                COUNT(DISTINCT Sales_ID) AS CountBills,
-                               SUM(Total - Disc + AddMony) AS SumTotal
-                        FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate GROUP BY FORMAT(SalesDate, 'yyyy-MM')
+                               SUM(Net) AS SumTotal {taxCols}
+                        FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter} GROUP BY FORMAT(SalesDate, 'yyyy-MM')
                     ),
                     ReturnMonths AS (
                         SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr,
                                COUNT(DISTINCT Sales_ID) AS CountRet,
-                               SUM(Total - Disc + AddMony) AS SumRetTotal
+                               SUM(Net) AS SumRetTotal
                         FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate GROUP BY FORMAT(SalesDate, 'yyyy-MM')
                     ),
                     CusMonths AS (
                         SELECT MonthStr, COUNT(DISTINCT CusId) AS CusCount FROM (
-                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter}
                             UNION
                             SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
                         ) AS AllCus GROUP BY MonthStr
@@ -168,6 +194,7 @@ public partial class SalesReportsViewModel : ObservableObject
                            ISNULL(s.CountBills, 0) AS [عدد الفواتير],
                            ISNULL(r.CountRet, 0) AS [عدد المرتجعات],
                            ISNULL(c.CusCount, 0) AS [عدد العملاء]
+                           {taxSelectCols}
                     FROM AllMonths m
                     LEFT JOIN SalesMonths s ON m.MonthStr = s.MonthStr
                     LEFT JOIN ReturnMonths r ON m.MonthStr = r.MonthStr
@@ -244,30 +271,32 @@ public partial class SalesReportsViewModel : ObservableObject
             }
             else if (SelectedReportType == "المبيعات بالعملاء")
             {
-                string cusFilter = "";
+                string cusFilter = taxFilter;
                 if (SelectedCustomer != null)
                 {
-                    cusFilter = " AND CusId = @CusId ";
+                    cusFilter += " AND CusId = @CusId ";
                     parameters.Add("CusId", SelectedCustomer.CusId);
                 }
+                string taxCols2 = showTax ? ", SUM(VatTax) AS SumVatTaxS, SUM(Tax) AS SumTaxS" : "";
+                string taxSelectCols2 = showTax
+                    ? ", ISNULL(S.SumVatTaxS, 0) AS [ض.ق.م], ISNULL(S.SumTaxS, 0) AS [ض.أ.ت.ص]"
+                    : "";
 
-                sql = @"
+                sql = $@"
                     ;WITH SalesData AS (
                         SELECT CusId, 
                                COUNT(Sales_ID) AS SalesCount, 
-                               SUM(Total - Disc + AddMony) AS SalesTotal
+                               SUM(Net) AS SalesTotal {taxCols2}
                         FROM Sales
-                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
-                        " + cusFilter + @"
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {cusFilter}
                         GROUP BY CusId
                     ),
                     ReturnsData AS (
                         SELECT CusId, 
                                COUNT(Sales_ID) AS ReturnsCount, 
-                               SUM(Total - Disc + AddMony) AS ReturnsTotal
+                               SUM(Net) AS ReturnsTotal
                         FROM ReSales
                         WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
-                        " + cusFilter + @"
                         GROUP BY CusId
                     ),
                     AllCustomers AS (
@@ -282,9 +311,8 @@ public partial class SalesReportsViewModel : ObservableObject
                         ISNULL(S.SalesTotal, 0) AS [قيمة المبيعات],
                         ISNULL(R.ReturnsCount, 0) AS [عدد فواتير مرتجع],
                         ISNULL(R.ReturnsTotal, 0) AS [قيمة المرتجعات],
-                        (ISNULL(S.SalesTotal, 0) - ISNULL(R.ReturnsTotal, 0)) AS [صافي المبيعات],
-                        0 AS [ض.ق.م],
-                        0 AS [ض.أ.ت.ص]
+                        (ISNULL(S.SalesTotal, 0) - ISNULL(R.ReturnsTotal, 0)) AS [صافي المبيعات]
+                        {taxSelectCols2}
                     FROM AllCustomers A
                     LEFT JOIN Customers C ON A.CusId = C.Cus_ID
                     LEFT JOIN SalesData S ON A.CusId = S.CusId
@@ -384,21 +412,23 @@ public partial class SalesReportsViewModel : ObservableObject
             // ── 6. المبيعات اليومية ────────────────────────────────────────
             else if (SelectedReportType == "المبيعات اليومية")
             {
-                sql = @"
+                string taxColsD = showTax ? ", SUM(VatTax) AS SumVatTaxD, SUM(Tax) AS SumTaxD" : "";
+                string taxSelectColsD = showTax
+                    ? ", ISNULL(S.SumVatTaxD, 0) AS [ض.ق.م], ISNULL(S.SumTaxD, 0) AS [ض.أ.ت.ص]"
+                    : "";
+                sql = $@"
         ;WITH SalesDaily AS (
             SELECT CAST(SalesDate AS DATE) AS TransDate,
                    COUNT(Sales_ID) AS SalesCount,
-                   SUM(Total) AS SumTotal,
-                   SUM(Disc) AS SumDisc,
-                   SUM(Total - Disc + AddMony) AS NetSales
+                   SUM(Net) AS NetSales {taxColsD}
             FROM Sales
-            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter}
             GROUP BY CAST(SalesDate AS DATE)
         ),
         ReturnsDaily AS (
             SELECT CAST(SalesDate AS DATE) AS TransDate,
                    COUNT(Sales_ID) AS RetCount,
-                   SUM(Total - Disc + AddMony) AS NetReturns
+                   SUM(Net) AS NetReturns
             FROM ReSales
             WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
             GROUP BY CAST(SalesDate AS DATE)
@@ -411,12 +441,11 @@ public partial class SalesReportsViewModel : ObservableObject
         SELECT 
             CONVERT(VARCHAR, D.TransDate, 103)               AS [التاريخ],
             ISNULL(S.SalesCount, 0)                          AS [عدد فواتير البيع],
-            ISNULL(S.SumTotal, 0)                            AS [الإجمالي],
-            ISNULL(S.SumDisc, 0)                             AS [الخصم],
             ISNULL(S.NetSales, 0)                            AS [قيمة المبيعات],
             ISNULL(R.RetCount, 0)                            AS [عدد فواتير المرتجع],
             ISNULL(R.NetReturns, 0)                          AS [قيمة المرتجعات],
             (ISNULL(S.NetSales, 0) - ISNULL(R.NetReturns, 0)) AS [صافي المبيعات]
+            {taxSelectColsD}
         FROM AllDates D
         LEFT JOIN SalesDaily S ON D.TransDate = S.TransDate
         LEFT JOIN ReturnsDaily R ON D.TransDate = R.TransDate
@@ -541,21 +570,19 @@ public partial class SalesReportsViewModel : ObservableObject
             // ── 10. أعلى العملاء مبيعاً ──────────────────────────────────
             else if (SelectedReportType == "أعلى العملاء مبيعاً")
             {
-                sql = @"
+                sql = $@"
                     SELECT CU.CusName                                           AS [العميل],
                            COUNT(DISTINCT M.Sales_ID)                           AS [عدد الفواتير],
-                           SUM(M.Total - M.Disc + M.AddMony)                   AS [إجمالي المبيعات],
+                           SUM(M.Net)                                           AS [إجمالي المبيعات],
                            ISNULL(RET.TotalReturns, 0)                          AS [إجمالي المرتجعات],
-                           SUM(M.Total - M.Disc + M.AddMony)
-                               - ISNULL(RET.TotalReturns, 0)                   AS [صافي المبيعات],
+                           SUM(M.Net) - ISNULL(RET.TotalReturns, 0)            AS [صافي المبيعات],
                            ISNULL(PAY.TotalPayments, 0)                         AS [إجمالي المتحصل],
-                           SUM(M.Total - M.Disc + M.AddMony)
-                               - ISNULL(RET.TotalReturns, 0)
+                           SUM(M.Net) - ISNULL(RET.TotalReturns, 0)
                                - ISNULL(PAY.TotalPayments, 0)                  AS [الرصيد المتبقي]
                     FROM Sales M
                     LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
                     OUTER APPLY (
-                        SELECT ISNULL(SUM(Total - Disc + AddMony), 0) AS TotalReturns
+                        SELECT ISNULL(SUM(Net), 0) AS TotalReturns
                         FROM ReSales
                         WHERE CusId = M.CusId
                           AND SalesDate >= @FromDate AND SalesDate <= @ToDate
@@ -567,7 +594,7 @@ public partial class SalesReportsViewModel : ObservableObject
                           AND PayDate >= @FromDate AND PayDate <= @ToDate
                           AND PayType IN (0, 1, 3)
                     ) PAY
-                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate {taxFilter}
                     GROUP BY CU.CusName, RET.TotalReturns, PAY.TotalPayments
                     ORDER BY [صافي المبيعات] DESC";
             }
@@ -596,9 +623,9 @@ public partial class SalesReportsViewModel : ObservableObject
                 double cusIniCredit = Convert.ToDouble(customerInfo?.Credit ?? 0);
 
                 // Previous Transactions before FromDate
-                double prevSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM Sales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
+                double prevSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Net), 0) FROM Sales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevSalesCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Sales_Car WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
-                double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total - Disc + AddMony), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
+                double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Net), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
                 double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
                 double prevSalPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney), 0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId = S.Sales_ID WHERE S.CusId = @CusId AND SP.PayDate < @FromDate", opParams);
@@ -768,13 +795,14 @@ public partial class SalesReportsViewModel : ObservableObject
             }
             else
             {
+                string taxCondition = taxFilter;
                 var salesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
+                    $"SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Net), 0) AS Tot FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxCondition}", parameters);
                 countSales = salesSum?.Cnt ?? 0;
                 totalSales = salesSum?.Tot ?? 0;
 
                 var resalesSum = await db.QueryFirstOrDefaultAsync(
-                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Total - Disc + AddMony), 0) AS Tot FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
+                    "SELECT COUNT(Sales_ID) AS Cnt, ISNULL(SUM(Net), 0) AS Tot FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate", parameters);
                 countReturns = resalesSum?.Cnt ?? 0;
                 totalReturns = resalesSum?.Tot ?? 0;
 
