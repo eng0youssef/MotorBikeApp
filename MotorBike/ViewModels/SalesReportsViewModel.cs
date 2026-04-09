@@ -55,6 +55,12 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<short> _carYears = [];
     [ObservableProperty] private short? _selectedCarYear;
 
+    [ObservableProperty] private ObservableCollection<Store> _stores = [];
+    [ObservableProperty] private Store? _selectedStore;
+
+    [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
+    [ObservableProperty] private Cash? _selectedSafe;
+
     // ── فلتر نوع الفاتورة (ضريبي / عادي) ──
     public ObservableCollection<string> InvoiceFilterTypes { get; } = ["الكل", "ضريبي", "عادي"];
     [ObservableProperty] private string _selectedInvoiceFilter = "الكل";
@@ -137,14 +143,18 @@ public partial class SalesReportsViewModel : ObservableObject
         CarBrands = new ObservableCollection<CarBrand>(await db.QueryAsync<CarBrand>("SELECT * FROM CarBrands WHERE Active = 1"));
         CarColors = new ObservableCollection<Color>(await db.QueryAsync<Color>("SELECT Color_ID AS ColorId, ColorName, Notes, Active FROM Colors WHERE Active = 1"));
         CarYears  = new ObservableCollection<short>(await db.QueryAsync<short>("SELECT DISTINCT YearNo FROM Cars ORDER BY YearNo DESC"));
+        Stores    = new ObservableCollection<Store>(await db.QueryAsync<Store>("SELECT * FROM Stores"));
+        Cashes    = new ObservableCollection<Cash>(await db.QueryAsync<Cash>("SELECT * FROM Cashes WHERE ISNULL(OmlaId,0) = 0"));
     }
 
-    [RelayCommand] private void ClearCustomer()   => SelectedCustomer  = null;
+    [RelayCommand] private void ClearCustomer()    => SelectedCustomer  = null;
     [RelayCommand] private void ClearItem()        => SelectedItem      = null;
     [RelayCommand] private void ClearCarBrand()    => SelectedCarBrand  = null;
     [RelayCommand] private void ClearCarModel()    => SelectedCarModel  = null;
     [RelayCommand] private void ClearCarColor()    => SelectedCarColor  = null;
     [RelayCommand] private void ClearCarYear()     => SelectedCarYear   = null;
+    [RelayCommand] private void ClearStore()       => SelectedStore     = null;
+    [RelayCommand] private void ClearSafe()        => SelectedSafe      = null;
 
     private Dictionary<string, string>? _currentHeaderInfo;
     private Dictionary<string, string>? _currentFooterTotals;
@@ -166,6 +176,32 @@ public partial class SalesReportsViewModel : ObservableObject
             
             parameters.Add("FromDate", queryFromDate);
             parameters.Add("ToDate", queryToDate);
+            
+            _currentHeaderInfo = new Dictionary<string, string>
+            {
+                { "من تاريخ", IsFromDateChecked ? FromDate.ToString("dd/MM/yyyy") : "الكل" },
+                { "إلى تاريخ", IsToDateChecked ? ToDate.ToString("dd/MM/yyyy") : "الكل" }
+            };
+            if (SelectedCustomer != null) _currentHeaderInfo.Add("العميل", SelectedCustomer.CusName);
+            if (SelectedStore != null) _currentHeaderInfo.Add("المخزن", SelectedStore.StoreName);
+            if (SelectedSafe != null) _currentHeaderInfo.Add("الخزينة", SelectedSafe.CashName);
+            if (SelectedInvoiceFilter != "الكل") _currentHeaderInfo.Add("نوع الفاتورة", SelectedInvoiceFilter);
+            if (IsInvoiceStatusFilterVisible && SelectedInvoiceStatusFilter != "الكل") _currentHeaderInfo.Add("حالة الفاتورة", SelectedInvoiceStatusFilter);
+
+            string salesExtraFilter = "";
+            string reSalesExtraFilter = "";
+            if (SelectedStore != null)
+            {
+                salesExtraFilter   += " AND EXISTS (SELECT 1 FROM Sales_Sub SS WHERE SS.SalesId = M.Sales_ID AND SS.StoreId = @StoreId) ";
+                reSalesExtraFilter += " AND EXISTS (SELECT 1 FROM ReSales_Sub RS WHERE RS.SalesId = M.Sales_ID AND RS.StoreId = @StoreId) ";
+                parameters.Add("StoreId", SelectedStore.StoreId);
+            }
+            if (SelectedSafe != null)
+            {
+                salesExtraFilter   += " AND EXISTS (SELECT 1 FROM Sales_Payments SP WHERE SP.SalesId = M.Sales_ID AND SP.CashId = @CashId) ";
+                reSalesExtraFilter += " AND EXISTS (SELECT 1 FROM ReSales_Payments RP WHERE RP.SalesId = M.Sales_ID AND RP.CashId = @CashId) ";
+                parameters.Add("CashId", SelectedSafe.CashId);
+            }
             
             // بناء فلتر نوع الفاتورة (ضريبي / عادي)
             string taxFilter  = SelectedInvoiceFilter == "ضريبي" ? " AND IsTax = 1 "
@@ -1340,6 +1376,21 @@ public partial class SalesReportsViewModel : ObservableObject
             p.Add("CusId", SelectedCustomer.CusId);
         }
 
+        string salesExtraFilter = "";
+        string reSalesExtraFilter = "";
+        if (SelectedStore != null)
+        {
+            salesExtraFilter   += " AND EXISTS (SELECT 1 FROM Sales_Sub SS WHERE SS.SalesId = M.Sales_ID AND SS.StoreId = @StoreId) ";
+            reSalesExtraFilter += " AND EXISTS (SELECT 1 FROM ReSales_Sub RS WHERE RS.SalesId = M.Sales_ID AND RS.StoreId = @StoreId) ";
+            p.Add("StoreId", SelectedStore.StoreId);
+        }
+        if (SelectedSafe != null)
+        {
+            salesExtraFilter   += " AND EXISTS (SELECT 1 FROM Sales_Payments SP WHERE SP.SalesId = M.Sales_ID AND SP.CashId = @CashId) ";
+            reSalesExtraFilter += " AND EXISTS (SELECT 1 FROM ReSales_Payments RP WHERE RP.SalesId = M.Sales_ID AND RP.CashId = @CashId) ";
+            p.Add("CashId", SelectedSafe.CashId);
+        }
+
         // ── فواتير المبيعات ──
         IEnumerable<dynamic> salesInvoices = new List<dynamic>();
         if (statusFilter != "فواتير مرتجعات")
@@ -1358,7 +1409,7 @@ public partial class SalesReportsViewModel : ObservableObject
                 FROM Sales M
                 LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
                 WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                {mTaxFilter} {cusWhere}
+                {mTaxFilter} {cusWhere} {salesExtraFilter}
                 ORDER BY M.SalesDate DESC, M.Sales_ID DESC", p);
         }
 
@@ -1380,7 +1431,7 @@ public partial class SalesReportsViewModel : ObservableObject
                 FROM ReSales M
                 LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
                 WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                {cusWhere}
+                {cusWhere} {reSalesExtraFilter}
                 ORDER BY M.SalesDate DESC, M.Sales_ID DESC", p);
         }
 
@@ -1406,6 +1457,16 @@ public partial class SalesReportsViewModel : ObservableObject
                 WHERE SS.SalesId=@Id", new { Id = id });
 
             DateTime txDate = Convert.ToDateTime((object)inv.TxDate);
+            double invTotal = Convert.ToDouble(inv.InvTotal);
+            double invDisc  = Convert.ToDouble(inv.InvDisc);
+            double invAdd   = Convert.ToDouble(inv.InvAdd);
+            double vTax     = Convert.ToDouble(inv.VatTax);
+            double wTax     = Convert.ToDouble(inv.Tax);
+            double netBase  = invTotal - invDisc + invAdd;
+
+            string vTaxDisp = (vTax > 0 && netBase > 0) ? $"{(vTax / netBase * 100):0.##}% ({vTax:0.00})" : vTax.ToString("0.00");
+            string wTaxDisp = (wTax > 0 && netBase > 0) ? $"{(wTax / netBase * 100):0.##}% ({wTax:0.00})" : wTax.ToString("0.00");
+
             rows.Add(new DetailedAccountRow
             {
                 RawDate      = txDate,
@@ -1414,11 +1475,13 @@ public partial class SalesReportsViewModel : ObservableObject
                 TransType    = "بيع",
                 Notes        = inv.Notes ?? "",
                 CustomerName = inv.CusName,
-                InvoiceTotal = Convert.ToDouble(inv.InvTotal),
-                VatTax       = Convert.ToDouble(inv.VatTax),
-                Tax          = Convert.ToDouble(inv.Tax),
-                InvoiceDisc  = Convert.ToDouble(inv.InvDisc),
-                InvoiceAdd   = Convert.ToDouble(inv.InvAdd),
+                InvoiceTotal = invTotal,
+                VatTax       = vTax,
+                VatTaxDisplay= vTaxDisp,
+                Tax          = wTax,
+                TaxDisplay   = wTaxDisp,
+                InvoiceDisc  = invDisc,
+                InvoiceAdd   = invAdd,
                 InvoiceNet   = net,
                 Items = subItems.Select(x => new InvoiceSubItem
                 {
@@ -1476,7 +1539,6 @@ public partial class SalesReportsViewModel : ObservableObject
         IsDetailedReport   = true;
         IsInvoiceMode      = true;
 
-        _currentHeaderInfo   = null;
         _currentFooterTotals = new Dictionary<string, string>
         {
             { "عدد الفواتير",        cntSales.ToString() },

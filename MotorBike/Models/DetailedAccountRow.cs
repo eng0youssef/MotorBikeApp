@@ -25,7 +25,9 @@ public class DetailedAccountRow
     public double InvoiceDisc  { get; set; }   // الخصم
     public double InvoiceAdd   { get; set; }   // الإضافة
     public double VatTax       { get; set; }   // ض.م.ق
+    public string VatTaxDisplay{ get; set; } = "0.00"; 
     public double Tax          { get; set; }   // ض.أ.ت.ص
+    public string TaxDisplay   { get; set; } = "0.00";
     public double InvoiceNet   { get; set; }   // صافي الفاتورة
 
     // تفاصيل الأصناف (فارغة للتحصيلات والرصيد السابق)

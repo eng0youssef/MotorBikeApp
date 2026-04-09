@@ -455,8 +455,8 @@ public class ReportGenerator
                     table.Cell().Row(currentRow).Column(1).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceNet.ToString("N2")).FontSize(10);
                     table.Cell().Row(currentRow).Column(2).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceAdd.ToString("N2")).FontSize(10);
                     table.Cell().Row(currentRow).Column(3).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceDisc.ToString("N2")).FontSize(10);
-                    table.Cell().Row(currentRow).Column(4).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.VatTax.ToString("N2")).FontSize(10);
-                    table.Cell().Row(currentRow).Column(5).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.Tax.ToString("N2")).FontSize(10);
+                    table.Cell().Row(currentRow).Column(4).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.VatTaxDisplay).FontSize(10);
+                    table.Cell().Row(currentRow).Column(5).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.TaxDisplay).FontSize(10);
                     table.Cell().Row(currentRow).Column(6).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceTotal.ToString("N2")).FontSize(10);
                     table.Cell().Row(currentRow).Column(7).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignLeft().Text(row.CustomerName).FontSize(10);
                     table.Cell().Row(currentRow).Column(8).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.TransType).FontSize(10);
