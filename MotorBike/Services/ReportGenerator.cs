@@ -66,6 +66,27 @@ public class ReportGenerator
         return document.GeneratePdf();
     }
 
+    public static byte[] GenerateInvoiceDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(1, QuestPDF.Infrastructure.Unit.Centimetre);
+                page.PageColor(Colors.White);
+                page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(11).DirectionFromRightToLeft());
+
+                page.Header().Element(c => ComposeHeader(c, company, reportTitle, headerInfo));
+                page.Content().Element(c => ComposeInvoiceDetailedContent(c, data.ToList(), footerTotals));
+                page.Footer().Element(ComposeFooter);
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
+
     private static void ComposeHeader(IContainer container, Company company, string reportTitle, Dictionary<string, string>? headerInfo)
     {
         container.Column(column =>
@@ -122,25 +143,28 @@ public class ReportGenerator
 
             if (headerInfo != null && headerInfo.Count > 0)
             {
-                column.Item().PaddingTop(10).PaddingBottom(10).Row(r =>
+                var items = headerInfo.ToList();
+                const int maxPerRow = 3; // max fields per row (safe for A4 Portrait)
+
+                // Split into chunks of maxPerRow to wrap onto multiple rows
+                for (int chunkStart = items.Count - 1; chunkStart >= 0; chunkStart -= maxPerRow)
                 {
-                    // ── Spacer left edge ──────────────────────────────────
-                    r.RelativeItem();
-
-                    var items = headerInfo.ToList();
-                    for (int i = items.Count - 1; i >= 0; i--)
+                    int chunkEnd = Math.Max(chunkStart - maxPerRow + 1, 0);
+                    column.Item().PaddingTop(6).PaddingBottom(2).Row(r =>
                     {
-                        r.AutoItem().Element(c => RenderHeaderField(c, items[i]));
-                        
-                        if (i > 0)
-                        {
-                            r.ConstantItem(20); // gap between fields
-                        }
-                    }
+                        r.RelativeItem(); // left spacer
 
-                    // ── Spacer right edge ─────────────────────────────────
-                    r.RelativeItem();
-                });
+                        for (int i = chunkStart; i >= chunkEnd; i--)
+                        {
+                            r.AutoItem().Element(c => RenderHeaderField(c, items[i]));
+                            if (i > chunkEnd)
+                                r.ConstantItem(20); // gap between fields
+                        }
+
+                        r.RelativeItem(); // right spacer
+                    });
+                }
+                column.Item().PaddingBottom(4);
             }
 
             column.Item().PaddingBottom(15);
@@ -372,6 +396,123 @@ public class ReportGenerator
                 colContainer.Item().PaddingTop(10).Padding(10).Row(r =>
                 {
                     foreach (var kv in Enumerable.Reverse(footerTotals))
+                    {
+                        r.RelativeItem().Column(c =>
+                        {
+                            c.Item().AlignCenter().Text(kv.Key).SemiBold().FontSize(11).FontColor("#334155");
+
+                            var valueContainer = c.Item().PaddingTop(2).MaxWidth(120).AlignCenter();
+
+                            bool isNumericOrDate = kv.Value?.Any(ch => char.IsDigit(ch) && !char.IsLetter(ch)) ?? false;
+                            var textElement = valueContainer
+                                .Border(0.5f)
+                                .BorderColor(Colors.Black)
+                                .CornerRadius(15) 
+                                .PaddingVertical(4)
+                                .PaddingHorizontal(12)
+                                .AlignCenter()
+                                .Text(kv.Value)
+                                .FontSize(12)
+                                .FontColor("#1E293B");
+
+                            if (isNumericOrDate && !string.IsNullOrWhiteSpace(kv.Value))
+                                textElement.DirectionFromLeftToRight();
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private static void ComposeInvoiceDetailedContent(IContainer container, List<DetailedAccountRow> data, Dictionary<string, string>? footerTotals)
+    {
+        container.PaddingVertical(1).Column(colContainer =>
+        {
+            colContainer.Item().Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(1);   // 1 صافي الفاتورة
+                    columns.ConstantColumn(60);  // 2 اضافة
+                    columns.ConstantColumn(60);  // 3 خصم
+                    columns.ConstantColumn(60);  // 4 ض.ق.م
+                    columns.ConstantColumn(60);  // 5 ض.أ.ت.ص
+                    columns.RelativeColumn(1);   // 6 إجمالي الفاتورة
+                    columns.RelativeColumn(2);   // 7 العميل
+                    columns.ConstantColumn(70);  // 8 نوع الحركة
+                    columns.ConstantColumn(60);  // 9 رقم الحركة
+                    columns.ConstantColumn(70);  // 10 التاريخ
+                });
+
+                uint currentRow = 1;
+
+                string[] headers = { "صافي الفاتورة", "اضافة", "خصم", "ض.ق.م", "ض.أ.ت.ص", "إجمالي الفاتورة", "العميل", "نوع الحركة", "رقم الحركة", "التاريخ" };
+                for (uint i = 0; i < headers.Length; i++)
+                {
+                    table.Cell().Row(currentRow).Column(i + 1).Background("#D1FAE5").Border(1).BorderColor(Colors.Teal.Medium).Padding(5).AlignCenter().Text(headers[i]).SemiBold().FontColor("#065F46");
+                }
+                currentRow++;
+
+                foreach (var row in data)
+                {
+                    table.Cell().Row(currentRow).Column(1).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceNet.ToString("N2")).FontSize(10);
+                    table.Cell().Row(currentRow).Column(2).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceAdd.ToString("N2")).FontSize(10);
+                    table.Cell().Row(currentRow).Column(3).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceDisc.ToString("N2")).FontSize(10);
+                    table.Cell().Row(currentRow).Column(4).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.VatTaxDisplay).FontSize(10);
+                    table.Cell().Row(currentRow).Column(5).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.TaxDisplay).FontSize(10);
+                    table.Cell().Row(currentRow).Column(6).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.InvoiceTotal.ToString("N2")).FontSize(10);
+                    table.Cell().Row(currentRow).Column(7).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignLeft().Text(row.CustomerName).FontSize(10);
+                    table.Cell().Row(currentRow).Column(8).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.TransType).FontSize(10);
+                    table.Cell().Row(currentRow).Column(9).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.RefNo).FontSize(10);
+                    table.Cell().Row(currentRow).Column(10).Border(1).BorderColor(Colors.Teal.Lighten3).Padding(5).AlignCenter().Text(row.Date).FontSize(10);
+                    currentRow++;
+
+                    if (row.HasItems)
+                    {
+                        table.Cell().Row(currentRow).Column(1).ColumnSpan(10).PaddingBottom(10).PaddingRight(40).PaddingLeft(10).PaddingTop(5).Element(c =>
+                        {
+                            c.Table(innerTable =>
+                            {
+                                innerTable.ColumnsDefinition(innerCols =>
+                                {
+                                    innerCols.RelativeColumn(1); // 1 إجمالي
+                                    innerCols.RelativeColumn(1); // 2 خصم%
+                                    innerCols.RelativeColumn(1); // 3 السعر
+                                    innerCols.RelativeColumn(1); // 4 الكمية
+                                    innerCols.RelativeColumn(1); // 5 الوحدة
+                                    innerCols.RelativeColumn(3); // 6 الصنف
+                                });
+
+                                uint innerRow = 1;
+                                string[] innerHeaders = { "إجمالي", "خصم%", "السعر", "الكمية", "الوحدة", "الصنف" };
+                                for (uint i = 0; i < innerHeaders.Length; i++)
+                                {
+                                    innerTable.Cell().Row(innerRow).Column(i + 1).Background("#FEF3C7").Border(1).BorderColor(Colors.Orange.Lighten2).Padding(4).AlignCenter().Text(innerHeaders[i]).SemiBold().FontSize(10).FontColor("#92400E");
+                                }
+                                innerRow++;
+
+                                foreach (var item in row.Items)
+                                {
+                                    innerTable.Cell().Row(innerRow).Column(1).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignCenter().Text(item.Total.ToString("N2")).FontSize(9);
+                                    innerTable.Cell().Row(innerRow).Column(2).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignCenter().Text(item.DiscPer.ToString("N2")).FontSize(9);
+                                    innerTable.Cell().Row(innerRow).Column(3).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignCenter().Text(item.Price.ToString("N2")).FontSize(9);
+                                    innerTable.Cell().Row(innerRow).Column(4).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignCenter().Text(item.Qty.ToString("N2")).FontSize(9);
+                                    innerTable.Cell().Row(innerRow).Column(5).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignCenter().Text(item.Unit).FontSize(9);
+                                    innerTable.Cell().Row(innerRow).Column(6).Border(1).BorderColor(Colors.Orange.Lighten3).Padding(4).AlignLeft().Text(item.ItemName).FontSize(9);
+                                    innerRow++;
+                                }
+                            });
+                        });
+                        currentRow++;
+                    }
+                }
+            });
+
+            if (footerTotals != null && footerTotals.Count > 0)
+            {
+                colContainer.Item().PaddingTop(5).Padding(10).Row(r =>
+                {
+                    foreach (var kv in footerTotals.Reverse())
                     {
                         r.RelativeItem().Column(c =>
                         {

@@ -59,6 +59,14 @@
                                   Width="130" Padding="8" FontSize="14"/>
                     </StackPanel>
 
+                    <!-- حالة الفاتورة (مبيعات / مرتجعات / الكل) -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsInvoiceStatusFilterVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="حالة الفاتورة" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <ComboBox ItemsSource="{Binding InvoiceStatusFilterTypes}" 
+                                  SelectedItem="{Binding SelectedInvoiceStatusFilter}" 
+                                  Width="130" Padding="8" FontSize="14"/>
+                    </StackPanel>
+
                     <!-- Dynamic elements based on selection -->
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCustomerVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار العميل" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
@@ -68,6 +76,30 @@
                                       DisplayMemberPath="CusName" 
                                       Width="200" Padding="8" FontSize="14"/>
                             <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCustomerCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- المخزن -->
+                    <StackPanel Margin="0,0,20,15">
+                        <TextBlock Text="المخزن (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Stores}" 
+                                      SelectedItem="{Binding SelectedStore}" 
+                                      DisplayMemberPath="StoreName" 
+                                      Width="180" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearStoreCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- الخزينة -->
+                    <StackPanel Margin="0,0,20,15">
+                        <TextBlock Text="الخزينة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Cashes}" 
+                                      SelectedItem="{Binding SelectedSafe}" 
+                                      DisplayMemberPath="CashName" 
+                                      Width="180" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearSafeCommand}"/>
                         </StackPanel>
                     </StackPanel>
 
@@ -128,7 +160,20 @@
                             <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarYearCommand}"/>
                         </StackPanel>
                     </StackPanel>
+
+                    <!-- المدينة — يظهر فقط لتقرير أرصدة العملاء -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCityFilterVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="المدينة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Cities}" 
+                                      SelectedItem="{Binding SelectedCity}" 
+                                      DisplayMemberPath="CityName"
+                                      Width="180" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCityCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
                 </WrapPanel>
+
 
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="🔍 بحث" Command="{Binding GenerateReportCommand}" 
@@ -168,53 +213,240 @@
             <Border.Effect>
                 <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/>
             </Border.Effect>
-            <!-- Detailed Customer Statement with sub-item rows -->
-            <DataGrid ItemsSource="{Binding DetailedReportData}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#E2E8F0"
-                      BorderThickness="0"
-                      Background="White"
-                      RowBackground="White"
-                      AlternatingRowBackground="#F8FAFC"
-                      RowDetailsVisibilityMode="VisibleWhenSelected">
+            <!-- Detailed Report Container -->
+            <Grid>
+                <!-- 1. Detailed Customer Statement (Original) -->
+                <DataGrid ItemsSource="{Binding DetailedReportData}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#E2E8F0"
+                          BorderThickness="0"
+                          Background="White"
+                          RowBackground="White"
+                          AlternatingRowBackground="#F8FAFC"
+                          RowDetailsVisibilityMode="VisibleWhenSelected">
 
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#F1F5F9"/>
-                        <Setter Property="Foreground" Value="#334155"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsInvoiceMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
 
-                <DataGrid.CellStyle>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E0E7FF"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.CellStyle>
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F1F5F9"/>
+                            <Setter Property="Foreground" Value="#334155"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
 
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="التاريخ"       Binding="{Binding Date}"          Width="90"/>
-                    <DataGridTextColumn Header="رقم الحركة"   Binding="{Binding RefNo}"         Width="80"/>
-                    <DataGridTextColumn Header="نوع الحركة"   Binding="{Binding TransType}"     Width="120"/>
-                    <DataGridTextColumn Header="البيان"       Binding="{Binding Notes}"         Width="*"/>
-                    <DataGridTextColumn Header="مدين (عليه)"  Binding="{Binding Debit, StringFormat=N2}"         Width="100"/>
-                    <DataGridTextColumn Header="دائن (له)"    Binding="{Binding Credit, StringFormat=N2}"        Width="100"/>
-                    <DataGridTextColumn Header="رصيد مدين"   Binding="{Binding RunningDebit, StringFormat=N2}"  Width="100"/>
-                    <DataGridTextColumn Header="رصيد دائن"   Binding="{Binding RunningCredit, StringFormat=N2}" Width="100"/>
-                </DataGrid.Columns>
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E0E7FF"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="التاريخ"       Binding="{Binding Date}"          Width="90"/>
+                        <DataGridTextColumn Header="رقم الحركة"    Binding="{Binding RefNo}"         Width="80"/>
+                        <DataGridTextColumn Header="نوع الحركة"    Binding="{Binding TransType}"     Width="120"/>
+                        <DataGridTextColumn Header="البيان"        Binding="{Binding Notes}"         Width="*"/>
+                        <DataGridTextColumn Header="مدين (عليه)"   Binding="{Binding Debit, StringFormat=N2}"         Width="100"/>
+                        <DataGridTextColumn Header="دائن (له)"     Binding="{Binding Credit, StringFormat=N2}"        Width="100"/>
+                        <DataGridTextColumn Header="رصيد مدين"     Binding="{Binding RunningDebit, StringFormat=N2}"  Width="100"/>
+                        <DataGridTextColumn Header="رصيد دائن"     Binding="{Binding RunningCredit, StringFormat=N2}" Width="100"/>
+                    </DataGrid.Columns>
+
+                    <!-- جدول الأصناف يظهر عند اختيار صف فاتورة -->
+                    <DataGrid.RowDetailsTemplate>
+                        <DataTemplate>
+                            <Border Margin="30,4,4,8" Padding="0"
+                                    Visibility="{Binding HasItems, Converter={StaticResource BoolToVis}}">
+                                <Grid>
+                                    <!-- جدول الأصناف العادية -->
+                                    <DataGrid ItemsSource="{Binding Items}"
+                                              AutoGenerateColumns="False"
+                                              IsReadOnly="True"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="All"
+                                              HorizontalGridLinesBrush="#CBD5E1"
+                                              VerticalGridLinesBrush="#CBD5E1"
+                                              BorderThickness="1"
+                                              BorderBrush="#CBD5E1"
+                                              Background="#FFFBEB"
+                                              CanUserResizeRows="False"
+                                              SelectionMode="Single">
+                                        <DataGrid.Style>
+                                            <Style TargetType="DataGrid">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCarTransaction}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.Style>
+                                        <DataGrid.ColumnHeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader">
+                                                <Setter Property="Background" Value="#FEF3C7"/>
+                                                <Setter Property="Foreground" Value="#92400E"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="Padding" Value="8,6"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.CellStyle>
+                                            <Style TargetType="DataGridCell">
+                                                <Setter Property="Padding" Value="8,5"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </DataGrid.CellStyle>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="الصنف"    Binding="{Binding ItemName}"              Width="*"/>
+                                            <DataGridTextColumn Header="الوحدة"   Binding="{Binding Unit}"                  Width="70"/>
+                                            <DataGridTextColumn Header="الكمية"   Binding="{Binding Qty, StringFormat=N2}"  Width="70"/>
+                                            <DataGridTextColumn Header="السعر"    Binding="{Binding Price, StringFormat=N2}" Width="80"/>
+                                            <DataGridTextColumn Header="خصم%"     Binding="{Binding DiscPer, StringFormat=N2}" Width="60"/>
+                                            <DataGridTextColumn Header="إجمالي"   Binding="{Binding Total, StringFormat=N2}" Width="90"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+
+                                    <!-- جدول الموتوسيكلات -->
+                                    <DataGrid ItemsSource="{Binding Items}"
+                                              AutoGenerateColumns="False"
+                                              IsReadOnly="True"
+                                              HeadersVisibility="Column"
+                                              GridLinesVisibility="All"
+                                              HorizontalGridLinesBrush="#CBD5E1"
+                                              VerticalGridLinesBrush="#CBD5E1"
+                                              BorderThickness="1"
+                                              BorderBrush="#CBD5E1"
+                                              Background="#F0FDF4"
+                                              CanUserResizeRows="False"
+                                              SelectionMode="Single">
+                                        <DataGrid.Style>
+                                            <Style TargetType="DataGrid">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCarTransaction}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.Style>
+                                        <DataGrid.ColumnHeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader">
+                                                <Setter Property="Background" Value="#DCFCE7"/>
+                                                <Setter Property="Foreground" Value="#166534"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="Padding" Value="8,6"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.CellStyle>
+                                            <Style TargetType="DataGridCell">
+                                                <Setter Property="Padding" Value="8,5"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                            </Style>
+                                        </DataGrid.CellStyle>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="الماركة والموديل" Binding="{Binding ItemName}"   Width="*"/>
+                                            <DataGridTextColumn Header="رقم الشاسيه"      Binding="{Binding ChassisNo}" Width="120"/>
+                                            <DataGridTextColumn Header="رقم الماتور"      Binding="{Binding MotorNo}"   Width="120"/>
+                                            <DataGridTextColumn Header="اللوحة / اللون"   Binding="{Binding PlateNo}"   Width="80"/>
+                                            <DataGridTextColumn Header="العداد (كم)"      Binding="{Binding Mileage}"   Width="80"/>
+                                            <DataGridTextColumn Header="السعر"            Binding="{Binding Price, StringFormat=N2}" Width="90"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </DataGrid.RowDetailsTemplate>
+                </DataGrid>
+
+                <!-- 2. Detailed Invoices Statement (New) -->
+                <DataGrid ItemsSource="{Binding DetailedReportData}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#0D9488"
+                          BorderThickness="1"
+                          BorderBrush="#0D9488"
+                          Background="White"
+                          RowBackground="White"
+                          AlternatingRowBackground="#F0FDFA"
+                          RowDetailsVisibilityMode="VisibleWhenSelected">
+
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsInvoiceMode}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.Style>
+
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#F0FDFA"/>
+                            <Setter Property="Foreground" Value="#0F766E"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderBrush" Value="#0D9488"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                            <Setter Property="BorderBrush" Value="#99F6E4"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#CCFBF1"/>
+                                    <Setter Property="Foreground" Value="#0F766E"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+
+                    <DataGrid.Columns>
+                        <!-- التاريخ, رقم الحركة, نوع الحركة, العميل, إجمالي الفاتورة, ض.أ.ت.ص, ض.ق.م, خصم, اضافة, صافي الفاتورة -->
+                        <DataGridTextColumn Header="التاريخ"         Binding="{Binding Date}"          Width="85"/>
+                        <DataGridTextColumn Header="رقم الحركة"      Binding="{Binding RefNo}"         Width="80"/>
+                        <DataGridTextColumn Header="نوع الحركة"      Binding="{Binding TransType}"     Width="80"/>
+                        <DataGridTextColumn Header="العميل"          Binding="{Binding CustomerName}"  Width="*"/>
+                        <DataGridTextColumn Header="إجمالي الفاتورة" Binding="{Binding InvoiceTotal, StringFormat=N2}" Width="100"/>
+                        <DataGridTextColumn Header="ض.أ.ت.ص"         Binding="{Binding Tax, StringFormat=N2}"          Width="80"/>
+                        <DataGridTextColumn Header="ض.ق.م"           Binding="{Binding VatTax, StringFormat=N2}"       Width="80"/>
+                        <DataGridTextColumn Header="خصم"             Binding="{Binding InvoiceDisc, StringFormat=N2}"  Width="80"/>
+                        <DataGridTextColumn Header="اضافة"           Binding="{Binding InvoiceAdd, StringFormat=N2}"   Width="80"/>
+                        <DataGridTextColumn Header="صافي الفاتورة"   Binding="{Binding InvoiceNet, StringFormat=N2}"   Width="100"/>
+                    </DataGrid.Columns>
+
 
                 <!-- جدول الأصناف يظهر عند اختيار صف فاتورة -->
                 <DataGrid.RowDetailsTemplate>
@@ -324,6 +556,7 @@
                     </DataTemplate>
                 </DataGrid.RowDetailsTemplate>
             </DataGrid>
+            </Grid>
         </Border>
 
         <!-- Data Grid — Regular (non-detailed) Reports -->
