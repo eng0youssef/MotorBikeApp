@@ -19,6 +19,15 @@ public class DetailedAccountRow
 
     public bool IsCarTransaction { get; set; }
 
+    // حقول خاصة بتقرير المبيعات بالفواتير
+    public string CustomerName { get; set; } = "";
+    public double InvoiceTotal { get; set; }   // إجمالي الفاتورة
+    public double InvoiceDisc  { get; set; }   // الخصم
+    public double InvoiceAdd   { get; set; }   // الإضافة
+    public double VatTax       { get; set; }   // ض.م.ق
+    public double Tax          { get; set; }   // ض.أ.ت.ص
+    public double InvoiceNet   { get; set; }   // صافي الفاتورة
+
     // تفاصيل الأصناف (فارغة للتحصيلات والرصيد السابق)
     public List<InvoiceSubItem> Items { get; set; } = [];
     public bool HasItems => Items.Count > 0;

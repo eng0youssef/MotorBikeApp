@@ -25,7 +25,8 @@ public partial class SalesReportsViewModel : ObservableObject
         "المبيعات اليومية",
         "مبيعات الموتوسيكلات",
         "كشف حساب عميل (موتوسيكلات)",
-        "تقرير المرتجعات المفصل",
+        "المبيعات بالفواتير مفصل",
+        "المبيعات بالفواتير",
         "أعلى العملاء مبيعاً"
     ];
     [ObservableProperty] private string _selectedReportType = "المبيعات بالشهور";
@@ -54,24 +55,36 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<short> _carYears = [];
     [ObservableProperty] private short? _selectedCarYear;
 
-    // ── فلتر نوع الفاتورة ──
+    // ── فلتر نوع الفاتورة (ضريبي / عادي) ──
     public ObservableCollection<string> InvoiceFilterTypes { get; } = ["الكل", "ضريبي", "عادي"];
     [ObservableProperty] private string _selectedInvoiceFilter = "الكل";
 
+    // ── فلتر نوع الفاتورة (مبيعات / مرتجعات) ──
+    public ObservableCollection<string> InvoiceStatusFilterTypes { get; } = ["الكل", "فواتير مبيعات", "فواتير مرتجعات"];
+    [ObservableProperty] private string _selectedInvoiceStatusFilter = "الكل";
+
     // فلتر نوع الفاتورة يظهر فقط للتقارير التي تدعمه
     public bool IsTaxFilterVisible => SelectedReportType is "المبيعات بالشهور" or "المبيعات بالعملاء"
-                                                          or "المبيعات اليومية" or "أعلى العملاء مبيعاً";
+                                                          or "المبيعات اليومية" or "أعلى العملاء مبيعاً"
+                                                          or "المبيعات بالفواتير مفصل" or "المبيعات بالفواتير";
+
+    // فلتر نوع الحركة يظهر فقط لتقارير الفواتير
+    public bool IsInvoiceStatusFilterVisible => SelectedReportType is "المبيعات بالفواتير مفصل" or "المبيعات بالفواتير";
+
     // هل الفلتر الحالي ضريبي (لإظهار أعمدة الضريبة)
     public bool IsShowingTax => SelectedInvoiceFilter == "ضريبي";
 
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private ObservableCollection<DetailedAccountRow> _detailedReportData = [];
     [ObservableProperty] private bool _isDetailedReport;
+    [ObservableProperty] private bool _isInvoiceMode;   // true → تقرير المبيعات بالفواتير
 
     public bool IsCustomerVisible => SelectedReportType is "المبيعات بالعملاء"
                                                         or "كشف حساب عميل"
                                                         or "كشف حساب تفصيلي للعميل"
-                                                        or "كشف حساب عميل (موتوسيكلات)";
+                                                        or "كشف حساب عميل (موتوسيكلات)"
+                                                        or "المبيعات بالفواتير مفصل"
+                                                        or "المبيعات بالفواتير";
     public bool IsItemVisible     => SelectedReportType == "المبيعات بالأصناف";
     public bool IsCarModelVisible => SelectedReportType is "مبيعات الموتوسيكلات"
                                                         or "كشف حساب عميل (موتوسيكلات)";
@@ -92,9 +105,11 @@ public partial class SalesReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCarModelVisible));
         OnPropertyChanged(nameof(IsMotorcycleReport));
         OnPropertyChanged(nameof(IsTaxFilterVisible));
+        OnPropertyChanged(nameof(IsInvoiceStatusFilterVisible));
         ReportData              = new System.Data.DataView();
         DetailedReportData      = [];
         IsDetailedReport        = false;
+        IsInvoiceMode           = false;
         StatusMessage           = null;
         _currentFooterTotals    = null;
         _currentHeaderInfo      = null;
@@ -152,10 +167,14 @@ public partial class SalesReportsViewModel : ObservableObject
             parameters.Add("FromDate", queryFromDate);
             parameters.Add("ToDate", queryToDate);
             
-            // بناء فلتر نوع الفاتورة
-            string taxFilter = SelectedInvoiceFilter == "ضريبي" ? " AND IsTax = 1 "
+            // بناء فلتر نوع الفاتورة (ضريبي / عادي)
+            string taxFilter  = SelectedInvoiceFilter == "ضريبي" ? " AND IsTax = 1 "
                              : SelectedInvoiceFilter == "عادي"  ? " AND IsTax = 0 "
                              : "";
+            // فلتر إصدار بألياس الجدول M (للجوينات)
+            string mTaxFilter = SelectedInvoiceFilter == "ضريبي" ? " AND M.IsTax = 1 "
+                              : SelectedInvoiceFilter == "عادي"  ? " AND M.IsTax = 0 " : "";
+            
             bool showTax = SelectedInvoiceFilter == "ضريبي";
 
             if (SelectedReportType == "المبيعات بالشهور")
@@ -539,35 +558,75 @@ public partial class SalesReportsViewModel : ObservableObject
 
                     ORDER BY [التاريخ] ASC";
             }
-            // ── 9. تقرير المرتجعات المفصل ─────────────────────────────────
-            else if (SelectedReportType == "تقرير المرتجعات المفصل")
+            // ── 9. المبيعات بالفواتير مفصل ───────────────────────────────
+            else if (SelectedReportType == "المبيعات بالفواتير مفصل")
             {
-                string cusFilter = "";
+                if (SelectedCustomer != null) parameters.Add("CusId", SelectedCustomer.CusId);
+                await GenerateInvoicesSalesDetailedAsync(db, queryFromDate, queryToDate, mTaxFilter, SelectedInvoiceStatusFilter);
+                return;
+            }
+            // ── 10. المبيعات بالفواتير (بدون تفاصيل) ────────────────────
+            else if (SelectedReportType == "المبيعات بالفواتير")
+            {
+                string cusFlt = "";
                 if (SelectedCustomer != null)
                 {
-                    cusFilter = " AND M.CusId = @CusId ";
+                    cusFlt = " AND M.CusId = @CusId ";
                     parameters.Add("CusId", SelectedCustomer.CusId);
                 }
 
-                sql = @"
-                    SELECT CONVERT(VARCHAR, M.SalesDate, 103)          AS [التاريخ],
-                           M.Sales_ID                                   AS [رقم المرتجع],
-                           CU.CusName                                   AS [العميل],
-                           I.ItemName                                   AS [الصنف],
-                           S.Qty                                        AS [الكمية],
-                           S.Price                                      AS [السعر],
-                           S.Disc                                       AS [الخصم],
-                           (S.Qty * (S.Price - S.Disc))                AS [الإجمالي],
-                           M.Notes                                      AS [ملاحظات]
-                    FROM ReSales M
-                    INNER JOIN ReSales_Sub S ON M.Sales_ID = S.SalesId
-                    INNER JOIN Items       I ON S.ItemId   = I.Item_ID
-                    LEFT  JOIN Customers  CU ON M.CusId    = CU.Cus_ID
-                    WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
-                    " + cusFilter + @"
-                    ORDER BY M.SalesDate DESC";
+                string salesQuery = $@"
+                        SELECT M.SalesDate AS SortDate,
+                               CONVERT(VARCHAR, M.SalesDate, 103)       AS [التاريخ],
+                               M.Sales_ID                               AS [رقم الفاتورة],
+                               N'بيع'                                   AS [نوع الحركة],
+                               ISNULL(CU.CusName, N'عميل نقدي')        AS [العميل],
+                               M.Total                                  AS [إجمالي الفاتورة],
+                               ISNULL(M.VatTax, 0)                     AS [ض.م.ق],
+                               ISNULL(M.Tax, 0)                        AS [ض.أ.ت.ص],
+                               M.Disc                                   AS [الخصم],
+                               M.AddMony                                AS [الإضافة],
+                               M.Net                                    AS [صافي الفاتورة]
+                        FROM Sales M
+                        LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
+                        WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                        {mTaxFilter} {cusFlt}";
+
+                string returnsQuery = $@"
+                        SELECT M.SalesDate AS SortDate,
+                               CONVERT(VARCHAR, M.SalesDate, 103)       AS [التاريخ],
+                               M.Sales_ID                               AS [رقم الفاتورة],
+                               N'مرتجع بيع'                               AS [نوع الحركة],
+                               ISNULL(CU.CusName, N'عميل نقدي')        AS [العميل],
+                               -(M.Total)                               AS [إجمالي الفاتورة],
+                               CAST(0 AS DECIMAL(18,2))                 AS [ض.م.ق],
+                               CAST(0 AS DECIMAL(18,2))                 AS [ض.أ.ت.ص],
+                               -(M.Disc)                                AS [الخصم],
+                               -(M.AddMony)                             AS [الإضافة],
+                               -(M.Net)                                 AS [صافي الفاتورة]
+                        FROM ReSales M
+                        LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
+                        WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                        {cusFlt}";
+
+                string cteBody = "";
+                if (SelectedInvoiceStatusFilter == "فواتير مبيعات")
+                    cteBody = salesQuery;
+                else if (SelectedInvoiceStatusFilter == "فواتير مرتجعات")
+                    cteBody = returnsQuery;
+                else
+                    cteBody = salesQuery + " \n UNION ALL \n " + returnsQuery;
+
+                sql = $@"
+                    ;WITH AllInvoices AS (
+                        {cteBody}
+                    )
+                    SELECT [التاريخ], [رقم الفاتورة], [نوع الحركة], [العميل],
+                           [إجمالي الفاتورة], [ض.م.ق], [ض.أ.ت.ص], [الخصم], [الإضافة], [صافي الفاتورة]
+                    FROM AllInvoices
+                    ORDER BY SortDate DESC, [رقم الفاتورة] DESC";
             }
-            // ── 10. أعلى العملاء مبيعاً ──────────────────────────────────
+            // ── 11. أعلى العملاء مبيعاً ──────────────────────────────────
             else if (SelectedReportType == "أعلى العملاء مبيعاً")
             {
                 sql = $@"
@@ -793,6 +852,26 @@ public partial class SalesReportsViewModel : ObservableObject
                     { "إجمالي المبيعات", sumNetVal.ToString("N2") }
                 };
             }
+            else if (SelectedReportType == "المبيعات بالفواتير")
+            {
+                double sumSales = 0, sumReturns = 0;
+                int cntSales = 0, cntReturns = 0;
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    string txType = row["نوع الحركة"]?.ToString() ?? "";
+                    double net = Convert.ToDouble(row["صافي الفاتورة"] == DBNull.Value ? 0 : row["صافي الفاتورة"]);
+                    if (txType == "بيع") { sumSales += net; cntSales++; }
+                    else { sumReturns += Math.Abs(net); cntReturns++; }
+                }
+                _currentFooterTotals = new Dictionary<string, string>
+                {
+                    { "عدد الفواتير", cntSales.ToString() },
+                    { "إجمالي المبيعات", sumSales.ToString("N2") },
+                    { "عدد المرتجعات", cntReturns.ToString() },
+                    { "إجمالي المرتجعات", sumReturns.ToString("N2") },
+                    { "صافي المبيعات", (sumSales - sumReturns).ToString("N2") }
+                };
+            }
             else
             {
                 string taxCondition = taxFilter;
@@ -866,9 +945,12 @@ public partial class SalesReportsViewModel : ObservableObject
         {
             try
             {
-                var pdfBytes = IsDetailedReport 
-                    ? MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                var pdfBytes = IsDetailedReport
+                    ? (IsInvoiceMode
+                        ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                        : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
                     : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+
                 System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
                 System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
@@ -897,9 +979,12 @@ public partial class SalesReportsViewModel : ObservableObject
 
         try
         {
-            var pdfBytes = IsDetailedReport 
-                ? MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+            var pdfBytes = IsDetailedReport
+                ? (IsInvoiceMode
+                    ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                    : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
                 : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+
             string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
             System.IO.File.WriteAllBytes(tempFile, pdfBytes);
             MotorBike.Services.ReportGenerator.PrintPdf(tempFile);
@@ -1235,5 +1320,174 @@ public partial class SalesReportsViewModel : ObservableObject
             ? $"تم العثور على {sorted.Count} حركة"
             : "⚠️ لا توجد بيانات في الفترة المحددة";
     }
-}
 
+    // ── تقرير المبيعات بالفواتير مفصل ───────────────────────────────────────
+    private async Task GenerateInvoicesSalesDetailedAsync(
+        System.Data.IDbConnection db,
+        DateTime queryFromDate,
+        DateTime queryToDate,
+        string mTaxFilter,
+        string statusFilter)
+    {
+        var p = new DynamicParameters();
+        p.Add("FromDate", queryFromDate);
+        p.Add("ToDate",   queryToDate);
+
+        string cusWhere = "";
+        if (SelectedCustomer != null)
+        {
+            cusWhere = " AND M.CusId = @CusId ";
+            p.Add("CusId", SelectedCustomer.CusId);
+        }
+
+        // ── فواتير المبيعات ──
+        IEnumerable<dynamic> salesInvoices = new List<dynamic>();
+        if (statusFilter != "فواتير مرتجعات")
+        {
+            salesInvoices = await db.QueryAsync<dynamic>($@"
+                SELECT M.Sales_ID AS Id, M.SalesDate AS TxDate,
+                       CAST(M.Sales_ID AS VARCHAR) AS RefNo,
+                       ISNULL(CU.CusName, N'عميل نقدي') AS CusName,
+                       ISNULL(M.Notes, '') AS Notes,
+                       M.Total    AS InvTotal,
+                       ISNULL(M.VatTax, 0) AS VatTax,
+                       ISNULL(M.Tax, 0)    AS Tax,
+                       M.Disc     AS InvDisc,
+                       M.AddMony  AS InvAdd,
+                       M.Net      AS InvNet
+                FROM Sales M
+                LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
+                WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                {mTaxFilter} {cusWhere}
+                ORDER BY M.SalesDate DESC, M.Sales_ID DESC", p);
+        }
+
+        // ── فواتير المرتجعات ──
+        IEnumerable<dynamic> returnInvoices = new List<dynamic>();
+        if (statusFilter != "فواتير مبيعات")
+        {
+            returnInvoices = await db.QueryAsync<dynamic>($@"
+                SELECT M.Sales_ID AS Id, M.SalesDate AS TxDate,
+                       CAST(M.Sales_ID AS VARCHAR) AS RefNo,
+                       ISNULL(CU.CusName, N'عميل نقدي') AS CusName,
+                       ISNULL(M.Notes, '') AS Notes,
+                       -(M.Total)   AS InvTotal,
+                       CAST(0 AS DECIMAL(18,2)) AS VatTax,
+                       CAST(0 AS DECIMAL(18,2)) AS Tax,
+                       -(M.Disc)    AS InvDisc,
+                       -(M.AddMony) AS InvAdd,
+                       -(M.Net)     AS InvNet
+                FROM ReSales M
+                LEFT JOIN Customers CU ON M.CusId = CU.Cus_ID
+                WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate
+                {cusWhere}
+                ORDER BY M.SalesDate DESC, M.Sales_ID DESC", p);
+        }
+
+        var rows = new List<DetailedAccountRow>();
+        double totalSales = 0, totalReturns = 0;
+        int cntSales = 0, cntReturns = 0;
+
+        // ── معالجة فواتير المبيعات ──
+        foreach (var inv in salesInvoices)
+        {
+            int id     = Convert.ToInt32(inv.Id);
+            double net = Convert.ToDouble(inv.InvNet);
+            totalSales += net;
+            cntSales++;
+
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, ISNULL(UN.UnitName,'') AS Unit,
+                       SS.Qty, SS.Price, SS.DiscPer,
+                       (SS.Qty*(SS.Price-SS.Disc)) AS Total
+                FROM Sales_Sub SS
+                JOIN Items I ON SS.ItemId=I.Item_ID
+                LEFT JOIN Units UN ON SS.UnitId=UN.Unit_ID
+                WHERE SS.SalesId=@Id", new { Id = id });
+
+            DateTime txDate = Convert.ToDateTime((object)inv.TxDate);
+            rows.Add(new DetailedAccountRow
+            {
+                RawDate      = txDate,
+                Date         = txDate.ToString("dd/MM/yyyy"),
+                RefNo        = inv.RefNo,
+                TransType    = "بيع",
+                Notes        = inv.Notes ?? "",
+                CustomerName = inv.CusName,
+                InvoiceTotal = Convert.ToDouble(inv.InvTotal),
+                VatTax       = Convert.ToDouble(inv.VatTax),
+                Tax          = Convert.ToDouble(inv.Tax),
+                InvoiceDisc  = Convert.ToDouble(inv.InvDisc),
+                InvoiceAdd   = Convert.ToDouble(inv.InvAdd),
+                InvoiceNet   = net,
+                Items = subItems.Select(x => new InvoiceSubItem
+                {
+                    ItemName = x.ItemName, Unit = x.Unit ?? "",
+                    Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
+                    DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
+                }).ToList()
+            });
+        }
+
+        // ── معالجة المرتجعات ──
+        foreach (var inv in returnInvoices)
+        {
+            int id     = Convert.ToInt32(inv.Id);
+            double net = Convert.ToDouble(inv.InvNet); // سالب بالفعل
+            totalReturns += Math.Abs(net);
+            cntReturns++;
+
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, ISNULL(UN.UnitName,'') AS Unit,
+                       SS.Qty, SS.Price, SS.DiscPer,
+                       (SS.Qty*(SS.Price-SS.Disc)) AS Total
+                FROM ReSales_Sub SS
+                JOIN Items I ON SS.ItemId=I.Item_ID
+                LEFT JOIN Units UN ON SS.UnitId=UN.Unit_ID
+                WHERE SS.SalesId=@Id", new { Id = id });
+
+            DateTime txDate = Convert.ToDateTime((object)inv.TxDate);
+            rows.Add(new DetailedAccountRow
+            {
+                RawDate      = txDate,
+                Date         = txDate.ToString("dd/MM/yyyy"),
+                RefNo        = inv.RefNo,
+                TransType    = "مرتجع بيع",
+                Notes        = inv.Notes ?? "",
+                CustomerName = inv.CusName,
+                InvoiceTotal = Convert.ToDouble(inv.InvTotal),
+                VatTax       = 0,
+                Tax          = 0,
+                InvoiceDisc  = Convert.ToDouble(inv.InvDisc),
+                InvoiceAdd   = Convert.ToDouble(inv.InvAdd),
+                InvoiceNet   = net,
+                Items = subItems.Select(x => new InvoiceSubItem
+                {
+                    ItemName = x.ItemName, Unit = x.Unit ?? "",
+                    Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
+                    DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
+                }).ToList()
+            });
+        }
+
+        // ترتيب تنازلي حسب التاريخ
+        var sorted = rows.OrderByDescending(r => r.RawDate).ThenByDescending(r => r.RefNo).ToList();
+        DetailedReportData = new ObservableCollection<DetailedAccountRow>(sorted);
+        IsDetailedReport   = true;
+        IsInvoiceMode      = true;
+
+        _currentHeaderInfo   = null;
+        _currentFooterTotals = new Dictionary<string, string>
+        {
+            { "عدد الفواتير",        cntSales.ToString() },
+            { "إجمالي المبيعات",     totalSales.ToString("N2") },
+            { "عدد المرتجعات",       cntReturns.ToString() },
+            { "إجمالي المرتجعات",    totalReturns.ToString("N2") },
+            { "صافي المبيعات",       (totalSales - totalReturns).ToString("N2") }
+        };
+
+        StatusMessage = sorted.Count > 0
+            ? $"تم العثور على {cntSales} فاتورة بيع و{cntReturns} مرتجع"
+            : "⚠️ لا توجد بيانات في الفترة المحددة";
+    }
+}
