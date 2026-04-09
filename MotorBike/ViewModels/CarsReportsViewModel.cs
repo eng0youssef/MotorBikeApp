@@ -21,7 +21,7 @@ public partial class CarsReportsViewModel : ObservableObject
         "الموتوسيكلات المشتراة",
         "ربحية الموتوسيكلات",
         "أعلى الموديلات مبيعاً",
-        "حركة موتوسيكل معين"
+        "كشف حركة موتوسيكل"
     ];
 
     [ObservableProperty] private string _selectedReportType = "مخزون الموتوسيكلات الحالي";
@@ -35,7 +35,7 @@ public partial class CarsReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private CarModel? _selectedCarModel;
 
-    // Individual car filter (for حركة موتوسيكل معين)
+    // Individual car filter (for كشف حركة موتوسيكل)
     [ObservableProperty] private ObservableCollection<Car> _cars = [];
     [ObservableProperty] private Car? _selectedCar;
     [ObservableProperty] private string _carDisplayText = "";
@@ -48,7 +48,7 @@ public partial class CarsReportsViewModel : ObservableObject
                                                          or "الموتوسيكلات المشتراة"
                                                          or "ربحية الموتوسيكلات"
                                                          or "أعلى الموديلات مبيعاً";
-    public bool IsCarVisible       => SelectedReportType == "حركة موتوسيكل معين";
+    public bool IsCarVisible       => SelectedReportType == "كشف حركة موتوسيكل";
 
     partial void OnSelectedReportTypeChanged(string value)
     {
@@ -115,11 +115,12 @@ public partial class CarsReportsViewModel : ObservableObject
                            C.ChassisNo                                    AS [رقم الشاسيه],
                            C.MotorNo                                      AS [رقم الموتور],
                            C.PlateNo                                      AS [رقم اللوحة],
-                           C.Mileage                                      AS [الكيلومتراج],
+                           C.Mileage                                      AS [الكيلومتر],
                            CASE C.StatusId WHEN 1 THEN 'مخزن'
                                            WHEN 2 THEN 'مباع'
                                            WHEN 3 THEN 'صيانة' ELSE 'غير محدد' END AS [الحالة],
-                           C.PurchasePrice                                AS [سعر الشراء]
+                           C.PurchasePrice                                AS [سعر الشراء],
+                           CASE WHEN EXISTS (SELECT 1 FROM Sales WHERE CarID = C.Car_ID) THEN 'نعم' ELSE 'لا' END AS [تمت صيانته]
                     FROM Cars C
                     INNER JOIN CarModels CM ON C.ModelID  = CM.Model_ID
                     INNER JOIN CarBrands CB ON CM.BrandID = CB.Brand_ID
@@ -146,7 +147,8 @@ public partial class CarsReportsViewModel : ObservableObject
                            C.PlateNo                                       AS [رقم اللوحة],
                            S.Total                                         AS [سعر البيع],
                            C.PurchasePrice                                 AS [سعر الشراء],
-                           (S.Total - C.PurchasePrice)                     AS [صافي الربح]
+                           (S.Total - C.PurchasePrice)                     AS [صافي الربح],
+                           CASE WHEN EXISTS (SELECT 1 FROM Sales WHERE CarID = C.Car_ID) THEN 'نعم' ELSE 'لا' END AS [تمت صيانته]
                     FROM Sales_Car S
                     INNER JOIN Cars      C  ON S.CarID    = C.Car_ID
                     INNER JOIN CarModels CM ON C.ModelID  = CM.Model_ID
@@ -203,7 +205,8 @@ public partial class CarsReportsViewModel : ObservableObject
                            (S.Total - C.PurchasePrice)                     AS [الربح],
                            CASE WHEN C.PurchasePrice > 0 
                                 THEN CAST(ROUND(((S.Total - C.PurchasePrice) / C.PurchasePrice) * 100, 2) AS VARCHAR) + ' %'
-                                ELSE '0 %' END                             AS [نسبة الربح]
+                                ELSE '0 %' END                             AS [نسبة الربح],
+                           CASE WHEN EXISTS (SELECT 1 FROM Sales WHERE CarID = C.Car_ID) THEN 'نعم' ELSE 'لا' END AS [تمت صيانته]
                     FROM Sales_Car S
                     INNER JOIN Cars      C  ON S.CarID    = C.Car_ID
                     INNER JOIN CarModels CM ON C.ModelID  = CM.Model_ID
@@ -216,6 +219,13 @@ public partial class CarsReportsViewModel : ObservableObject
             // ── 5. أعلى الموديلات مبيعاً ─────────────────────────────────
             else if (SelectedReportType == "أعلى الموديلات مبيعاً")
             {
+                string modelFilter = "";
+                if (SelectedCarModel != null)
+                {
+                    modelFilter = " AND CM.Model_ID = @ModelId ";
+                    p.Add("ModelId", SelectedCarModel.ModelId);
+                }
+
                 sql = @"
                     SELECT CB.BrandName + ' - ' + CM.ModelName             AS [الموديل],
                            COUNT(S.Sales_ID)                               AS [عدد المبيعات],
@@ -227,10 +237,11 @@ public partial class CarsReportsViewModel : ObservableObject
                     INNER JOIN CarModels CM ON C.ModelID  = CM.Model_ID
                     INNER JOIN CarBrands CB ON CM.BrandID = CB.Brand_ID
                     WHERE S.SalesDate >= @FromDate AND S.SalesDate <= @ToDate
+                    " + modelFilter + @"
                     GROUP BY CB.BrandName, CM.ModelName
                     ORDER BY [عدد المبيعات] DESC";
             }
-            // ── 6. حركة موتوسيكل معين ────────────────────────────────────
+            // ── 6. كشف حركة موتوسيكل ────────────────────────────────────
             else
             {
                 if (SelectedCar == null)
@@ -242,28 +253,60 @@ public partial class CarsReportsViewModel : ObservableObject
                 p.Add("CarId", SelectedCar.CarId);
 
                 sql = @"
-                    -- بيانات الموتوسيكل
-                    SELECT 'شراء' AS [النوع],
-                           CONVERT(VARCHAR, B.BuyDate, 103) AS [التاريخ],
-                           B.Buy_ID AS [رقم العملية],
-                           B.OwnerName AS [الطرف الآخر],
-                           B.Total AS [المبلغ],
-                           B.Notes AS [ملاحظات]
-                    FROM Buy_Car B WHERE B.CarID = @CarId
+                    -- حركة الموتوسيكل (شراء، بيع، صيانة)
+                    SELECT [نوع الحركة], [التاريخ], [رقم العملية], [الطرف الآخر], [التليفون], [المبلغ], [العداد], [ملاحظات]
+                    FROM (
+                        SELECT 'شراء' AS [نوع الحركة],
+                               CONVERT(VARCHAR, B.BuyDate, 103) AS [التاريخ],
+                               B.Buy_ID AS [رقم العملية],
+                               B.OwnerName AS [الطرف الآخر],
+                               B.OwnerTel AS [التليفون],
+                               B.Total AS [المبلغ],
+                               ISNULL(B.Mileage, 0) AS [العداد],
+                               B.Notes AS [ملاحظات],
+                               B.BuyDate AS [RawDate]
+                        FROM Buy_Car B 
+                        WHERE B.CarID = @CarId
 
-                    UNION ALL
+                        UNION ALL
 
-                    SELECT 'بيع',
-                           CONVERT(VARCHAR, S.SalesDate, 103),
-                           S.Sales_ID,
-                           CU.CusName,
-                           S.Total,
-                           S.Notes
-                    FROM Sales_Car S
-                    LEFT JOIN Customers CU ON S.CusID = CU.Cus_ID
-                    WHERE S.CarID = @CarId
+                        SELECT 'بيع',
+                               CONVERT(VARCHAR, S.SalesDate, 103),
+                               S.Sales_ID,
+                               CU.CusName,
+                               CU.Tel,
+                               S.Total,
+                               ISNULL(S.Mileage, 0),
+                               S.Notes,
+                               S.SalesDate
+                        FROM Sales_Car S
+                        LEFT JOIN Customers CU ON S.CusID = CU.Cus_ID
+                        WHERE S.CarID = @CarId
 
-                    ORDER BY [التاريخ] ASC";
+                        UNION ALL
+
+                        SELECT 'صيانة',
+                               CONVERT(VARCHAR, S.SalesDate, 103),
+                               S.Sales_ID,
+                               CU.CusName,
+                               CU.Tel,
+                               S.Total,
+                               0,
+                            ISNULL(S.Notes, '') + 
+ISNULL(' - الأصناف: ' + 
+    STUFF((
+        SELECT ', ' + I.ItemName
+        FROM Sales_Sub SS
+        INNER JOIN Items I ON SS.ItemId = I.Item_ID
+        WHERE SS.SalesId = S.Sales_ID
+        FOR XML PATH(''), TYPE
+    ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''), ''),
+                        S.SalesDate
+                        FROM Sales S
+                        LEFT JOIN Customers CU ON S.CusID = CU.Cus_ID
+                        WHERE S.CarID = @CarId
+                    ) AS T
+                    ORDER BY [RawDate] ASC";
             }
 
             // ── Execute ───────────────────────────────────────────────────
@@ -331,6 +374,18 @@ public partial class CarsReportsViewModel : ObservableObject
             {
                 { "إجمالي الموتوسيكلات المباعة", cnt.ToString()       },
                 { "إجمالي الإيرادات",             tRev.ToString("N2") }
+            };
+        }
+        else if (SelectedReportType == "كشف حركة موتوسيكل")
+        {
+            var tBuy   = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Buy_Car   WHERE CarID = @CarId", p);
+            var tSale  = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Sales_Car WHERE CarID = @CarId", p);
+            var tMaint = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Sales     WHERE CarID = @CarId", p);
+            _currentFooterTotals = new Dictionary<string, string>
+            {
+                { "إجمالي الشراء",  tBuy.ToString("N2")   },
+                { "إجمالي الصيانة", tMaint.ToString("N2") },
+                { "إجمالي البيع",    tSale.ToString("N2")  }
             };
         }
     }

@@ -612,7 +612,7 @@ public partial class BuyCarViewModel : ObservableObject
                                 IsFromCustomer = IsFromCustomer,
                                 SourceCustomerId = IsFromCustomer ? (SelectedSourceCustomerId > 0 ? SelectedSourceCustomerId : (int?)null) : (int?)null,
                                 PurchasePrice = FormItem.Net,
-                                Mileage = FormItem.Mileage,
+                                Mileage = FormItem.Mileage ?? 0,
                                 EditDate = DateTime.Now,
                                 EditPc = Environment.MachineName,
                                 EditUser = AppSession.CurrentUserId ?? 1
@@ -642,7 +642,7 @@ public partial class BuyCarViewModel : ObservableObject
                                 ChassisNo = CarChassisNo,
                                 MotorNo = CarMotorNo,
                                 PlateNo = CarPlateNo,
-                                Mileage = FormItem.Mileage,
+                                Mileage = FormItem.Mileage ?? 0,
                                 ColorId = _carColorId,
                                 Notes = CarNotes,
                                 IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
