@@ -160,7 +160,20 @@
                             <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarYearCommand}"/>
                         </StackPanel>
                     </StackPanel>
+
+                    <!-- المدينة — يظهر فقط لتقرير أرصدة العملاء -->
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCityFilterVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="المدينة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Cities}" 
+                                      SelectedItem="{Binding SelectedCity}" 
+                                      DisplayMemberPath="CityName"
+                                      Width="180" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCityCommand}"/>
+                        </StackPanel>
+                    </StackPanel>
                 </WrapPanel>
+
 
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="🔍 بحث" Command="{Binding GenerateReportCommand}" 

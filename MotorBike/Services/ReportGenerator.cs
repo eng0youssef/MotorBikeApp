@@ -143,25 +143,28 @@ public class ReportGenerator
 
             if (headerInfo != null && headerInfo.Count > 0)
             {
-                column.Item().PaddingTop(10).PaddingBottom(10).Row(r =>
+                var items = headerInfo.ToList();
+                const int maxPerRow = 3; // max fields per row (safe for A4 Portrait)
+
+                // Split into chunks of maxPerRow to wrap onto multiple rows
+                for (int chunkStart = items.Count - 1; chunkStart >= 0; chunkStart -= maxPerRow)
                 {
-                    // ── Spacer left edge ──────────────────────────────────
-                    r.RelativeItem();
-
-                    var items = headerInfo.ToList();
-                    for (int i = items.Count - 1; i >= 0; i--)
+                    int chunkEnd = Math.Max(chunkStart - maxPerRow + 1, 0);
+                    column.Item().PaddingTop(6).PaddingBottom(2).Row(r =>
                     {
-                        r.AutoItem().Element(c => RenderHeaderField(c, items[i]));
-                        
-                        if (i > 0)
-                        {
-                            r.ConstantItem(20); // gap between fields
-                        }
-                    }
+                        r.RelativeItem(); // left spacer
 
-                    // ── Spacer right edge ─────────────────────────────────
-                    r.RelativeItem();
-                });
+                        for (int i = chunkStart; i >= chunkEnd; i--)
+                        {
+                            r.AutoItem().Element(c => RenderHeaderField(c, items[i]));
+                            if (i > chunkEnd)
+                                r.ConstantItem(20); // gap between fields
+                        }
+
+                        r.RelativeItem(); // right spacer
+                    });
+                }
+                column.Item().PaddingBottom(4);
             }
 
             column.Item().PaddingBottom(15);

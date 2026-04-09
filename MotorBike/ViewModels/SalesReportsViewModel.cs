@@ -24,10 +24,10 @@ public partial class SalesReportsViewModel : ObservableObject
         // ── التقارير الإضافية ──
         "المبيعات اليومية",
         "مبيعات الموتوسيكلات",
-        "كشف حساب عميل (موتوسيكلات)",
         "المبيعات بالفواتير مفصل",
         "المبيعات بالفواتير",
-        "أعلى العملاء مبيعاً"
+        "أعلى العملاء مبيعاً",
+        "أرصدة العملاء"
     ];
     [ObservableProperty] private string _selectedReportType = "المبيعات بالشهور";
 
@@ -61,6 +61,9 @@ public partial class SalesReportsViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Cash> _cashes = [];
     [ObservableProperty] private Cash? _selectedSafe;
 
+    [ObservableProperty] private ObservableCollection<City> _cities = [];
+    [ObservableProperty] private City? _selectedCity;
+
     // ── فلتر نوع الفاتورة (ضريبي / عادي) ──
     public ObservableCollection<string> InvoiceFilterTypes { get; } = ["الكل", "ضريبي", "عادي"];
     [ObservableProperty] private string _selectedInvoiceFilter = "الكل";
@@ -88,13 +91,13 @@ public partial class SalesReportsViewModel : ObservableObject
     public bool IsCustomerVisible => SelectedReportType is "المبيعات بالعملاء"
                                                         or "كشف حساب عميل"
                                                         or "كشف حساب تفصيلي للعميل"
-                                                        or "كشف حساب عميل (موتوسيكلات)"
                                                         or "المبيعات بالفواتير مفصل"
-                                                        or "المبيعات بالفواتير";
-    public bool IsItemVisible     => SelectedReportType == "المبيعات بالأصناف";
-    public bool IsCarModelVisible => SelectedReportType is "مبيعات الموتوسيكلات"
-                                                        or "كشف حساب عميل (موتوسيكلات)";
+                                                        or "المبيعات بالفواتير"
+                                                        or "أرصدة العملاء";
+    public bool IsItemVisible      => SelectedReportType == "المبيعات بالأصناف";
+    public bool IsCarModelVisible  => SelectedReportType == "مبيعات الموتوسيكلات";
     public bool IsMotorcycleReport => SelectedReportType == "مبيعات الموتوسيكلات";
+    public bool IsCityFilterVisible => SelectedReportType == "أرصدة العملاء";
 
     [ObservableProperty] private int _motorcyclesCount;
     [ObservableProperty] private double _motorcyclesTotalSales;
@@ -112,6 +115,7 @@ public partial class SalesReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsMotorcycleReport));
         OnPropertyChanged(nameof(IsTaxFilterVisible));
         OnPropertyChanged(nameof(IsInvoiceStatusFilterVisible));
+        OnPropertyChanged(nameof(IsCityFilterVisible));
         ReportData              = new System.Data.DataView();
         DetailedReportData      = [];
         IsDetailedReport        = false;
@@ -144,7 +148,8 @@ public partial class SalesReportsViewModel : ObservableObject
         CarColors = new ObservableCollection<Color>(await db.QueryAsync<Color>("SELECT Color_ID AS ColorId, ColorName, Notes, Active FROM Colors WHERE Active = 1"));
         CarYears  = new ObservableCollection<short>(await db.QueryAsync<short>("SELECT DISTINCT YearNo FROM Cars ORDER BY YearNo DESC"));
         Stores    = new ObservableCollection<Store>(await db.QueryAsync<Store>("SELECT * FROM Stores"));
-        Cashes    = new ObservableCollection<Cash>(await db.QueryAsync<Cash>("SELECT * FROM Cashes WHERE ISNULL(OmlaId,0) = 0"));
+        Cashes    = new ObservableCollection<Cash>(await db.QueryAsync<Cash>("SELECT Cash_ID AS CashId, * FROM Cash WHERE ISNULL(OmlaId,0) = 0"));
+        Cities    = new ObservableCollection<City>(await db.QueryAsync<City>("SELECT City_ID AS CityId, CityName FROM City ORDER BY CityName"));
     }
 
     [RelayCommand] private void ClearCustomer()    => SelectedCustomer  = null;
@@ -155,6 +160,7 @@ public partial class SalesReportsViewModel : ObservableObject
     [RelayCommand] private void ClearCarYear()     => SelectedCarYear   = null;
     [RelayCommand] private void ClearStore()       => SelectedStore     = null;
     [RelayCommand] private void ClearSafe()        => SelectedSafe      = null;
+    [RelayCommand] private void ClearCity()        => SelectedCity      = null;
 
     private Dictionary<string, string>? _currentHeaderInfo;
     private Dictionary<string, string>? _currentFooterTotals;
@@ -555,45 +561,7 @@ public partial class SalesReportsViewModel : ObservableObject
                     " + modelFilter + @"
                     ORDER BY SC.SalesDate DESC";
             }
-            // ── 8. كشف حساب عميل (موتوسيكلات) ───────────────────────────
-            else if (SelectedReportType == "كشف حساب عميل (موتوسيكلات)")
-            {
-                if (SelectedCustomer == null)
-                {
-                    System.Windows.MessageBox.Show("يرجى اختيار العميل أولاً", "تنبيه",
-                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    return;
-                }
-                parameters.Add("CusId", SelectedCustomer.CusId);
 
-                sql = @"
-                    SELECT CONVERT(VARCHAR, SC.SalesDate, 103)         AS [التاريخ],
-                           'بيع موتوسيكل رقم ' + CAST(SC.Sales_ID AS VARCHAR) AS [البيان],
-                           CB.BrandName + ' - ' + CM.ModelName         AS [الموديل],
-                           C.ChassisNo                                 AS [الشاسيه],
-                           SC.Total                                    AS [مدين],
-                           0                                           AS [دائن]
-                    FROM Sales_Car SC
-                    INNER JOIN Cars       C  ON SC.CarID   = C.Car_ID
-                    INNER JOIN CarModels  CM ON C.ModelID  = CM.Model_ID
-                    INNER JOIN CarBrands  CB ON CM.BrandID = CB.Brand_ID
-                    WHERE SC.CusID = @CusId
-                      AND SC.SalesDate >= @FromDate AND SC.SalesDate <= @ToDate
-
-                    UNION ALL
-
-                    SELECT CONVERT(VARCHAR, PayDate, 103),
-                           CASE PayType WHEN 0 THEN 'سداد' WHEN 1 THEN 'تحصيل'
-                                        WHEN 2 THEN 'رد'   WHEN 3 THEN 'خصم' END,
-                           ISNULL(Notes, ''), '', 
-                           CASE WHEN PayType = 2 THEN PayMoney ELSE 0 END,
-                           CASE WHEN PayType IN (0,1,3) THEN PayMoney ELSE 0 END
-                    FROM Cus_Payments
-                    WHERE CusId = @CusId
-                      AND PayDate >= @FromDate AND PayDate <= @ToDate
-
-                    ORDER BY [التاريخ] ASC";
-            }
             // ── 9. المبيعات بالفواتير مفصل ───────────────────────────────
             else if (SelectedReportType == "المبيعات بالفواتير مفصل")
             {
@@ -692,6 +660,103 @@ public partial class SalesReportsViewModel : ObservableObject
                     WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate {taxFilter}
                     GROUP BY CU.CusName, RET.TotalReturns, PAY.TotalPayments
                     ORDER BY [صافي المبيعات] DESC";
+            }
+            // ── أرصدة العملاء ─────────────────────────────────────────────
+            else if (SelectedReportType == "أرصدة العملاء")
+            {
+                string cityFilter = "";
+                if (SelectedCity != null)
+                {
+                    cityFilter = " AND CU.CityId = @CityId ";
+                    parameters.Add("CityId", SelectedCity.CityId);
+                }
+
+                string cusFilter = "";
+                if (SelectedCustomer != null)
+                {
+                    cusFilter = " AND CU.Cus_ID = @CusId ";
+                    parameters.Add("CusId", SelectedCustomer.CusId);
+                }
+
+                sql = $@"
+                    ;WITH CustomerMovements AS (
+                        -- الرصيد الافتتاحي للعميل
+                        SELECT Cus_ID AS CusId,
+                               ISNULL(Debit,0) - ISNULL(Credit,0) AS NetBal
+                        FROM Customers
+
+                        UNION ALL
+
+                        -- فواتير المبيعات (مدين)
+                        SELECT CusId, Net
+                        FROM Sales
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مرتجعات المبيعات (دائن)
+                        SELECT CusId, -Net
+                        FROM ReSales
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+
+                        UNION ALL
+
+                        -- بيع موتوسيكلات (مدين)
+                        SELECT CusId, Total
+                        FROM Sales_Car
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+
+                        UNION ALL
+
+                        -- شراء موتوسيكلات من العميل (دائن)
+                        SELECT C.SourceCustomerID, -BC.Net
+                        FROM Buy_Car BC
+                        INNER JOIN Cars C ON BC.CarID = C.Car_ID
+                        WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID IS NOT NULL
+                          AND BC.BuyDate >= @FromDate AND BC.BuyDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مدفوعات مع فواتير المبيعات (دائن)
+                        SELECT S.CusId, -SP.PayMoney
+                        FROM Sales_Payments SP
+                        INNER JOIN Sales S ON SP.SalesId = S.Sales_ID
+                        WHERE SP.PayDate >= @FromDate AND SP.PayDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مدفوعات مع فواتير بيع الموتوسيكلات (دائن)
+                        SELECT SC.CusId, -SCP.PayMoney
+                        FROM Sales_Car_Payments SCP
+                        INNER JOIN Sales_Car SC ON SCP.SalesId = SC.Sales_ID
+                        WHERE SCP.PayDate >= @FromDate AND SCP.PayDate <= @ToDate
+
+                        UNION ALL
+
+                        -- تحصيلات ومدفوعات منفصلة
+                        SELECT CusId,
+                               CASE WHEN PayType IN (0,1,3) THEN -PayMoney ELSE PayMoney END
+                        FROM Cus_Payments
+                        WHERE PayDate >= @FromDate AND PayDate <= @ToDate
+                    ),
+                    CustomerBalance AS (
+                        SELECT CusId, SUM(NetBal) AS NetBalance
+                        FROM CustomerMovements
+                        GROUP BY CusId
+                        HAVING SUM(NetBal) <> 0
+                    )
+                    SELECT
+                        CU.Cus_ID                               AS [كود العميل],
+                        CU.CusName                              AS [اسم العميل],
+                        ISNULL(CU.Tel, '')                    AS [تليفون],
+                        ISNULL(CI.CityName, '')                 AS [المدينة],
+                        CASE WHEN CB.NetBalance > 0 THEN CB.NetBalance  ELSE 0 END AS [مدين (عليه)],
+                        CASE WHEN CB.NetBalance < 0 THEN ABS(CB.NetBalance) ELSE 0 END AS [دائن (له)]
+                    FROM CustomerBalance CB
+                    INNER JOIN Customers CU ON CB.CusId = CU.Cus_ID
+                    LEFT  JOIN City      CI ON CU.CityId = CI.City_ID
+                    WHERE CU.Active = 1 {cityFilter} {cusFilter}
+                    ORDER BY [مدين (عليه)] DESC, [دائن (له)] DESC";
             }
 
             var dt = new System.Data.DataTable();
@@ -935,7 +1000,24 @@ public partial class SalesReportsViewModel : ObservableObject
                 _currentFooterTotals.Add("عدد الشهور", dt.Rows.Count.ToString());
             }
 
-            if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل" || SelectedReportType == "كشف حساب عميل (موتوسيكلات)")
+            if (SelectedReportType == "أرصدة العملاء")
+            {
+                double totalDebit  = 0, totalCredit = 0;
+                foreach (System.Data.DataRowView rv in dt.DefaultView)
+                {
+                    totalDebit  += Convert.ToDouble(rv["مدين (عليه)"] == DBNull.Value ? 0 : rv["مدين (عليه)"]);
+                    totalCredit += Convert.ToDouble(rv["دائن (له)"]   == DBNull.Value ? 0 : rv["دائن (له)"]);
+                }
+                _currentFooterTotals = new Dictionary<string, string>
+                {
+                    { "عدد العملاء",   dt.Rows.Count.ToString() },
+                    { "إجمالي مدين",  totalDebit.ToString("N2") },
+                    { "إجمالي دائن",  totalCredit.ToString("N2") },
+                    { "صافي الرصيد",  (totalDebit - totalCredit).ToString("N2") }
+                };
+            }
+
+            if (SelectedReportType == "كشف حساب عميل" || SelectedReportType == "كشف حساب تفصيلي للعميل")
             {
                 _currentHeaderInfo = new Dictionary<string, string>
                 {
