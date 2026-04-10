@@ -40,6 +40,10 @@ public partial class ImportReportsViewModel : ObservableObject
     [ObservableProperty] private ImportInvoice? _selectedInvoice;
 
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
+    [ObservableProperty] private ObservableCollection<DetailedAccountRow> _detailedReportData = [];
+    [ObservableProperty] private bool _isDetailedReport;
+    [ObservableProperty] private bool _isInvoiceMode;
+
     [ObservableProperty] private string? _statusMessage;
 
     public bool IsSupplierVisible => SelectedReportType is "قائمة شحنات الاستيراد"
@@ -60,6 +64,9 @@ public partial class ImportReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsInvoiceVisible));
         OnPropertyChanged(nameof(IsSupplierRequired));
         ReportData           = new System.Data.DataView();
+        DetailedReportData   = [];
+        IsDetailedReport     = false;
+        IsInvoiceMode        = false;
         StatusMessage        = null;
         _currentFooterTotals = null;
         _currentHeaderInfo   = null;
@@ -105,7 +112,7 @@ public partial class ImportReportsViewModel : ObservableObject
             _currentHeaderInfo   = BuildHeaderInfo(qFrom, qTo);
             _currentFooterTotals = null;
 
-            string sql;
+            string sql = "";
 
             // ── 1. قائمة شحنات الاستيراد ──────────────────────────────────
             if (SelectedReportType == "قائمة شحنات الاستيراد")
@@ -209,7 +216,7 @@ public partial class ImportReportsViewModel : ObservableObject
                     " + invFilter + suppFilter + @"
                     ORDER BY E.PayDate DESC";
             }
-            // ── 5. كشف حساب مورد استيراد (ملخص) ─────────────────────────
+            // ── 5. كشف حساب مورد استيراد (ملخص -> تفصيلي عادي) ─────────────
             else if (SelectedReportType == "كشف حساب مورد استيراد")
             {
                 if (SelectedImportSupplier == null)
@@ -221,22 +228,30 @@ public partial class ImportReportsViewModel : ObservableObject
                 p.Add("SuppId", SelectedImportSupplier.SuppId);
 
                 sql = @"
-                    SELECT 'إجمالي فواتير الاستيراد' AS [البيان],
-                           ISNULL(SUM(InvTotal * OmlaRate), 0) AS [مدين],
-                           0 AS [دائن]
-                    FROM Import_Invoice
-                    WHERE SuppID = @SuppId AND InvDate >= @FromDate AND InvDate <= @ToDate
-
-                    UNION ALL
-
-                    SELECT 'إجمالي المدفوعات',
-                           0,
-                           ISNULL(SUM(PayMoney * OmlaRate), 0)
-                    FROM Import_Payments
-                    WHERE SuppID = @SuppId AND PayDate >= @FromDate AND PayDate <= @ToDate";
+                    SELECT SortDate,
+                           CONVERT(VARCHAR, SortDate, 103) AS [التاريخ], 
+                           RefNo AS [رقم الحركة],
+                           TransType AS [نوع الحركة],
+                           Details AS [البيان],
+                           Debit AS [مدين (عليه)],
+                           Credit AS [دائن (له)]
+                    FROM (
+                        -- فواتير الاستيراد (الشحنات)
+                        SELECT InvDate AS SortDate, CAST(Inv_ID AS VARCHAR) AS RefNo, N'فاتورة استيراد' AS TransType, ISNULL(InvName, '') AS Details, 
+                               0 AS Debit, ISNULL(InvTotal * OmlaRate, 0) AS Credit 
+                        FROM Import_Invoice WHERE SuppID = @SuppId AND InvDate >= @FromDate AND InvDate <= @ToDate
+                        
+                        UNION ALL
+                        
+                        -- مدفوعات المورد
+                        SELECT PayDate AS SortDate, CAST(Pay_ID AS VARCHAR) AS RefNo, N'دفعة لمورد' AS TransType, ISNULL(Notes, '') AS Details, 
+                               ISNULL(PayMoney * OmlaRate, 0) AS Debit, 0 AS Credit
+                        FROM Import_Payments WHERE SuppID = @SuppId AND PayDate >= @FromDate AND PayDate <= @ToDate
+                    ) T
+                    ORDER BY SortDate ASC";
             }
             // ── 6. كشف حساب تفصيلي مورد استيراد ─────────────────────────
-            else
+            else if (SelectedReportType == "كشف حساب تفصيلي مورد استيراد")
             {
                 if (SelectedImportSupplier == null)
                 {
@@ -244,68 +259,88 @@ public partial class ImportReportsViewModel : ObservableObject
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
-                p.Add("SuppId", SelectedImportSupplier.SuppId);
-
-                sql = @"
-                    -- الفواتير
-                    SELECT InvDate AS [SortDate],
-                           CONVERT(VARCHAR, InvDate, 103)                   AS [التاريخ],
-                           'شحنة رقم ' + CAST(Inv_ID AS VARCHAR) + ' - ' + InvName AS [البيان],
-                           (InvTotal * OmlaRate)                           AS [مدين],
-                           0                                               AS [دائن]
-                    FROM Import_Invoice
-                    WHERE SuppID = @SuppId AND InvDate >= @FromDate AND InvDate <= @ToDate
-
-                    UNION ALL
-
-                    -- المدفوعات
-                    SELECT PayDate,
-                           CONVERT(VARCHAR, PayDate, 103),
-                           'دفعة - ' + ISNULL(Notes, ''),
-                           0,
-                           (PayMoney * OmlaRate)
-                    FROM Import_Payments
-                    WHERE SuppID = @SuppId AND PayDate >= @FromDate AND PayDate <= @ToDate
-
-                    ORDER BY SortDate ASC";
+                await GenerateDetailedSupplierStatementAsync(db, p, qFrom, qTo);
+                return;
             }
 
             // ── Execute ───────────────────────────────────────────────────
             var dt = new System.Data.DataTable();
             using (var reader = await db.ExecuteReaderAsync(sql, p))
-                dt.Load(reader);
-
-            // Running balance for كشف تفصيلي
-            if (SelectedReportType == "كشف حساب تفصيلي مورد استيراد")
             {
-                dt.Columns.Add("الرصيد", typeof(double));
+                dt.Load(reader);
+            }
 
-                // Opening balance
+            if (SelectedReportType == "كشف حساب مورد استيراد")
+            {
+                // Add الرصيد columns
+                dt.Columns.Add("رصيد مدين", typeof(double));
+                dt.Columns.Add("رصيد دائن", typeof(double));
+
+                double runningBalance = 0; // Positive = Debit, Negative = Credit
+                
                 var opParams = new DynamicParameters();
-                opParams.Add("SuppId",   SelectedImportSupplier!.SuppId);
+                opParams.Add("SuppId", SelectedImportSupplier!.SuppId);
                 opParams.Add("FromDate", qFrom);
-                var opInv = await db.ExecuteScalarAsync<double>(
-                    "SELECT ISNULL(SUM(InvTotal*OmlaRate),0) FROM Import_Invoice WHERE SuppID=@SuppId AND InvDate<@FromDate", opParams);
-                var opPay = await db.ExecuteScalarAsync<double>(
-                    "SELECT ISNULL(SUM(PayMoney*OmlaRate),0) FROM Import_Payments WHERE SuppID=@SuppId AND PayDate<@FromDate", opParams);
 
-                double runBal = opInv - opPay;
+                // Initial Balance from Import_Suppliers table
+                var suppInfo = await db.QueryFirstOrDefaultAsync<dynamic>("SELECT ISNULL(Debit, 0) AS Debit, ISNULL(Credit, 0) AS Credit, OpenDate FROM Import_Suppliers WHERE Supp_ID = @SuppId", opParams);
+                double suppIniDebit = Convert.ToDouble(suppInfo?.Debit ?? 0);
+                double suppIniCredit = Convert.ToDouble(suppInfo?.Credit ?? 0);
 
+                // Previous Transactions before FromDate
+                double prevInv = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(InvTotal * OmlaRate), 0) FROM Import_Invoice WHERE SuppID = @SuppId AND InvDate < @FromDate", opParams);
+                double prevPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney * OmlaRate), 0) FROM Import_Payments WHERE SuppID = @SuppId AND PayDate < @FromDate", opParams);
+
+                double prevDebit = prevPay;
+                double prevCredit = prevInv;
+                
                 if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
-                var opRow = dt.NewRow();
-                opRow["التاريخ"] = qFrom.ToString("dd/MM/yyyy");
-                opRow["البيان"]  = "رصيد سابق";
-                opRow["مدين"]    = 0;
-                opRow["دائن"]    = 0;
-                opRow["الرصيد"]  = runBal;
-                dt.Rows.InsertAt(opRow, 0);
+                
+                int insertedRows = 0;
 
-                for (int i = 1; i < dt.Rows.Count; i++)
+                string colDebit  = "مدين (عليه)";
+                string colCredit = "دائن (له)";
+
+                if (dt.Columns.Contains("نوع الحركة")) dt.Columns["نوع الحركة"]!.AllowDBNull = true;
+                if (dt.Columns.Contains("رقم الحركة")) dt.Columns["رقم الحركة"]!.AllowDBNull = true;
+
+                var rowSabiq = dt.NewRow();
+                rowSabiq["التاريخ"] = qFrom.ToString("dd/MM/yyyy");
+                rowSabiq["نوع الحركة"] = "ما قبله";
+                rowSabiq["البيان"] = "الرصيد السابق";
+                rowSabiq[colDebit] = prevDebit;
+                rowSabiq[colCredit] = prevCredit;
+                runningBalance += (prevDebit - prevCredit);
+
+                rowSabiq["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                rowSabiq["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
+                dt.Rows.InsertAt(rowSabiq, insertedRows++);
+
+                // 2. Raseed Iftitahy
+                if (suppIniDebit > 0 || suppIniCredit > 0)
                 {
-                    double d = Convert.ToDouble(dt.Rows[i]["مدين"] == DBNull.Value ? 0 : dt.Rows[i]["مدين"]);
-                    double c = Convert.ToDouble(dt.Rows[i]["دائن"] == DBNull.Value ? 0 : dt.Rows[i]["دائن"]);
-                    runBal += (d - c);
-                    dt.Rows[i]["الرصيد"] = runBal;
+                    runningBalance += (suppIniDebit - suppIniCredit);
+                    var rowIft = dt.NewRow();
+                    rowIft["التاريخ"] = (suppInfo?.OpenDate != null) ? $"{Convert.ToDateTime((object?)suppInfo.OpenDate):dd/MM/yyyy}" : "";
+                    rowIft["نوع الحركة"] = "افتتاحي";
+                    rowIft["البيان"] = "الرصيد الافتتاحي";
+                    rowIft[colDebit] = suppIniDebit;
+                    rowIft[colCredit] = suppIniCredit;
+
+                    rowIft["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                    rowIft["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
+                    dt.Rows.InsertAt(rowIft, insertedRows++);
+                }
+
+                // Loop Data
+                for (int i = insertedRows; i < dt.Rows.Count; i++)
+                {
+                    double d = Convert.ToDouble(dt.Rows[i][colDebit] == DBNull.Value ? 0 : dt.Rows[i][colDebit]);
+                    double c = Convert.ToDouble(dt.Rows[i][colCredit] == DBNull.Value ? 0 : dt.Rows[i][colCredit]);
+                    runningBalance += (d - c);
+                    
+                    dt.Rows[i]["رصيد مدين"] = runningBalance > 0 ? runningBalance : 0;
+                    dt.Rows[i]["رصيد دائن"] = runningBalance < 0 ? Math.Abs(runningBalance) : 0;
                 }
                 if (dt.Columns.Contains("SortDate")) dt.Columns.Remove("SortDate");
             }
@@ -342,19 +377,32 @@ public partial class ImportReportsViewModel : ObservableObject
                 { "التكلفة الإجمالية",       (tInv + tExp).ToString("N2") }
             };
         }
-        else if (SelectedReportType is "كشف حساب مورد استيراد" or "كشف حساب تفصيلي مورد استيراد")
+        else if (SelectedReportType == "كشف حساب مورد استيراد")
         {
-            var sp = new DynamicParameters();
-            sp.Add("SuppId",   SelectedImportSupplier!.SuppId);
-            sp.Add("FromDate", qFrom);
-            sp.Add("ToDate",   qTo);
-            var tInv = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(InvTotal*OmlaRate),0) FROM Import_Invoice  WHERE SuppID=@SuppId AND InvDate>=@FromDate AND InvDate<=@ToDate", sp);
-            var tPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney*OmlaRate),0) FROM Import_Payments WHERE SuppID=@SuppId AND PayDate>=@FromDate AND PayDate<=@ToDate", sp);
+            double sumDebit = 0, sumCredit = 0;
+            string colDebit  = "مدين (عليه)";
+            string colCredit = "دائن (له)";
+
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                if (row[colDebit] != DBNull.Value) sumDebit += Convert.ToDouble(row[colDebit]);
+                if (row[colCredit] != DBNull.Value) sumCredit += Convert.ToDouble(row[colCredit]);
+            }
+            
+            double finalBal = sumDebit - sumCredit;
+
+            _currentHeaderInfo = new Dictionary<string, string>
+            {
+                { "اسم المورد", SelectedImportSupplier?.SuppName ?? "" },
+                { "الفترة من", IsFromDateChecked ? qFrom.ToString("yyyy/MM/dd") : "بداية التعامل" },
+                { "الفترة إلى", IsToDateChecked ? qTo.ToString("yyyy/MM/dd") : "حتى الآن" }
+            };
+
             _currentFooterTotals = new Dictionary<string, string>
             {
-                { "إجمالي الفواتير",    tInv.ToString("N2")           },
-                { "إجمالي المدفوعات",   tPay.ToString("N2")           },
-                { "الرصيد المتبقي",     (tInv - tPay).ToString("N2")  }
+                { "إجمالي مدين", sumDebit.ToString("N2") },
+                { "إجمالي دائن", sumCredit.ToString("N2") },
+                { "الرصيد", finalBal >= 0 ? finalBal.ToString("N2") + " (مدين)" : Math.Abs(finalBal).ToString("N2") + " (دائن)" }
             };
         }
         else if (SelectedReportType == "مصروفات الاستيراد")
@@ -384,59 +432,275 @@ public partial class ImportReportsViewModel : ObservableObject
     [RelayCommand]
     private async Task ExportPdfAsync()
     {
-        if (ReportData == null || ReportData.Count == 0)
+        bool hasData = IsDetailedReport 
+            ? (DetailedReportData != null && DetailedReportData.Count > 0)
+            : (ReportData != null && ReportData.Count > 0);
+
+        if (!hasData)
         {
-            System.Windows.MessageBox.Show("لا توجد بيانات", "تنبيه",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); return;
+            System.Windows.MessageBox.Show("لا توجد بيانات ليتم تصديرها", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
         }
+
         using var db = _dbFactory.CreateConnection();
-        var company  = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
-        var dlg = new Microsoft.Win32.SaveFileDialog
+        var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+
+        var saveFileDialog = new Microsoft.Win32.SaveFileDialog
         {
-            Filter   = "PDF File (*.pdf)|*.pdf", DefaultExt = "pdf",
+            Filter = "PDF File (*.pdf)|*.pdf",
+            DefaultExt = "pdf",
             FileName = SelectedReportType + " " + DateTime.Now.ToString("yyyy-MM-dd")
         };
-        if (dlg.ShowDialog() == true)
+
+        if (saveFileDialog.ShowDialog() == true)
         {
             try
             {
-                var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
-                    company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
-                System.IO.File.WriteAllBytes(dlg.FileName, pdf);
-                System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                var pdfBytes = IsDetailedReport
+                    ? (IsInvoiceMode
+                        ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                        : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
+                    : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+
+                System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
+                System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show("خطأ: " + ex.Message, "خطأ",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                System.Windows.MessageBox.Show("حدث خطأ أثناء التصدير: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
     }
-
+    
     [RelayCommand]
     private async Task PrintPdfAsync()
     {
-        if (ReportData == null || ReportData.Count == 0)
+        bool hasData = IsDetailedReport 
+            ? (DetailedReportData != null && DetailedReportData.Count > 0)
+            : (ReportData != null && ReportData.Count > 0);
+
+        if (!hasData)
         {
-            System.Windows.MessageBox.Show("لا توجد بيانات", "تنبيه",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); return;
+            System.Windows.MessageBox.Show("لا توجد بيانات ليتم طباعتها", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            return;
         }
+
         using var db = _dbFactory.CreateConnection();
-        var company  = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+        var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
+
         try
         {
-            var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
-                company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
-            string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
-                "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
-            System.IO.File.WriteAllBytes(tmp, pdf);
-            MotorBike.Services.ReportGenerator.PrintPdf(tmp);
+            var pdfBytes = IsDetailedReport
+                ? (IsInvoiceMode
+                    ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
+                    : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
+                : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+
+            string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
+            System.IO.File.WriteAllBytes(tempFile, pdfBytes);
+            MotorBike.Services.ReportGenerator.PrintPdf(tempFile);
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show("خطأ: " + ex.Message, "خطأ",
-                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+    }
+
+    private async Task GenerateDetailedSupplierStatementAsync(
+        System.Data.IDbConnection db,
+        DynamicParameters p,
+        DateTime queryFromDate,
+        DateTime queryToDate)
+    {
+        int suppId = SelectedImportSupplier!.SuppId;
+
+        var opParams = new DynamicParameters();
+        opParams.Add("SuppId", suppId);
+        opParams.Add("FromDate", queryFromDate);
+
+        // الرصيد الافتتاحي
+        var suppInfo = await db.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT ISNULL(Debit,0) AS Debit, ISNULL(Credit,0) AS Credit, OpenDate FROM Import_Suppliers WHERE Supp_ID=@SuppId", opParams);
+
+        double suppIniDebit  = Convert.ToDouble(suppInfo?.Debit  ?? 0);
+        double suppIniCredit = Convert.ToDouble(suppInfo?.Credit ?? 0);
+
+        // ما قبله
+        double prevInv = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(InvTotal * OmlaRate),0) FROM Import_Invoice WHERE SuppID=@SuppId AND InvDate<@FromDate", opParams);
+        double prevPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney * OmlaRate),0) FROM Import_Payments WHERE SuppID=@SuppId AND PayDate<@FromDate", opParams);
+
+        double prevDebit  = prevPay;
+        double prevCredit = prevInv;
+
+        double runBal = 0;
+        var rows = new List<DetailedAccountRow>();
+
+        // 1. الرصيد السابق
+        runBal += prevDebit - prevCredit;
+        rows.Add(new DetailedAccountRow {
+            RawDate = queryFromDate.AddSeconds(-1),
+            Date = queryFromDate.ToString("dd/MM/yyyy"),
+            TransType = "ما قبله",
+            Notes = "الرصيد السابق",
+            Debit = prevDebit, Credit = prevCredit,
+            RunningDebit  = runBal > 0 ? runBal : 0,
+            RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+        });
+
+        // 2. الرصيد الافتتاحي
+        if (suppIniDebit > 0 || suppIniCredit > 0)
+        {
+            runBal += suppIniDebit - suppIniCredit;
+            DateTime rawIftDate = (suppInfo?.OpenDate != null) ? Convert.ToDateTime((object?)suppInfo.OpenDate) : queryFromDate;
+            rows.Add(new DetailedAccountRow {
+                RawDate = rawIftDate,
+                Date = rawIftDate.ToString("dd/MM/yyyy"),
+                TransType = "افتتاحي",
+                Notes = "الرصيد الافتتاحي",
+                Debit = suppIniDebit, Credit = suppIniCredit,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+            });
+        }
+
+        var txParams = new DynamicParameters();
+        txParams.Add("SuppId", suppId);
+        txParams.Add("FromDate", queryFromDate);
+        txParams.Add("ToDate", queryToDate);
+
+        // 3. فواتير الاستيراد (الشحنات)
+        var invoices = await db.QueryAsync<dynamic>(@"
+            SELECT Inv_ID AS Id, InvDate AS TxDate, CAST(Inv_ID AS VARCHAR) AS RefNo,
+                   N'فاتورة استيراد' AS TransType, ISNULL(InvName,'') AS Notes,
+                   (InvTotal * OmlaRate) AS Credit, OmlaRate
+            FROM Import_Invoice
+            WHERE SuppID=@SuppId AND InvDate>=@FromDate AND InvDate<=@ToDate", txParams);
+
+        foreach (var inv in invoices)
+        {
+            int invId = Convert.ToInt32(inv.Id);
+            double omlaRate = Convert.ToDouble(inv.OmlaRate);
+            
+            // الأصناف
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, ISNULL(II.Qty, 0) AS Qty, ISNULL(II.Price, 0) AS Price, ISNULL(II.Total, 0) AS Total 
+                FROM Import_Inv_Item II
+                JOIN Items I ON II.ItemID=I.Item_ID
+                WHERE II.InvID=@InvId", new { InvId = invId });
+
+            // الموتوسيكلات
+            var subCars = await db.QueryAsync<dynamic>(@"
+                SELECT ISNULL(CB.BrandName, '') + ' - ' + ISNULL(CM.ModelName, '') AS ItemName,
+                       ISNULL(C.ChassisNo, '') AS ChassisNo, ISNULL(C.MotorNo, '') AS MotorNo, ISNULL(IC.Total, 0) AS Total 
+                FROM Import_Inv_Car IC
+                JOIN Cars C ON IC.CarID=C.Car_ID
+                LEFT JOIN CarModels CM ON C.ModelID=CM.Model_ID
+                LEFT JOIN CarBrands CB ON CM.BrandID=CB.Brand_ID
+                WHERE IC.InvID=@InvId", new { InvId = invId });
+
+            var itemsList = new List<InvoiceSubItem>();
+            foreach(var item in subItems) {
+                itemsList.Add(new InvoiceSubItem {
+                    ItemName = item.ItemName,
+                    Qty = Convert.ToDouble(item.Qty),
+                    Price = Convert.ToDouble(item.Price) * omlaRate, // local currency equivalent
+                    Total = Convert.ToDouble(item.Total) * omlaRate
+                });
+            }
+            foreach(var car in subCars) {
+                itemsList.Add(new InvoiceSubItem {
+                    ItemName = car.ItemName + (string.IsNullOrEmpty(car.ChassisNo) ? "" : $" (شاسيه: {car.ChassisNo})"),
+                    Qty = 1,
+                    Total = Convert.ToDouble(car.Total) * omlaRate
+                });
+            }
+
+            double c = Convert.ToDouble(inv.Credit);
+            runBal -= c; // Invoice adds to the supplier's credit -> decreases our balance vs them (more debt)
+
+            DateTime txDate = Convert.ToDateTime((object)inv.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = inv.RefNo,
+                TransType = inv.TransType, Notes = inv.Notes,
+                Debit = 0, Credit = c,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                Items = itemsList
+            });
+
+            // مدفوعات مرتبطة بالشحنة
+            var invPays = await db.QueryAsync<dynamic>(
+                "SELECT CAST(Pay_ID AS VARCHAR) AS RefNo, PayDate, (PayMoney * OmlaRate) AS Debit, ISNULL(Notes,'') AS Notes FROM Import_Payments WHERE InvId=@InvId", new { InvId = invId });
+            foreach (var p_item in invPays)
+            {
+                double d = Convert.ToDouble(p_item.Debit);
+                runBal += d; // payment adds to debit
+                DateTime pDate = Convert.ToDateTime((object)p_item.PayDate);
+                rows.Add(new DetailedAccountRow {
+                    RawDate = pDate.AddSeconds(1),
+                    Date = pDate.ToString("dd/MM/yyyy"),
+                    RefNo = p_item.RefNo, TransType = "دفعة للشحنة", Notes = p_item.Notes,
+                    Debit = d, Credit = 0,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
+        }
+
+        // 4. مدفوعات أخرى (غير مرتبطة بشحنة محددة)
+        var otherPays = await db.QueryAsync<dynamic>(@"
+            SELECT PayDate, CAST(Pay_ID AS VARCHAR) AS RefNo, N'دفعة لمورد' AS TransType, ISNULL(Notes,'') AS Notes,
+                   (PayMoney * OmlaRate) AS Debit
+            FROM Import_Payments
+            WHERE SuppID=@SuppId AND PayDate>=@FromDate AND PayDate<=@ToDate AND InvId IS NULL", txParams);
+
+        foreach (var op in otherPays)
+        {
+            double d = Convert.ToDouble(op.Debit);
+            runBal += d;
+            DateTime pDate = Convert.ToDateTime((object)op.PayDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = pDate,
+                Date = pDate.ToString("dd/MM/yyyy"),
+                RefNo = op.RefNo, TransType = op.TransType, Notes = op.Notes,
+                Debit = d, Credit = 0,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+            });
+        }
+
+        var sorted = rows.OrderBy(r => r.RawDate).ThenBy(r => r.RefNo).ToList();
+        double rb = 0;
+        foreach (var row in sorted)
+        {
+            rb += row.Debit - row.Credit;
+            row.RunningDebit  = rb > 0 ? rb : 0;
+            row.RunningCredit = rb < 0 ? Math.Abs(rb) : 0;
+        }
+
+        DetailedReportData = new ObservableCollection<DetailedAccountRow>(sorted);
+        IsDetailedReport   = true;
+
+        double sumD = sorted.Sum(r => r.Debit);
+        double sumC = sorted.Sum(r => r.Credit);
+        double bal  = sumD - sumC;
+
+        _currentHeaderInfo = new Dictionary<string, string> {
+            { "اسم المورد", SelectedImportSupplier.SuppName },
+            { "الفترة من", IsFromDateChecked ? queryFromDate.ToString("yyyy/MM/dd") : "بداية التعامل" },
+            { "الفترة إلى", IsToDateChecked  ? queryToDate.ToString("yyyy/MM/dd")  : "حتى الآن" }
+        };
+
+        _currentFooterTotals = new Dictionary<string, string> {
+            { "إجمالي مدين", sumD.ToString("N2") },
+            { "إجمالي دائن", sumC.ToString("N2") },
+            { "الرصيد", bal >= 0 ? bal.ToString("N2") + " (مدين)" : Math.Abs(bal).ToString("N2") + " (دائن)" }
+        };
+
+        StatusMessage = sorted.Count > 0
+            ? $"تم العثور على {sorted.Count} حركة"
+            : "⚠️ لا توجد بيانات في الفترة المحددة";
     }
 }
