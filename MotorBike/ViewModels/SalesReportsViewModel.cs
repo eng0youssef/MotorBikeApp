@@ -236,13 +236,13 @@ public partial class SalesReportsViewModel : ObservableObject
                         SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr,
                                COUNT(DISTINCT Sales_ID) AS CountRet,
                                SUM(Net) AS SumRetTotal
-                        FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate GROUP BY FORMAT(SalesDate, 'yyyy-MM')
+                        FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter} GROUP BY FORMAT(SalesDate, 'yyyy-MM')
                     ),
                     CusMonths AS (
                         SELECT MonthStr, COUNT(DISTINCT CusId) AS CusCount FROM (
                             SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM Sales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter}
                             UNION
-                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                            SELECT FORMAT(SalesDate, 'yyyy-MM') AS MonthStr, CusId FROM ReSales WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter}
                         ) AS AllCus GROUP BY MonthStr
                     ),
                     AllMonths AS (
@@ -357,7 +357,7 @@ public partial class SalesReportsViewModel : ObservableObject
                                COUNT(Sales_ID) AS ReturnsCount, 
                                SUM(Net) AS ReturnsTotal
                         FROM ReSales
-                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+                        WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {cusFilter}
                         GROUP BY CusId
                     ),
                     AllCustomers AS (
@@ -499,7 +499,7 @@ public partial class SalesReportsViewModel : ObservableObject
                    COUNT(Sales_ID) AS RetCount,
                    SUM(Net) AS NetReturns
             FROM ReSales
-            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate
+            WHERE SalesDate >= @FromDate AND SalesDate <= @ToDate {taxFilter}
             GROUP BY CAST(SalesDate AS DATE)
         ),
         AllDates AS (

@@ -17,6 +17,7 @@ public partial class ImportReportsViewModel : ObservableObject
     private ObservableCollection<string> _reportTypes =
     [
         "قائمة شحنات الاستيراد",
+        "فواتير استيراد تفصيلي",
         "تفاصيل شحنة (أصناف)",
         "تفاصيل شحنة (موتوسيكلات)",
         "مصروفات الاستيراد",
@@ -48,6 +49,7 @@ public partial class ImportReportsViewModel : ObservableObject
 
     public bool IsSupplierVisible => SelectedReportType is "قائمة شحنات الاستيراد"
                                                         or "مصروفات الاستيراد"
+                                                        or "فواتير استيراد تفصيلي"
                                                         or "كشف حساب مورد استيراد"
                                                         or "كشف حساب تفصيلي مورد استيراد";
 
@@ -263,6 +265,12 @@ public partial class ImportReportsViewModel : ObservableObject
                 return;
             }
 
+            else if (SelectedReportType == "فواتير استيراد تفصيلي")
+            {
+                await GenerateDetailedImportInvoicesAsync(db, p, qFrom, qTo);
+                return;
+            }
+
             // ── Execute ───────────────────────────────────────────────────
             var dt = new System.Data.DataTable();
             using (var reader = await db.ExecuteReaderAsync(sql, p))
@@ -456,11 +464,20 @@ public partial class ImportReportsViewModel : ObservableObject
         {
             try
             {
-                var pdfBytes = IsDetailedReport
-                    ? (IsInvoiceMode
-                        ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
-                        : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
-                    : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                byte[] pdfBytes;
+                if (IsDetailedReport)
+                {
+                    if (SelectedReportType == "فواتير استيراد تفصيلي")
+                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateImportInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                    else if (IsInvoiceMode)
+                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                    else
+                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                }
+                else
+                {
+                    pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                }
 
                 System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
                 System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
@@ -490,11 +507,20 @@ public partial class ImportReportsViewModel : ObservableObject
 
         try
         {
-            var pdfBytes = IsDetailedReport
-                ? (IsInvoiceMode
-                    ? MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals)
-                    : MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals))
-                : MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+            byte[] pdfBytes;
+            if (IsDetailedReport)
+            {
+                if (SelectedReportType == "فواتير استيراد تفصيلي")
+                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateImportInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                else if (IsInvoiceMode)
+                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                else
+                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+            }
+            else
+            {
+                pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+            }
 
             string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
             System.IO.File.WriteAllBytes(tempFile, pdfBytes);
@@ -504,6 +530,108 @@ public partial class ImportReportsViewModel : ObservableObject
         {
             System.Windows.MessageBox.Show("حدث خطأ أثناء الطباعة: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
+    }
+
+    private async Task GenerateDetailedImportInvoicesAsync(System.Data.IDbConnection db, DynamicParameters p, DateTime queryFromDate, DateTime queryToDate)
+    {
+        string suppFilter = "";
+        if (SelectedImportSupplier != null)
+        {
+            suppFilter = " AND I.SuppID = @SuppId ";
+            p.Add("SuppId", SelectedImportSupplier.SuppId);
+        }
+
+        var invoices = await db.QueryAsync<dynamic>($@"
+            SELECT I.Inv_ID, I.InvName, I.InvDate, 
+                   I.InvType, I.InvTotal, I.OmlaRate, I.ExpTotal, ISNULL(I.TotalCost, 0) AS TotalCost,
+                   S.SuppName
+            FROM Import_Invoice I
+            LEFT JOIN Import_Suppliers S ON I.SuppID = S.Supp_ID
+            WHERE I.InvDate >= @FromDate AND I.InvDate <= @ToDate {suppFilter}
+            ORDER BY I.InvDate ASC", p);
+
+        var rows = new List<DetailedAccountRow>();
+        double sumCost = 0;
+
+        foreach (var inv in invoices)
+        {
+            int invId = Convert.ToInt32(inv.Inv_ID);
+            double omlaRate = Convert.ToDouble(inv.OmlaRate);
+            double actCost = Convert.ToDouble(inv.TotalCost);
+            sumCost += actCost;
+
+            DateTime txDate = Convert.ToDateTime((object)inv.InvDate);
+
+            var row = new DetailedAccountRow
+            {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = inv.Inv_ID.ToString(),
+                TransType = "شحنة استيراد",
+                Branch = inv.InvName ?? "",
+                CustomerName = inv.SuppName ?? "",
+                InvoiceNet = Convert.ToDouble(inv.InvTotal),
+                VatTaxDisplay = omlaRate.ToString("N2"),
+                InvoiceDisc = Convert.ToDouble(inv.InvTotal) * omlaRate,
+                InvoiceAdd = Convert.ToDouble(inv.ExpTotal),
+                InvoiceTotal = actCost,
+                Items = new List<InvoiceSubItem>()
+            };
+
+            // الأصناف
+            var subItems = await db.QueryAsync<dynamic>(@"
+                SELECT I.ItemName, ISNULL(II.Qty, 0) AS Qty, ISNULL(II.Price, 0) AS Price, ISNULL(II.Total, 0) AS Total 
+                FROM Import_Inv_Item II
+                JOIN Items I ON II.ItemID = I.Item_ID
+                WHERE II.InvID = @InvId", new { InvId = invId });
+
+            // الموتوسيكلات
+            var subCars = await db.QueryAsync<dynamic>(@"
+                SELECT ISNULL(CB.BrandName, '') + ' - ' + ISNULL(CM.ModelName, '') AS ItemName,
+                       ISNULL(C.ChassisNo, '') AS ChassisNo, ISNULL(IC.Total, 0) AS Total 
+                FROM Import_Inv_Car IC
+                JOIN Cars C ON IC.CarID = C.Car_ID
+                LEFT JOIN CarModels CM ON C.ModelID = CM.Model_ID
+                LEFT JOIN CarBrands CB ON CM.BrandID = CB.Brand_ID
+                WHERE IC.InvID = @InvId", new { InvId = invId });
+
+            foreach(var item in subItems) {
+                row.Items.Add(new InvoiceSubItem {
+                    ItemName = item.ItemName,
+                    Qty = Convert.ToDouble(item.Qty),
+                    Price = Convert.ToDouble(item.Price),
+                    Total = Convert.ToDouble(item.Total)
+                });
+            }
+            foreach(var car in subCars) {
+                row.Items.Add(new InvoiceSubItem {
+                    ItemName = car.ItemName + (string.IsNullOrEmpty(car.ChassisNo) ? "" : $" (شاسيه: {car.ChassisNo})"),
+                    Qty = 1,
+                    Total = Convert.ToDouble(car.Total)
+                });
+            }
+
+            rows.Add(row);
+        }
+
+        DetailedReportData = new ObservableCollection<DetailedAccountRow>(rows);
+        IsDetailedReport = true;
+        IsInvoiceMode = true;
+
+        _currentHeaderInfo = new Dictionary<string, string> {
+            { "الفترة من", IsFromDateChecked ? queryFromDate.ToString("yyyy/MM/dd") : "بداية التعامل" },
+            { "الفترة إلى", IsToDateChecked  ? queryToDate.ToString("yyyy/MM/dd")  : "حتى الآن" }
+        };
+        if (SelectedImportSupplier != null) _currentHeaderInfo.Add("المورد", SelectedImportSupplier.SuppName);
+
+        _currentFooterTotals = new Dictionary<string, string> {
+            { "إجمالي الشحنات", rows.Count.ToString() },
+            { "إجمالي التكلفة الكلية", sumCost.ToString("N2") }
+        };
+
+        StatusMessage = rows.Count > 0
+            ? $"تم العثور على {rows.Count} شحنة تفصيلية"
+            : "⚠️ لا توجد شحنات في الفترة المحددة";
     }
 
     private async Task GenerateDetailedSupplierStatementAsync(

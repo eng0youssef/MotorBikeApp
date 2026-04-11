@@ -42,6 +42,7 @@ public partial class CarsReportsViewModel : ObservableObject
 
     [ObservableProperty] private System.Data.DataView _reportData = new System.Data.DataView();
     [ObservableProperty] private string? _statusMessage;
+    [ObservableProperty] private System.Data.DataView _carStatusInfo = new System.Data.DataView();
 
     public bool IsDateRangeVisible => SelectedReportType != "مخزون الموتوسيكلات الحالي";
     public bool IsCarModelVisible  => SelectedReportType is "الموتوسيكلات المباعة"
@@ -56,6 +57,7 @@ public partial class CarsReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCarModelVisible));
         OnPropertyChanged(nameof(IsCarVisible));
         ReportData           = new System.Data.DataView();
+        CarStatusInfo        = new System.Data.DataView();
         StatusMessage        = null;
         _currentFooterTotals = null;
         _currentHeaderInfo   = null;
@@ -254,18 +256,20 @@ public partial class CarsReportsViewModel : ObservableObject
 
                 sql = @"
                     -- حركة الموتوسيكل (شراء، بيع، صيانة)
-                    SELECT [نوع الحركة], [التاريخ], [رقم العملية], [الطرف الآخر], [التليفون], [المبلغ], [العداد], [ملاحظات]
+                    SELECT [نوع الحركة], [التاريخ], [رقم العملية], [نوع الطرف], [الطرف الآخر], [التليفون], [المبلغ], [العداد], [ملاحظات]
                     FROM (
                         SELECT 'شراء' AS [نوع الحركة],
                                CONVERT(VARCHAR, B.BuyDate, 103) AS [التاريخ],
                                B.Buy_ID AS [رقم العملية],
                                B.OwnerName AS [الطرف الآخر],
+                               CASE WHEN C.IsFromCustomer = 1 THEN N'عميل' ELSE N'مورد' END AS [نوع الطرف],
                                B.OwnerTel AS [التليفون],
                                B.Total AS [المبلغ],
                                ISNULL(B.Mileage, 0) AS [العداد],
                                B.Notes AS [ملاحظات],
                                B.BuyDate AS [RawDate]
                         FROM Buy_Car B 
+                        LEFT JOIN Cars C ON B.CarID = C.Car_ID
                         WHERE B.CarID = @CarId
 
                         UNION ALL
@@ -273,6 +277,7 @@ public partial class CarsReportsViewModel : ObservableObject
                         SELECT 'بيع',
                                CONVERT(VARCHAR, S.SalesDate, 103),
                                S.Sales_ID,
+                               N'عميل',
                                CU.CusName,
                                CU.Tel,
                                S.Total,
@@ -288,6 +293,7 @@ public partial class CarsReportsViewModel : ObservableObject
                         SELECT 'صيانة',
                                CONVERT(VARCHAR, S.SalesDate, 103),
                                S.Sales_ID,
+                               N'عميل',
                                CU.CusName,
                                CU.Tel,
                                S.Total,
@@ -307,6 +313,25 @@ ISNULL(' - الأصناف: ' +
                         WHERE S.CarID = @CarId
                     ) AS T
                     ORDER BY [RawDate] ASC";
+
+                // ── جلب حالة الموتوسيكل الحالية ───────────────────────────
+                var statusSql = @"
+                    SELECT 
+                        CASE C.StatusId WHEN 1 THEN N'متاح بالمخزون' 
+                                        WHEN 2 THEN N'مباع لعميل' 
+                                        WHEN 3 THEN N'ملك لعميل' 
+                                        ELSE N'غير محدد' END AS [الحالة الحالية],
+                        ISNULL(CU.CusName, N'الوكالة') AS [المالك الحالي]
+                    FROM Cars C
+                    LEFT JOIN Customers CU ON C.OwnerId = CU.Cus_ID
+                    LEFT JOIN Suppliers S ON C.SupplierId = S.Supp_ID
+                    LEFT JOIN Customers CU2 ON C.SourceCustomerId = CU2.Cus_ID
+                    WHERE C.Car_ID = @CarId";
+
+                var dtStatus = new System.Data.DataTable();
+                using (var readerStatus = await db.ExecuteReaderAsync(statusSql, p))
+                    dtStatus.Load(readerStatus);
+                CarStatusInfo = dtStatus.DefaultView;
             }
 
             // ── Execute ───────────────────────────────────────────────────
@@ -424,7 +449,9 @@ ISNULL(' - الأصناف: ' +
             try
             {
                 var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
-                    company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                    company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals,
+                    IsCarVisible ? CarStatusInfo : null, 
+                    IsCarVisible ? "الحالة الحالية للموتوسيكل" : null);
                 System.IO.File.WriteAllBytes(dlg.FileName, pdf);
                 System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
@@ -450,7 +477,9 @@ ISNULL(' - الأصناف: ' +
         try
         {
             var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
-                company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals,
+                IsCarVisible ? CarStatusInfo : null, 
+                IsCarVisible ? "الحالة الحالية للموتوسيكل" : null);
             string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
                 "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
             System.IO.File.WriteAllBytes(tmp, pdf);

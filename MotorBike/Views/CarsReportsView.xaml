@@ -118,44 +118,94 @@
             </StackPanel>
         </Border>
 
-        <!-- Data Grid -->
-        <Border Grid.Row="2" Margin="20,0,20,20" Background="White" CornerRadius="12" Padding="15">
-            <Border.Effect>
-                <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/>
-            </Border.Effect>
-            <DataGrid ItemsSource="{Binding ReportData}"
-                      AutoGenerateColumns="True"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column"
-                      GridLinesVisibility="Horizontal"
-                      HorizontalGridLinesBrush="#E2E8F0"
-                      BorderThickness="0"
-                      Background="White"
-                      RowBackground="White"
-                      AlternatingRowBackground="#F8FAFC">
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background"      Value="#F1F5F9"/>
-                        <Setter Property="Foreground"      Value="#334155"/>
-                        <Setter Property="FontWeight"      Value="SemiBold"/>
-                        <Setter Property="Padding"         Value="12,10"/>
-                        <Setter Property="BorderBrush"     Value="#E2E8F0"/>
-                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
-                <DataGrid.CellStyle>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding"         Value="12,10"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#E0E7FF"/>
-                                <Setter Property="Foreground" Value="#1E293B"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </DataGrid.CellStyle>
-            </DataGrid>
-        </Border>
+        <!-- Main Content Area -->
+        <Grid Grid.Row="2" Margin="20,0,20,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Movement Table -->
+            <Border Grid.Row="0" Margin="0,0,0,10" Background="White" CornerRadius="12" Padding="15">
+                <Border.Effect>
+                    <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/>
+                </Border.Effect>
+                <DataGrid ItemsSource="{Binding ReportData}"
+                          AutoGenerateColumns="True"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#E2E8F0"
+                          BorderThickness="0"
+                          Background="White"
+                          RowBackground="White"
+                          AlternatingRowBackground="#F8FAFC">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Style.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="0"/>
+                                </Style>
+                            </Style.Resources>
+                            <Setter Property="Background"      Value="#F1F5F9"/>
+                            <Setter Property="Foreground"      Value="#334155"/>
+                            <Setter Property="FontWeight"      Value="SemiBold"/>
+                            <Setter Property="Padding"         Value="12,10"/>
+                            <Setter Property="BorderBrush"     Value="#E2E8F0"/>
+                            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Padding"         Value="12,10"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#E0E7FF"/>
+                                    <Setter Property="Foreground" Value="#1E293B"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+                </DataGrid>
+            </Border>
+
+            <!-- Car Status Summary Table (Small) -->
+            <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="15"
+                    Visibility="{Binding IsCarVisible, Converter={StaticResource BoolToVis}}"
+                    d:Visibility="Visible">
+                <Border.Effect>
+                    <DropShadowEffect Color="#0F172A" Opacity="0.05" BlurRadius="10" ShadowDepth="2" Direction="270"/>
+                </Border.Effect>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="📋" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="الحالة الحالية للموتوسيكل" FontSize="15" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <DataGrid ItemsSource="{Binding CarStatusInfo}"
+                              AutoGenerateColumns="True"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#E2E8F0"
+                              BorderThickness="1"
+                              BorderBrush="#CBD5E1"
+                              Background="White"
+                              RowBackground="White"
+                              MaxHeight="150">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background"      Value="#F8FAFC"/>
+                                <Setter Property="Foreground"      Value="#475569"/>
+                                <Setter Property="FontWeight"      Value="SemiBold"/>
+                                <Setter Property="Padding"         Value="10,8"/>
+                                <Setter Property="BorderBrush"     Value="#E2E8F0"/>
+                                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                    </DataGrid>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>
