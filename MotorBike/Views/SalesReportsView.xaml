@@ -80,8 +80,8 @@
                     </StackPanel>
 
                     <!-- المخزن -->
-                    <StackPanel Margin="0,0,20,15">
-                        <TextBlock Text="المخزن (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsStoreVisible, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="المخزن (اختياري)" Visibility="{Binding IsStoreVisible, Converter={StaticResource BoolToVis}}" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal">
                             <ComboBox ItemsSource="{Binding Stores}" 
                                       SelectedItem="{Binding SelectedStore}" 
@@ -91,8 +91,8 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- الخزينة -->
-                    <StackPanel Margin="0,0,20,15">
+                    <!-- الخزينة --><!--
+                    <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCashVisible, Converter={StaticResource BoolToVis}}" >
                         <TextBlock Text="الخزينة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal">
                             <ComboBox ItemsSource="{Binding Cashes}" 
@@ -101,7 +101,7 @@
                                       Width="180" Padding="8" FontSize="14"/>
                             <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearSafeCommand}"/>
                         </StackPanel>
-                    </StackPanel>
+                    </StackPanel>-->
 
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsItemVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار الصنف (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>

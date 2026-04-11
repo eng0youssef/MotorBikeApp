@@ -261,8 +261,8 @@ public partial class CarsReportsViewModel : ObservableObject
                         SELECT 'شراء' AS [نوع الحركة],
                                CONVERT(VARCHAR, B.BuyDate, 103) AS [التاريخ],
                                B.Buy_ID AS [رقم العملية],
-                               B.OwnerName AS [الطرف الآخر],
                                CASE WHEN C.IsFromCustomer = 1 THEN N'عميل' ELSE N'مورد' END AS [نوع الطرف],
+                               B.OwnerName AS [الطرف الآخر],
                                B.OwnerTel AS [التليفون],
                                B.Total AS [المبلغ],
                                ISNULL(B.Mileage, 0) AS [العداد],
@@ -299,14 +299,14 @@ public partial class CarsReportsViewModel : ObservableObject
                                S.Total,
                                0,
                             ISNULL(S.Notes, '') + 
-ISNULL(' - الأصناف: ' + 
-    STUFF((
-        SELECT ', ' + I.ItemName
-        FROM Sales_Sub SS
-        INNER JOIN Items I ON SS.ItemId = I.Item_ID
-        WHERE SS.SalesId = S.Sales_ID
-        FOR XML PATH(''), TYPE
-    ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''), ''),
+                        ISNULL(' - الأصناف: ' + 
+                            STUFF((
+                                SELECT ', ' + I.ItemName
+                                FROM Sales_Sub SS
+                                INNER JOIN Items I ON SS.ItemId = I.Item_ID
+                                WHERE SS.SalesId = S.Sales_ID
+                                FOR XML PATH(''), TYPE
+                            ).value('.', 'NVARCHAR(MAX)'), 1, 2, ''), ''),
                         S.SalesDate
                         FROM Sales S
                         LEFT JOIN Customers CU ON S.CusID = CU.Cus_ID
