@@ -118,6 +118,7 @@ public partial class SalesReportsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsShowingTax));
     }
 
+
     partial void OnSelectedReportTypeChanged(string value)
     {
         OnPropertyChanged(nameof(IsCustomerVisible));
