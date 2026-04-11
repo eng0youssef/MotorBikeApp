@@ -27,7 +27,7 @@ public partial class ImportReportsViewModel : ObservableObject
 
     [ObservableProperty] private string _selectedReportType = "قائمة شحنات الاستيراد";
 
-    [ObservableProperty] private DateTime _fromDate = DateTime.Now.AddMonths(-6);
+    [ObservableProperty] private DateTime _fromDate = DateTime.Now.AddMonths(-1);
     [ObservableProperty] private DateTime _toDate   = DateTime.Now;
     [ObservableProperty] private bool _isFromDateChecked = true;
     [ObservableProperty] private bool _isToDateChecked   = true;
