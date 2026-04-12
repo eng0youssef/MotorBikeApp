@@ -155,13 +155,13 @@ public partial class CashReportsViewModel : ObservableObject
                     UNION ALL
                     SELECT PayDate, 'مرتجع مبيعات', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE 1=1 " + cashFilter1 + @"
                     UNION ALL
-                    SELECT PayDate, 'مقبوضات عملاء', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
+                    SELECT PayDate, 'مقبوضات عملاء', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE PayType IN (1, 3) " + cashFilter1 + @"
                     UNION ALL
-                    SELECT PayDate, 'مقبوضات عملاء', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE PayType = 2 " + cashFilter1 + @"
+                    SELECT PayDate, 'مقبوضات عملاء', 'سداد/رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE PayType IN (0, 2) " + cashFilter1 + @"
                     UNION ALL
-                    SELECT PayDate, 'مدفوعات موردين', 'دفعة لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE PayType IN (0,1) " + cashFilter1 + @"
+                    SELECT PayDate, 'مدفوعات موردين', 'دفعة لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE PayType IN (0, 2) " + cashFilter1 + @"
                     UNION ALL
-                    SELECT PayDate, 'مدفوعات موردين', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE PayType = 2 " + cashFilter1 + @"
+                    SELECT PayDate, 'مدفوعات موردين', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE PayType IN (1, 3) " + cashFilter1 + @"
                     UNION ALL
                     SELECT PayDate, 'مصروفات', 'صرف ' + ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE 1=1 " + cashFilter1 + @"
                     UNION ALL
@@ -198,13 +198,13 @@ public partial class CashReportsViewModel : ObservableObject
                     UNION ALL
                     SELECT PayDate, 'مدفوعات مرتجع', 'رد مبيعات رقم ' + ISNULL(CAST(SalesID AS VARCHAR), '') + ' ' + ISNULL(Notes, ''), 0, PayMoney FROM ReSales_Payments WHERE CashID = @CashId
                     UNION ALL
-                    SELECT PayDate, 'مقبوضات عميل', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1)
+                    SELECT PayDate, 'مقبوضات عميل', 'استلام دفعة من عميل ' + ISNULL(Notes, ''), PayMoney, 0 FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (1, 3)
                     UNION ALL
-                    SELECT PayDate, 'رد عميل', 'رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2
+                    SELECT PayDate, 'رد عميل', 'سداد/رد مبلغ لعميل ' + ISNULL(Notes, ''), 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0, 2)
                     UNION ALL
-                    SELECT PayDate, 'دفع مورد', 'لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1)
+                    SELECT PayDate, 'دفع مورد', 'لمورد ' + ISNULL(Notes, ''), 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0, 2)
                     UNION ALL
-                    SELECT PayDate, 'استرداد مورد', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2
+                    SELECT PayDate, 'استرداد مورد', 'استرداد من مورد ' + ISNULL(Notes, ''), PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (1, 3)
                     UNION ALL
                     SELECT PayDate, 'مصروفات', ISNULL(Notes, ''), 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId
                     UNION ALL
@@ -297,10 +297,10 @@ public partial class CashReportsViewModel : ObservableObject
                 double moveBeforeFromDate = await db.ExecuteScalarAsync<double>(@"
                 SELECT ISNULL(SUM(Debit),0) - ISNULL(SUM(Credit),0) 
                 FROM (
-                    SELECT PayMoney AS Debit, 0 AS Credit FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
-                    UNION ALL SELECT 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
-                    UNION ALL SELECT 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0,1) AND PayDate < @FromDate
-                    UNION ALL SELECT PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType = 2 AND PayDate < @FromDate
+                    SELECT PayMoney AS Debit, 0 AS Credit FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (1, 3) AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Cus_Payments WHERE CashID = @CashId AND PayType IN (0, 2) AND PayDate < @FromDate
+                    UNION ALL SELECT 0, PayMoney FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (0, 2) AND PayDate < @FromDate
+                    UNION ALL SELECT PayMoney, 0 FROM Supp_Payments WHERE CashID = @CashId AND PayType IN (1, 3) AND PayDate < @FromDate
                     UNION ALL SELECT 0, PayMoney FROM Exp_Payments WHERE CashID = @CashId AND PayDate < @FromDate
                     UNION ALL SELECT 0, PayMoney FROM Cash_Transfer WHERE CashID = @CashId AND PayDate < @FromDate
                     UNION ALL SELECT PayMoney, 0 FROM Cash_Transfer WHERE CashTo = @CashId AND PayDate < @FromDate

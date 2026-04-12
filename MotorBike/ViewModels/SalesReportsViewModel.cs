@@ -473,10 +473,10 @@ public partial class SalesReportsViewModel : ObservableObject
                         
                         -- تحصيلات ومدفوعات منفصلة
                         SELECT PayDate, CAST(Pay_ID AS VARCHAR), 
-                               CASE PayType WHEN 0 THEN 'تحصيل' WHEN 1 THEN 'تحصيل' WHEN 2 THEN 'رد نقدي' WHEN 3 THEN 'خصم مسموح' END, 
+                               CASE PayType WHEN 0 THEN 'سداد لعميل' WHEN 1 THEN 'تحصيل من عميل' WHEN 2 THEN 'رد نقدي' WHEN 3 THEN 'خصم مسموح' END, 
                                ISNULL(Notes, ''), 
-                               CASE WHEN PayType = 2 THEN PayMoney ELSE 0 END, 
-                               CASE WHEN PayType IN (0, 1, 3) THEN PayMoney ELSE 0 END 
+                               CASE WHEN PayType IN (0, 2) THEN PayMoney ELSE 0 END, 
+                               CASE WHEN PayType IN (1, 3) THEN PayMoney ELSE 0 END 
                         FROM Cus_Payments WHERE CusId = @CusId AND PayDate >= @FromDate AND PayDate <= @ToDate
                     ) T
                     ORDER BY SortDate ASC";
@@ -677,7 +677,7 @@ public partial class SalesReportsViewModel : ObservableObject
                         FROM Cus_Payments
                         WHERE CusId = M.CusId
                           AND PayDate >= @FromDate AND PayDate <= @ToDate
-                          AND PayType IN (0, 1, 3)
+                          AND PayType IN (1, 3)
                     ) PAY
                     WHERE M.SalesDate >= @FromDate AND M.SalesDate <= @ToDate {taxFilter}
                     GROUP BY CU.CusName, RET.TotalReturns, PAY.TotalPayments
@@ -765,7 +765,7 @@ public partial class SalesReportsViewModel : ObservableObject
 
                         -- تحصيلات ومدفوعات منفصلة
                         SELECT CusId,
-                               CASE WHEN PayType IN (0,1,3) THEN -PayMoney ELSE PayMoney END
+                               CASE WHEN PayType IN (1, 3) THEN -PayMoney ELSE PayMoney END
                         FROM Cus_Payments
                         WHERE PayDate >= @FromDate AND PayDate <= @ToDate
                     ),
@@ -816,8 +816,8 @@ public partial class SalesReportsViewModel : ObservableObject
                 double prevSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Net), 0) FROM Sales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevSalesCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total), 0) FROM Sales_Car WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
                 double prevReSales = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Net), 0) FROM ReSales WHERE CusId = @CusId AND SalesDate < @FromDate", opParams);
-                double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 1, 3)", opParams);
-                double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType = 2", opParams);
+                double prevPaymentsCredit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (1, 3)", opParams);
+                double prevPaymentsDebit = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney), 0) FROM Cus_Payments WHERE CusId = @CusId AND PayDate < @FromDate AND PayType IN (0, 2)", opParams);
                 double prevSalPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney), 0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId = S.Sales_ID WHERE S.CusId = @CusId AND SP.PayDate < @FromDate", opParams);
                 double prevSalCarPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney), 0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId = SC.Sales_ID WHERE SC.CusId = @CusId AND SCP.PayDate < @FromDate", opParams);
                 double prevBuyCar = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net), 0) FROM Buy_Car BC JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsFromCustomer = 1 AND C.SourceCustomerID = @CusId AND BC.BuyDate < @FromDate", opParams);
@@ -1183,8 +1183,8 @@ public partial class SalesReportsViewModel : ObservableObject
         double prevSales        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total-Disc+AddMony),0) FROM Sales         WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
         double prevSalesCar     = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total),0)              FROM Sales_Car     WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
         double prevReSales      = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total-Disc+AddMony),0) FROM ReSales       WHERE CusId=@CusId AND SalesDate<@FromDate", opParams);
-        double prevPayCC        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType IN(0,1,3)", opParams);
-        double prevPayCD        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType=2", opParams);
+        double prevPayCC        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType IN(1,3)", opParams);
+        double prevPayCD        = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Cus_Payments WHERE CusId=@CusId AND PayDate<@FromDate AND PayType IN(0,2)", opParams);
         double prevSalPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SP.PayMoney),0) FROM Sales_Payments SP JOIN Sales S ON SP.SalesId=S.Sales_ID WHERE S.CusId=@CusId AND SP.PayDate<@FromDate", opParams);
         double prevCarPay       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SCP.PayMoney),0) FROM Sales_Car_Payments SCP JOIN Sales_Car SC ON SCP.SalesId=SC.Sales_ID WHERE SC.CusId=@CusId AND SCP.PayDate<@FromDate", opParams);
         double prevBuyCar       = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BC.Net),0) FROM Buy_Car BC JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsFromCustomer=1 AND C.SourceCustomerID=@CusId AND BC.BuyDate<@FromDate", opParams);
@@ -1454,12 +1454,12 @@ public partial class SalesReportsViewModel : ObservableObject
         foreach (var p in cuspays)
         {
             string typeName = Convert.ToInt32(p.PayType) switch {
-                0 => "تحصيل", 1 => "تحصيل", 2 => "رد نقدي", 3 => "خصم مسموح", _ => "تحصيل"
+                0 => "سداد لعميل", 1 => "تحصيل من عميل", 2 => "رد نقدي", 3 => "خصم مسموح", _ => "تحصيل"
             };
             int pt = Convert.ToInt32(p.PayType);
             double amount = Convert.ToDouble(p.PayMoney);
-            double d2 = pt == 2 ? amount : 0;
-            double c2 = pt != 2 ? amount : 0;
+            double d2 = (pt == 0 || pt == 2) ? amount : 0;
+            double c2 = (pt == 1 || pt == 3) ? amount : 0;
             runBal += d2 - c2;
             DateTime pDate = Convert.ToDateTime((object)p.PayDate);
             rows.Add(new DetailedAccountRow {
