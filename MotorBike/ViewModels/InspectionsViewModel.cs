@@ -276,6 +276,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
             if (savedItem != null)
             {
                 SelectedItem = savedItem;
+                IsEditing = true;
             }
         }
         catch (Exception ex)
@@ -287,6 +288,8 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     public override async Task DeleteAsync()
     {
         if (SelectedItem is null) return;
+        var res = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (res != System.Windows.MessageBoxResult.Yes) return;
 
         try
         {

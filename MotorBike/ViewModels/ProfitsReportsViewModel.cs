@@ -396,4 +396,9 @@ public partial class ProfitsReportsViewModel : ObservableObject
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
+    [RelayCommand]
+    private void ClearItem() => SelectedItem = null;
+
+    [RelayCommand]
+    private void ClearExpGroup() => SelectedExpGroup = null;
 }

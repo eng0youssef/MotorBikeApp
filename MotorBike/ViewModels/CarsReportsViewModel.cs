@@ -491,4 +491,9 @@ public partial class CarsReportsViewModel : ObservableObject
                 System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
+    [RelayCommand]
+    private void ClearCarModel() => SelectedCarModel = null;
+
+    [RelayCommand]
+    private void ClearCar() => SelectedCar = null;
 }

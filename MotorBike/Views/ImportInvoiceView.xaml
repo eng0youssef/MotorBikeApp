@@ -806,24 +806,12 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
-                                <Button Margin="0,0,12,0" Padding="16,10" Command="{Binding PrintInvoiceCommand}" Content="🖨️ طـبـاعـة">
-                                    <Button.Style>
-                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
-                                            <Setter Property="Background" Value="#0284C7" />
-                                            <Setter Property="Foreground" Value="White" />
-                                            <Setter Property="BorderBrush" Value="#0369A1" />
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <!--  يظهر لما يكون في فاتورة محفوظة (InvId > 0)  -->
-                                                <DataTrigger Binding="{Binding FormItem.InvId, Converter={StaticResource HideZeroConv}}" Value="">
-                                                    <!--  لو القيمة فاضية (صفر) الزرار hidden  -->
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding IsEditing}" Value="False">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
+                                <Button Margin="0,0,12,0" Padding="16,10"
+                                        Command="{Binding PrintInvoiceCommand}"
+                                        Content="🖨️ طـبـاعـة"
+                                        Style="{StaticResource SecondaryButton}">
+                                    <Button.Background>#0284C7</Button.Background>
+                                    <Button.Foreground>White</Button.Foreground>
                                 </Button>
                                 <Button Margin="0,0,12,0" Padding="16,10" Command="{Binding SaveCommand}" Content="💾 حـفـظ">
                                     <Button.Style>

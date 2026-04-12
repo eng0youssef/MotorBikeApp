@@ -43,13 +43,19 @@
                     </StackPanel>
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsItemVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="الصنف (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
-                                  DisplayMemberPath="ItemName" Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
+                                      DisplayMemberPath="ItemName" Width="200" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearItemCommand}"/>
+                        </StackPanel>
                     </StackPanel>
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsExpGroupVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="المجموعة (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding ExpGroups}" SelectedItem="{Binding SelectedExpGroup}"
-                                  DisplayMemberPath="GroupName" Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding ExpGroups}" SelectedItem="{Binding SelectedExpGroup}"
+                                      DisplayMemberPath="GroupName" Width="200" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearExpGroupCommand}"/>
+                        </StackPanel>
                     </StackPanel>
                 </WrapPanel>
                 <WrapPanel Orientation="Horizontal" HorizontalAlignment="Right">

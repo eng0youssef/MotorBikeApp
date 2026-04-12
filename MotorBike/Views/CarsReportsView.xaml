@@ -67,20 +67,26 @@
                     <StackPanel Margin="0,0,20,15"
                                 Visibility="{Binding IsCarModelVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="الموديل (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding CarModels}"
-                                  SelectedItem="{Binding SelectedCarModel}"
-                                  DisplayMemberPath="ModelName"
-                                  Width="200" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding CarModels}"
+                                      SelectedItem="{Binding SelectedCarModel}"
+                                      DisplayMemberPath="ModelName"
+                                      Width="200" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarModelCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <!-- اختيار موتوسيكل معين -->
                     <StackPanel Margin="0,0,20,15"
                                 Visibility="{Binding IsCarVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="اختيار الموتوسيكل" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
-                        <ComboBox ItemsSource="{Binding Cars}"
-                                  SelectedItem="{Binding SelectedCar}"
-                                  DisplayMemberPath="ChassisNo"
-                                  Width="220" Padding="8" FontSize="14"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox ItemsSource="{Binding Cars}"
+                                      SelectedItem="{Binding SelectedCar}"
+                                      DisplayMemberPath="ChassisNo"
+                                      Width="220" Padding="8" FontSize="14"/>
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCarCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                 </WrapPanel>

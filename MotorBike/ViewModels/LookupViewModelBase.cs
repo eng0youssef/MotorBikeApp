@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MotorBike.DataAccess;
@@ -199,11 +200,12 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
             // Re-select the saved item to reflect the updated data
             var savedId = GetEntityId(FormItem);
             var savedItemConfig = Items.FirstOrDefault(i => GetEntityId(i).Equals(savedId));
-            SelectedItem = savedItemConfig;
             
             if (savedItemConfig != null)
             {
+                SelectedItem = savedItemConfig;
                 FormItem = CloneEntity(savedItemConfig);
+                IsEditing = true;
             }
 
             StatusMessage = wasInsert ? "تم إضافة السجل بنجاح ✓ " : "تم تعديل السجل بنجاح ✓";
@@ -218,6 +220,8 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     public virtual async Task DeleteAsync()
     {
         if (SelectedItem is null) return;
+        var res = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (res != System.Windows.MessageBoxResult.Yes) return;
 
         try
         {

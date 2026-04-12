@@ -709,8 +709,13 @@ public partial class SalesViewModel : ObservableObject
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
             _isInsertMode = false;
-            // IsEditing = false; // left true to allow further edits
             await LoadInvoicesAsync();
+            var savedInvoice = Invoices.FirstOrDefault(x => x.SalesId == FormItem.SalesId);
+            if (savedInvoice != null)
+            {
+                SelectedInvoice = savedInvoice;
+                IsEditing = true;
+            }
         }
         catch (Exception ex)
         {
@@ -722,6 +727,8 @@ public partial class SalesViewModel : ObservableObject
     public async Task DeleteAsync()
     {
         if (SelectedInvoice is null) return;
+        var result = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
         try
         {
             var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();

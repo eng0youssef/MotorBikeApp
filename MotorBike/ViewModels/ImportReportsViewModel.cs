@@ -831,4 +831,9 @@ public partial class ImportReportsViewModel : ObservableObject
             ? $"تم العثور على {sorted.Count} حركة"
             : "⚠️ لا توجد بيانات في الفترة المحددة";
     }
+    [RelayCommand]
+    private void ClearImportSupplier() => SelectedImportSupplier = null;
+
+    [RelayCommand]
+    private void ClearInvoice() => SelectedInvoice = null;
 }

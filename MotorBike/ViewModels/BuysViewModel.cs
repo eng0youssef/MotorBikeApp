@@ -702,8 +702,13 @@ public partial class BuysViewModel : ObservableObject
                 await _compositeRepo.RecalcAvgCostForItemAsync(itemId, FormItem.BuyDate.Date);
 
             _isInsertMode = false;
-            // IsEditing = false; // left true to allow further edits
             await LoadInvoicesAsync();
+            var savedInvoice = Invoices.FirstOrDefault(x => x.BuyId == FormItem.BuyId);
+            if (savedInvoice != null)
+            {
+                SelectedInvoice = savedInvoice;
+                IsEditing = true;
+            }
         }
         catch (Exception ex)
         {
@@ -715,6 +720,8 @@ public partial class BuysViewModel : ObservableObject
     public async Task DeleteAsync()
     {
         if (SelectedInvoice is null) return;
+        var result = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
         try
         {
             // حفظ الأصناف المتأثرة قبل الحذف
