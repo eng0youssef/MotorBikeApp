@@ -1072,12 +1072,16 @@ public partial class ImportInvoiceViewModel : ObservableObject
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
 
-            // Retained IsEditing to enable further modifications
             StatusMessage = "تم حفظ فاتورة الاستيراد بنجاح ✓ ";
-
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
             FilteredInvoices = new(Invoices);
+            var savedInvoice = Invoices.FirstOrDefault(x => x.InvId == FormItem.InvId);
+            if (savedInvoice != null)
+            {
+                SelectedInvoice = savedInvoice;
+                IsEditing = true;
+            }
         }
         catch (Exception ex)
         {

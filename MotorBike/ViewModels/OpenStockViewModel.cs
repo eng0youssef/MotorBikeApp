@@ -201,8 +201,14 @@ public partial class OpenStockViewModel : ObservableObject
             // إعادة حساب متوسط التكلفة من تاريخ الرصيد الافتتاحي
             await _compositeRepo.RecalcAvgCostForItemAsync(FormItem.ItemId, FormItem.OpenDate.Date);
 
-            // IsEditing = false; // Retain edit mode so user can save again
+            // Retain edit mode so user can save again
             await LoadDataAsync();
+            var savedItem = Items.FirstOrDefault(x => x.StoreId == FormItem.StoreId && x.ItemId == FormItem.ItemId);
+            if (savedItem != null)
+            {
+                SelectedItem = savedItem;
+                IsEditing = true;
+            }
         }
         catch (Exception ex)
         {
@@ -218,6 +224,9 @@ public partial class OpenStockViewModel : ObservableObject
             StatusMessage = "الرجاء تحديد سجل للحذف.";
             return;
         }
+
+        var res = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (res != System.Windows.MessageBoxResult.Yes) return;
 
         try
         {

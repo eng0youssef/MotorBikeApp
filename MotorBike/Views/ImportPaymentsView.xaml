@@ -112,12 +112,6 @@
                                     <Setter Property="Visibility" Value="Visible" />
                                     <Setter Property="Background" Value="#3B82F6" />
                                     <Setter Property="Foreground" Value="White" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsEditing}"
-                                                             Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
                                 </Style>
                             </Button.Style>
                         </Button>

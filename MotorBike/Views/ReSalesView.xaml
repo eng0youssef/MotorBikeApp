@@ -548,9 +548,6 @@
                                             <Setter Property="Background" Value="#3B82F6" />
                                             <Setter Property="Foreground" Value="White" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEditing}" Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Collapsed" />
                                                 </DataTrigger>

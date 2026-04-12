@@ -317,7 +317,7 @@
                                 </Grid.ColumnDefinitions>
 
                                 <Grid Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="بحث الصنف" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="White" Text="بحث الصنف" />
                                     <TextBox x:Name="ItemSearchBox" Padding="8,6" GotFocus="ItemSearch_GotFocus"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -362,37 +362,37 @@
                                 </Grid>
 
                                 <Grid Grid.Column="1" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="المخزن" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="المخزن" />
                                     <ComboBox DisplayMemberPath="StoreName" ItemsSource="{Binding Stores}" SelectedValue="{Binding CurrentSubItem.StoreId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="StoreId" />
                                 </Grid>
 
                                 <Grid Grid.Column="2" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="الوحدة" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="الوحدة" />
                                     <ComboBox DisplayMemberPath="UnitName" ItemsSource="{Binding CurrentItemUnits}" SelectedValue="{Binding CurrentSubItem.UnitId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="UnitId" />
                                 </Grid>
 
                                 <Grid Grid.Column="3" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="الكمية" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="الكمية" />
                                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SubItemQty, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
 
                                 <Grid Grid.Column="4" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="السعر" />
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="السعر" />
                                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SubItemPrice, UpdateSourceTrigger=PropertyChanged}" />
                                 </Grid>
 
                                 <Grid Grid.Column="5" Margin="0,0,10,0">
-                                    <RadioButton Content="خصم %" Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer}" />
+                                    <RadioButton Content="خصم %" Margin="2,-16,0,0" FontSize="13" Foreground="#fff" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer}" />
                                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountPercent, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsSubItemDiscountPer}" />
                                 </Grid>
 
                                 <Grid Grid.Column="6" Margin="0,0,10,0">
-                                    <RadioButton Content="خصم" Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer, Converter={StaticResource InverseBool}}" />
+                                    <RadioButton Content="خصم" Margin="2,-16,0,0" FontSize="13" Foreground="#fff" VerticalAlignment="Top" IsChecked="{Binding IsSubItemDiscountPer, Converter={StaticResource InverseBool}}" />
                                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SubItemDiscountValue, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsSubItemDiscountPer, Converter={StaticResource InverseBool}}" />
                                 </Grid>
 
-                                <Grid Grid.Column="7" Margin="0,0,10,0">
-                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#C8CEE0" Text="اجمالي" />
+                                <Grid Grid.Column="7" Margin="0,0,10,0">    
+                                    <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="اجمالي" />
                                     <TextBox FontWeight="Bold" Foreground="#5BAE7C" IsEnabled="False"
                                              Style="{StaticResource FormTextBox}"
                                              Text="{Binding SubItemTotal, Mode=OneWay, StringFormat=\{0:N2\}}" />
@@ -629,10 +629,6 @@
                                             <Setter Property="Background" Value="#3B82F6" />
                                             <Setter Property="Foreground" Value="White" />
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsEditing}"
-                                                             Value="True">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding SelectedInvoice}"
                                                              Value="{x:Null}">
                                                     <Setter Property="Visibility" Value="Collapsed" />

@@ -46,16 +46,22 @@
 
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCashVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Margin="0,0,0,4" FontSize="13" Foreground="#64748B" Text="الخزينة/البنك (اختياري)" />
-                        <ComboBox Width="200" Padding="8" DisplayMemberPath="CashName" FontSize="14"
-                                  ItemsSource="{Binding Cashes}"
-                                  SelectedItem="{Binding SelectedCash}" />
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox Width="200" Padding="8" DisplayMemberPath="CashName" FontSize="14"
+                                      ItemsSource="{Binding Cashes}"
+                                      SelectedItem="{Binding SelectedCash}" />
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearCashCommand}"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsExpenseVisible, Converter={StaticResource BoolToVis}}">
                         <TextBlock Margin="0,0,0,4" FontSize="13" Foreground="#64748B" Text="كل المصروفات (اختياري)" />
-                        <ComboBox Width="200" Padding="8" DisplayMemberPath="ExpName" FontSize="14"
-                                  ItemsSource="{Binding Expenses}"
-                                  SelectedItem="{Binding SelectedExpense}" />
+                        <StackPanel Orientation="Horizontal">
+                            <ComboBox Width="200" Padding="8" DisplayMemberPath="ExpName" FontSize="14"
+                                      ItemsSource="{Binding Expenses}"
+                                      SelectedItem="{Binding SelectedExpense}" />
+                            <Button Content="✕" Margin="5,0,0,0" Width="30" Background="Transparent" Foreground="#EF4444" BorderThickness="0" Command="{Binding ClearExpenseCommand}"/>
+                        </StackPanel>
                     </StackPanel>
                 </WrapPanel>
 

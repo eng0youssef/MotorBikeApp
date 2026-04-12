@@ -449,4 +449,9 @@ public partial class CashReportsViewModel : ObservableObject
         try { var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals); string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf"); System.IO.File.WriteAllBytes(tmp, pdf); MotorBike.Services.ReportGenerator.PrintPdf(tmp); }
         catch (Exception ex) { System.Windows.MessageBox.Show("خطأ: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error); }
     }
+    [RelayCommand]
+    private void ClearCash() => SelectedCash = null;
+
+    [RelayCommand]
+    private void ClearExpense() => SelectedExpense = null;
 }
