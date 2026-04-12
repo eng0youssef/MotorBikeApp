@@ -156,12 +156,10 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
             double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.PayDate);
             
-            // For customer: PayType 0 (إيداع/سداد من العميل) increases his balance (credit), 
-            // PayType 1 (صرف/مدفوع للعميل) decreases balance.
-            // Wait, let's check the convention. If PayType 1 is "Collected From Customer", balance decreases.
-            // Let's use the logic: PayType 0 = Collected (+), PayType 1 = Paid (-)
+            // For customer: PayType 1 (تحصيل من عميل) increases his balance (+)
+            // PayType 0 (سداد لعميل) decreases his balance (-)
             double amount = FormItem.PayMoney;
-            double balanceAfter = previousBalance - (FormItem.PayType == 0 ? -amount : amount);
+            double balanceAfter = previousBalance + (FormItem.PayType == 1 ? amount : -amount);
 
             var model = new MotorBike.Services.CusPaymentReceiptModel
             {

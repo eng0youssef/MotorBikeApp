@@ -287,8 +287,8 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(bcp.PayMoney) FROM Buy_Car_Payments bcp INNER JOIN Buy_Car bc ON bcp.BuyID = bc.Buy_ID INNER JOIN Cars c ON bc.CarID = c.Car_ID WHERE c.SourceCustomerID = @CusId AND c.IsFromCustomer = 1), 0)
                 + ISNULL((SELECT SUM(Net) FROM ReSales WHERE CusID = @CusId), 0)
                 - ISNULL((SELECT SUM(rp.PayMoney) FROM ReSales_Payments rp INNER JOIN ReSales rs ON rp.SalesId = rs.Sales_ID WHERE rs.CusID = @CusId), 0)
-                - ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
-                + ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
+                - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Cus_Payments WHERE CusID = @CusId), 0)
             WHERE Cus_ID = @CusId";
         await db.ExecuteAsync(sql, new { CusId = cusId });
     }
