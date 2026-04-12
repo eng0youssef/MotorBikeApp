@@ -963,8 +963,6 @@ public partial class SalesReportsViewModel : ObservableObject
                     { "إجمالي المبيعات", sumSalesVal.ToString("N2") },
                     { "إجمالي المرتجعات", sumReturnsVal.ToString("N2") },
                     { "صافي المبيعات", sumNetVal.ToString("N2") },
-                    { "إجمالي ض.ق.م", "0.00" },   // مجرد شكل للطباعة
-                    { "إجمالي ض.أ.ت.ص", "0.00" } // مجرد شكل للطباعة
                 };
             }
             else if (SelectedReportType == "مبيعات الموتوسيكلات")
