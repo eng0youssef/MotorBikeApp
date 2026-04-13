@@ -902,22 +902,8 @@ public partial class ReBuyViewModel : ObservableObject
             }
 
             var document = new MotorBike.Services.ReBuyInvoiceDocument(model, company);
-            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "PDF Document (*.pdf)|*.pdf", DefaultExt = "pdf",
-                Title = "حفظ المرتجع كـ PDF",
-                FileName = $"مرتجع_مشتريات_{FormItem.BuyId}_{DateTime.Now:yyyyMMdd}"
-            };
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
-                var result = System.Windows.MessageBox.Show("تم حفظ المرتجع بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
-                if (result == System.Windows.MessageBoxResult.Yes)
-                {
-                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
-                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
-                }
-            }
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, "فاتورة مرتجع مشتريات رقم " + FormItem.BuyId);
+            previewWindow.ShowDialog();
         }
         catch (Exception ex)
         {

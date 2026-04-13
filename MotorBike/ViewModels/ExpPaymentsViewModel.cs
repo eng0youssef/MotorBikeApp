@@ -148,24 +148,8 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
             };
 
             var document = new MotorBike.Services.ExpPaymentReceiptDocument(model, company);
-            var saveFileDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "PDF Document (*.pdf)|*.pdf",
-                DefaultExt = "pdf",
-                Title = "حفظ الإيصال كـ PDF",
-                FileName = $"إيصال_مصروف_{FormItem.PayId}_{DateTime.Now:yyyyMMdd}"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveFileDialog.FileName);
-                var result = System.Windows.MessageBox.Show("تم حفظ الإيصال بنجاح. هل تريد فتح الملف الآن لطباعته؟", "حفظ وطباعة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question);
-                if (result == System.Windows.MessageBoxResult.Yes)
-                {
-                    try { var process = new System.Diagnostics.Process { StartInfo = new System.Diagnostics.ProcessStartInfo { FileName = saveFileDialog.FileName, UseShellExecute = true } }; process.Start(); }
-                    catch (Exception exInner) { System.Windows.MessageBox.Show("لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning); }
-                }
-            }
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, "إيصال دفع مصروف رقم " + FormItem.PayId);
+            previewWindow.ShowDialog();
         }
         catch (Exception ex)
         {

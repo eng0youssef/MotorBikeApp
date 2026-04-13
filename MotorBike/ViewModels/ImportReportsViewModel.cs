@@ -453,39 +453,29 @@ public partial class ImportReportsViewModel : ObservableObject
         using var db = _dbFactory.CreateConnection();
         var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
 
-        var saveFileDialog = new Microsoft.Win32.SaveFileDialog
+        try
         {
-            Filter = "PDF File (*.pdf)|*.pdf",
-            DefaultExt = "pdf",
-            FileName = SelectedReportType + " " + DateTime.Now.ToString("yyyy-MM-dd")
-        };
-
-        if (saveFileDialog.ShowDialog() == true)
-        {
-            try
+            QuestPDF.Infrastructure.IDocument document;
+            if (IsDetailedReport)
             {
-                byte[] pdfBytes;
-                if (IsDetailedReport)
-                {
-                    if (SelectedReportType == "فواتير استيراد تفصيلي")
-                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateImportInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
-                    else if (IsInvoiceMode)
-                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
-                    else
-                        pdfBytes = MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
-                }
+                if (SelectedReportType == "فواتير استيراد تفصيلي")
+                    document = MotorBike.Services.ReportGenerator.CreateImportInvoiceDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                else if (IsInvoiceMode)
+                    document = MotorBike.Services.ReportGenerator.CreateInvoiceDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
                 else
-                {
-                    pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
-                }
-
-                System.IO.File.WriteAllBytes(saveFileDialog.FileName, pdfBytes);
-                System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    document = MotorBike.Services.ReportGenerator.CreateDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
             }
-            catch (Exception ex)
+            else
             {
-                System.Windows.MessageBox.Show("حدث خطأ أثناء التصدير: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                document = MotorBike.Services.ReportGenerator.CreatePdfDocument(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
             }
+
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, SelectedReportType);
+            previewWindow.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show("حدث خطأ أثناء التصدير: " + ex.Message, "خطأ", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
     
@@ -507,24 +497,23 @@ public partial class ImportReportsViewModel : ObservableObject
 
         try
         {
-            byte[] pdfBytes;
+            QuestPDF.Infrastructure.IDocument document;
             if (IsDetailedReport)
             {
                 if (SelectedReportType == "فواتير استيراد تفصيلي")
-                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateImportInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                    document = MotorBike.Services.ReportGenerator.CreateImportInvoiceDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
                 else if (IsInvoiceMode)
-                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateInvoiceDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                    document = MotorBike.Services.ReportGenerator.CreateInvoiceDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
                 else
-                    pdfBytes = MotorBike.Services.ReportGenerator.GenerateDetailedPdf(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
+                    document = MotorBike.Services.ReportGenerator.CreateDetailedPdfDocument(company, SelectedReportType, DetailedReportData, _currentHeaderInfo, _currentFooterTotals);
             }
             else
             {
-                pdfBytes = MotorBike.Services.ReportGenerator.GeneratePdf(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+                document = MotorBike.Services.ReportGenerator.CreatePdfDocument(company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
             }
 
-            string tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
-            System.IO.File.WriteAllBytes(tempFile, pdfBytes);
-            MotorBike.Services.ReportGenerator.PrintPdf(tempFile);
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, SelectedReportType);
+            previewWindow.ShowDialog();
         }
         catch (Exception ex)
         {
