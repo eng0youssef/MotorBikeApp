@@ -1,0 +1,261 @@
+<Window x:Class="MotorBike.Views.PrintPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="معاينة قبل الطباعة"
+        Width="1100" Height="780"
+        MinWidth="800" MinHeight="540"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        FlowDirection="RightToLeft"
+        Background="#1A1D2E"
+        ResizeMode="CanResize">
+
+    <Window.Resources>
+        <DropShadowEffect x:Key="CardShadow" Color="#000000" Opacity="0.35"
+                          BlurRadius="16" ShadowDepth="4" Direction="270"/>
+
+        <!-- Label style -->
+        <Style x:Key="PanelLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#9BA4B5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <!-- ComboBox style -->
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Background" Value="#252840"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#3D4560"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="36"/>
+        </Style>
+
+        <!-- TextBox style -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#252840"/>
+            <Setter Property="Foreground" Value="#E2E8F0"/>
+            <Setter Property="BorderBrush" Value="#3D4560"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="CaretBrush" Value="White"/>
+        </Style>
+
+        <!-- RadioButton style -->
+        <Style x:Key="DarkRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Primary action button -->
+        <Style x:Key="PrintBtn" TargetType="Button">
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2563EB"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#374151"/>
+                                <Setter Property="Foreground" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary button -->
+        <Style x:Key="SecBtn" TargetType="Button">
+            <Setter Property="Background" Value="#2D3348"/>
+            <Setter Property="Foreground" Value="#CBD5E1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="16,9"/>
+            <Setter Property="BorderBrush" Value="#3D4560"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#374062"/>
+                                <Setter Property="BorderBrush" Value="#6B7280"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Save PDF green button -->
+        <Style x:Key="SaveBtn" TargetType="Button" BasedOn="{StaticResource PrintBtn}">
+            <Setter Property="Background" Value="#059669"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#047857"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#065F46"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <!-- Left: options panel -->
+            <ColumnDefinition Width="270"/>
+            <!-- Right: preview area -->
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ══════════════ OPTIONS PANEL ══════════════ -->
+        <Border Grid.Column="0" Background="#1E2133" BorderBrush="#2D3348" BorderThickness="0,0,1,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="20,24,20,24">
+
+                    <!-- Header -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                        <TextBlock Text="🖨️" FontSize="22" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <StackPanel>
+                            <TextBlock Text="إعدادات الطباعة" FontSize="16" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="اختر خيارات الطباعة" FontSize="11" Foreground="#6B7280" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2D3348" Margin="0,0,0,20"/>
+
+                    <!-- Printer Selection -->
+                    <TextBlock Text="الطابعة" Style="{StaticResource PanelLabel}"/>
+                    <ComboBox x:Name="CmbPrinters" Style="{StaticResource DarkCombo}" Margin="0,0,0,18" Foreground="Black"
+                              SelectionChanged="CmbPrinters_SelectionChanged"/> 
+                    
+                    <!-- Copies -->
+                    <TextBlock Text="عدد النسخ" Style="{StaticResource PanelLabel}"/>
+                    <TextBox x:Name="TxtCopies" Style="{StaticResource DarkTextBox}" Text="1" Margin="0,0,0,20"
+                             PreviewTextInput="TxtCopies_PreviewTextInput"/>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2D3348" Margin="0,0,0,20"/>
+
+                    <!-- Page Range -->
+                    <TextBlock Text="نطاق الصفحات" Style="{StaticResource PanelLabel}"/>
+
+                    <RadioButton x:Name="RbAll" Style="{StaticResource DarkRadio}"
+                                 Content="كل الصفحات" IsChecked="True"
+                                 Checked="PageRange_Changed"/>
+
+                    <RadioButton x:Name="RbCustom" Style="{StaticResource DarkRadio}"
+                                 Content="صفحات محددة" Margin="0,0,0,6"
+                                 Checked="PageRange_Changed"/>
+
+                    <!-- Custom range input -->
+                    <Border x:Name="PanelCustomRange" Background="#252840" CornerRadius="8"
+                            Padding="12" Margin="0,0,0,4"
+                            BorderBrush="#3D4560" BorderThickness="1"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="مثال: 1-3, 5, 7" Foreground="#6B7280" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox x:Name="TxtPageRange" Style="{StaticResource DarkTextBox}"
+                                     TextChanged="TxtPageRange_TextChanged"
+                                     FlowDirection="LeftToRight"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock x:Name="TxtPageCount" Text="" Foreground="#6B7280"
+                               FontSize="11" Margin="0,4,0,20"/>
+
+                    <!-- Separator -->
+                    <Border Height="1" Background="#2D3348" Margin="0,0,0,20"/>
+
+                    <!-- Action Buttons -->
+                    <Button x:Name="BtnPrint" Style="{StaticResource PrintBtn}"
+                            Content="🖨️  طباعة" Margin="0,0,0,10"
+                            Click="BtnPrint_Click"/>
+
+                    <Button x:Name="BtnSavePdf" Style="{StaticResource SaveBtn}"
+                            Content="💾  حفظ PDF" Margin="0,0,0,10"
+                            Click="BtnSavePdf_Click"/>
+
+                    <Button Style="{StaticResource SecBtn}"
+                            Content="✖  إغلاق"
+                            Click="BtnClose_Click"/>
+
+                    <!-- Status message -->
+                    <TextBlock x:Name="TxtStatus" Text="" Foreground="#10B981"
+                               FontSize="12" FontWeight="SemiBold"
+                               TextWrapping="Wrap" Margin="0,14,0,0"/>
+
+                    <TextBlock x:Name="TxtError" Text="" Foreground="#F87171"
+                               FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ══════════════ PREVIEW AREA ══════════════ -->
+        <Grid Grid.Column="1" Background="#111320">
+
+            <!-- Top bar -->
+            <Border VerticalAlignment="Top" Background="#1A1D2E" Height="48"
+                    BorderBrush="#2D3348" BorderThickness="0,0,0,1" Panel.ZIndex="1">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="معاينة المستند" FontSize="14" Foreground="#9BA4B5" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtPreviewPageInfo" Text="" FontSize="12" Foreground="#6B7280"
+                               VerticalAlignment="Center" Margin="16,0,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Page images viewer -->
+            <ScrollViewer Margin="0,48,0,0" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto"
+                          Background="#111320" Padding="20">
+                <ItemsControl x:Name="PageImagesControl" HorizontalAlignment="Center">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,0,0,16" Effect="{StaticResource CardShadow}">
+                                <Image Source="{Binding}" Stretch="Uniform" MaxWidth="900"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Loading overlay -->
+            <Border x:Name="LoadingOverlay" Background="#CC111320" Visibility="Collapsed"
+                    Margin="0,48,0,0">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="⏳" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                    <TextBlock Text="جارٍ تحميل المعاينة..." Foreground="White" FontSize="16" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

@@ -16,7 +16,7 @@ public class ReportGenerator
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
-    public static byte[] GeneratePdf(Company company, string reportTitle, System.Data.DataView dataView, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null, System.Data.DataView? extraTable = null, string? extraTableTitle = null)
+    public static IDocument CreatePdfDocument(Company company, string reportTitle, System.Data.DataView dataView, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null, System.Data.DataView? extraTable = null, string? extraTableTitle = null)
     {
         var dt = dataView.Table;
         var columns = new List<string>();
@@ -28,7 +28,7 @@ public class ReportGenerator
         // Reverse columns to display them from Right-To-Left
         columns.Reverse();
 
-        var document = Document.Create(container =>
+        return Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -42,13 +42,16 @@ public class ReportGenerator
                 page.Footer().Element(ComposeFooter);
             });
         });
-
-        return document.GeneratePdf();
     }
 
-    public static byte[] GenerateDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    public static byte[] GeneratePdf(Company company, string reportTitle, System.Data.DataView dataView, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null, System.Data.DataView? extraTable = null, string? extraTableTitle = null)
     {
-        var document = Document.Create(container =>
+        return CreatePdfDocument(company, reportTitle, dataView, headerInfo, footerTotals, extraTable, extraTableTitle).GeneratePdf();
+    }
+
+    public static IDocument CreateDetailedPdfDocument(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        return Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -62,13 +65,16 @@ public class ReportGenerator
                 page.Footer().Element(ComposeFooter);
             });
         });
-
-        return document.GeneratePdf();
     }
 
-    public static byte[] GenerateInvoiceDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    public static byte[] GenerateDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
     {
-        var document = Document.Create(container =>
+        return CreateDetailedPdfDocument(company, reportTitle, data, headerInfo, footerTotals).GeneratePdf();
+    }
+
+    public static IDocument CreateInvoiceDetailedPdfDocument(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        return Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -82,13 +88,16 @@ public class ReportGenerator
                 page.Footer().Element(ComposeFooter);
             });
         });
-
-        return document.GeneratePdf();
     }
 
-    public static byte[] GenerateImportInvoiceDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    public static byte[] GenerateInvoiceDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
     {
-        var document = Document.Create(container =>
+        return CreateInvoiceDetailedPdfDocument(company, reportTitle, data, headerInfo, footerTotals).GeneratePdf();
+    }
+
+    public static IDocument CreateImportInvoiceDetailedPdfDocument(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        return Document.Create(container =>
         {
             container.Page(page =>
             {
@@ -102,8 +111,11 @@ public class ReportGenerator
                 page.Footer().Element(ComposeFooter);
             });
         });
+    }
 
-        return document.GeneratePdf();
+    public static byte[] GenerateImportInvoiceDetailedPdf(Company company, string reportTitle, IEnumerable<DetailedAccountRow> data, Dictionary<string, string>? headerInfo = null, Dictionary<string, string>? footerTotals = null)
+    {
+        return CreateImportInvoiceDetailedPdfDocument(company, reportTitle, data, headerInfo, footerTotals).GeneratePdf();
     }
 
 

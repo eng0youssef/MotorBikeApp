@@ -524,26 +524,17 @@ public partial class StoreReportsViewModel : ObservableObject
         }
         using var db = _dbFactory.CreateConnection();
         var company  = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
-        var dlg = new Microsoft.Win32.SaveFileDialog
+        try
         {
-            Filter = "PDF File (*.pdf)|*.pdf", DefaultExt = "pdf",
-            FileName = SelectedReportType + " " + DateTime.Now.ToString("yyyy-MM-dd")
-        };
-        if (dlg.ShowDialog() == true)
+            QuestPDF.Infrastructure.IDocument document = MotorBike.Services.ReportGenerator.CreatePdfDocument(
+                company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, SelectedReportType);
+            previewWindow.ShowDialog();
+        }
+        catch (Exception ex)
         {
-            try
-            {
-                var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
-                    company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
-                System.IO.File.WriteAllBytes(dlg.FileName, pdf);
-                System.Windows.MessageBox.Show("تم حفظ التقرير بنجاح", "نجاح",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show("خطأ: " + ex.Message, "خطأ",
-                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
-            }
+            System.Windows.MessageBox.Show("خطأ: " + ex.Message, "خطأ",
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
         }
     }
 
@@ -559,12 +550,11 @@ public partial class StoreReportsViewModel : ObservableObject
         var company  = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
         try
         {
-            var pdf = MotorBike.Services.ReportGenerator.GeneratePdf(
+            var document = MotorBike.Services.ReportGenerator.CreatePdfDocument(
                 company, SelectedReportType, ReportData, _currentHeaderInfo, _currentFooterTotals);
-            string tmp = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
-                "MotorBikeReport_" + Guid.NewGuid() + ".pdf");
-            System.IO.File.WriteAllBytes(tmp, pdf);
-            MotorBike.Services.ReportGenerator.PrintPdf(tmp);
+            
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, SelectedReportType);
+            previewWindow.ShowDialog();
         }
         catch (Exception ex)
         {

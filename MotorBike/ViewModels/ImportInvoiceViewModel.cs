@@ -1216,45 +1216,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
             // ── 7) إنشاء الـ Document ─────────────────────────────────────────
             var document = new MotorBike.Services.ImportInvoiceDocument(model, company!);
 
-            // ── 8) حوار الحفظ ─────────────────────────────────────────────────
-            var saveDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "PDF Document (*.pdf)|*.pdf",
-                DefaultExt = "pdf",
-                Title = "حفظ فاتورة الاستيراد كـ PDF",
-                FileName = $"فاتورة_استيراد_{FormItem.InvId}_{DateTime.Now:yyyyMMdd}",
-            };
-
-            if (saveDialog.ShowDialog() != true) return;
-
-            // ── 9) توليد الـ PDF ──────────────────────────────────────────────
-            QuestPDF.Fluent.GenerateExtensions.GeneratePdf(document, saveDialog.FileName);
-
-            var open = MessageBox.Show(
-                "تم حفظ الفاتورة بنجاح.\nهل تريد فتح الملف الآن؟",
-                "حفظ وطباعة",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (open == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = saveDialog.FileName,
-                        UseShellExecute = true
-                    });
-                }
-                catch (Exception exInner)
-                {
-                    MessageBox.Show(
-                        "لا يمكن فتح الملف تلقائياً.\nالخطأ: " + exInner.Message,
-                        "خطأ",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-                }
-            }
+            // ── 8) حوار الحفظ والمعاينة ─────────────────────────────────────
+            var previewWindow = new MotorBike.Views.PrintPreviewWindow(document, "فاتورة استيراد رقم " + FormItem.InvId);
+            previewWindow.ShowDialog();
         }
         catch (Exception ex)
         {
