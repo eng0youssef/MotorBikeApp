@@ -68,7 +68,7 @@
                         <Border Background="White" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="👥" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="سداد العملاء" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Foreground="Black" Text="تحصيل العملاء" />
                     </StackPanel>
                 </Button>
                 <Button Width="210" Height="170" Margin="0,0,20,20"

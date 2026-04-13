@@ -26,7 +26,7 @@ public partial class CustomersView : UserControl
         {
             double.TryParse(txtDebit.Text, out double debit);
             double.TryParse(txtCredit.Text, out double credit);
-            double bal = credit - debit;
+            double bal = debit - credit;
             vm.FormItem.Debit = debit;
             vm.FormItem.Credit = credit;
             vm.FormItem.Bal = bal;
