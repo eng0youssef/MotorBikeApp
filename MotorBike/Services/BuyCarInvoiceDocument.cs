@@ -44,6 +44,8 @@ public class BuyCarInvoiceModel
 
     // Payments table (for credit invoices)
     public List<(double Amount, string CashName, string Notes)> Payments { get; set; } = new();
+
+    public bool IsSupplier { get; set; }
 }
 
 public class BuyCarInvoiceDocument : IDocument
@@ -218,8 +220,12 @@ public class BuyCarInvoiceDocument : IDocument
 
     private void ComposeTotals(IContainer container)
     {
-        double totalAccount = _model.NetAmount + _model.PreviousBalance;
-        double remaining = totalAccount - _model.PaidAmount;
+        double totalAccount = _model.IsSupplier 
+            ? _model.PreviousBalance + _model.NetAmount 
+            : _model.PreviousBalance - _model.NetAmount;
+        double remaining = _model.IsSupplier
+            ? totalAccount - _model.PaidAmount
+            : totalAccount + _model.PaidAmount;
 
         var leftItems = new[]
         {

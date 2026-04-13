@@ -77,8 +77,8 @@
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
-        <Border Grid.Row="2" Padding="24" Background="White" BorderBrush="#3D4560" BorderThickness="1"
-                CornerRadius="12">
+        <Border Grid.Row="2" Background="#272C3F" CornerRadius="12" Padding="24"
+                BorderBrush="#3D4560" BorderThickness="1">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="12" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
             </Border.Effect>

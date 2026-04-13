@@ -187,8 +187,8 @@ public class ReSalesInvoiceDocument : IDocument
 
     private void ComposeTotals(IContainer container)
     {
-        double totalAccount = _model.NetAmount + _model.PreviousBalance;
-        double remaining = totalAccount - _model.PaidAmount;
+        double totalAccount = _model.PreviousBalance - _model.NetAmount;
+        double remaining = totalAccount + _model.PaidAmount;
 
         var leftItems = new[]
         {

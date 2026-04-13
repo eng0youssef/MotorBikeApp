@@ -13,6 +13,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     private readonly IRepository<Car> _carRepository;
     private readonly IRepository<CarModel> _carModelRepository;
     private readonly IRepository<Color> _colorRepository;
+    private readonly IRepository<CarBrand> _carBrandRepository;
     private readonly IDbConnectionFactory _dbFactory;
     private readonly CompositeKeyRepository _compositeRepo;
 
@@ -20,15 +21,36 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     private ObservableCollection<City> _cities = [];
 
     // ── Motorcycle section ────────────────────────────────────────────
+    [ObservableProperty] private ObservableCollection<CarBrand> _carBrands = [];
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private ObservableCollection<Color> _colors = [];
     [ObservableProperty] private ObservableCollection<Car> _customerCars = [];
 
     // Inline car fields for adding a new motorcycle
-    [ObservableProperty] private int _newCarModelId;
+    [ObservableProperty] private string _newCarBrandName = string.Empty;
+    [ObservableProperty] private string _newCarModelName = string.Empty;
+    [ObservableProperty] private string _newCarColorName = string.Empty;
+    [ObservableProperty] private bool _isNewCarBrandEnabled = true;
     [ObservableProperty] private short _newCarYearNo = (short)DateTime.Now.Year;
-    [ObservableProperty] private int _newCarColorId;
     [ObservableProperty] private int _newCarMileage;
+
+    partial void OnNewCarModelNameChanged(string value)
+    {
+        var model = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, value?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            if (brand != null)
+            {
+                NewCarBrandName = brand.BrandName;
+            }
+            IsNewCarBrandEnabled = false;
+        }
+        else
+        {
+            IsNewCarBrandEnabled = true;
+        }
+    }
     [ObservableProperty] private string? _newCarChassisNo;
     [ObservableProperty] private string? _newCarMotorNo;
     [ObservableProperty] private string? _newCarPlateNo;
@@ -43,6 +65,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         IRepository<Car> carRepository,
         IRepository<CarModel> carModelRepository,
         IRepository<Color> colorRepository,
+        IRepository<CarBrand> carBrandRepository,
         IDbConnectionFactory dbFactory,
         CompositeKeyRepository compositeRepo) : base(repository)
     {
@@ -50,6 +73,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         _carRepository = carRepository;
         _carModelRepository = carModelRepository;
         _colorRepository = colorRepository;
+        _carBrandRepository = carBrandRepository;
         _dbFactory = dbFactory;
         _compositeRepo = compositeRepo;
     }
@@ -68,9 +92,13 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors.Where(c => c.Active));
 
-            // Set defaults for car ComboBoxes
-            NewCarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
-            NewCarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
+            var brands = await _carBrandRepository.GetAllAsync();
+            CarBrands = new ObservableCollection<CarBrand>(brands.Where(b => b.Active));
+
+            // Set defaults for car
+            NewCarModelName = string.Empty;
+            NewCarColorName = string.Empty;
+            NewCarBrandName = string.Empty;
         }
         catch (Exception ex)
         {
@@ -148,6 +176,53 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
             using var tx = db.BeginTransaction();
             try
             {
+                // Color check
+                int currentColorId;
+                var selectedColorName = NewCarColorName?.Trim() ?? "بدون";
+                var colorObj = Colors.FirstOrDefault(c => string.Equals(c.ColorName, selectedColorName, StringComparison.OrdinalIgnoreCase));
+                if (colorObj != null)
+                {
+                    currentColorId = colorObj.ColorId;
+                }
+                else
+                {
+                    currentColorId = await _colorRepository.GetNextIdAsync();
+                    var newColor = new Color { ColorId = currentColorId, ColorName = selectedColorName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO Colors (Color_ID, ColorName, Active, AddDate, AddPC, AddUser) VALUES (@ColorId, @ColorName, @Active, @AddDate, @AddPc, @AddUser)", newColor, tx);
+                    Colors.Add(newColor);
+                }
+
+                // Brand and Model check
+                int currentModelId;
+                var selectedModelName = NewCarModelName?.Trim() ?? "بدون";
+                var modelObj = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, selectedModelName, StringComparison.OrdinalIgnoreCase));
+                if (modelObj != null)
+                {
+                    currentModelId = modelObj.ModelId;
+                }
+                else
+                {
+                    var selectedBrandName = NewCarBrandName?.Trim() ?? "بدون";
+                    var brandObj = CarBrands.FirstOrDefault(b => string.Equals(b.BrandName, selectedBrandName, StringComparison.OrdinalIgnoreCase));
+                    int currentBrandId;
+                    if (brandObj != null)
+                    {
+                        currentBrandId = brandObj.BrandId;
+                    }
+                    else
+                    {
+                        currentBrandId = await _carBrandRepository.GetNextIdAsync();
+                        var newBrand = new CarBrand { BrandId = currentBrandId, BrandName = selectedBrandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                        await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand, tx);
+                        CarBrands.Add(newBrand);
+                    }
+
+                    currentModelId = await _carModelRepository.GetNextIdAsync();
+                    var newModel = new CarModel { ModelId = currentModelId, ModelName = selectedModelName, BrandId = currentBrandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel, tx);
+                    CarModels.Add(newModel);
+                }
+
                 if (EditingCarId > 0)
                 {
                     // Update existing
@@ -168,13 +243,13 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                         new
                         {
                             CarId = EditingCarId,
-                            ModelId = NewCarModelId,
+                            ModelId = currentModelId,
                             YearNo = NewCarYearNo,
                             ChassisNo = NewCarChassisNo,
                             MotorNo = NewCarMotorNo ?? "",
                             PlateNo = NewCarPlateNo ?? "",
                             Mileage = NewCarMileage,
-                            ColorId = NewCarColorId,
+                            ColorId = currentColorId,
                             Notes = NewCarNotes,
                             EditDate = DateTime.Now,
                             EditPc = Environment.MachineName,
@@ -197,13 +272,13 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                         new
                         {
                             CarId = carId,
-                            ModelId = NewCarModelId,
+                            ModelId = currentModelId,
                             YearNo = NewCarYearNo,
                             ChassisNo = NewCarChassisNo,
                             MotorNo = NewCarMotorNo ?? "",
                             PlateNo = NewCarPlateNo ?? "",
                             Mileage = NewCarMileage,
-                            ColorId = NewCarColorId,
+                            ColorId = currentColorId,
                             Notes = NewCarNotes,
                             OwnerId = FormItem.CusId,
                             AddDate = DateTime.Now,
@@ -286,9 +361,25 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     {
         if (car == null) return;
         EditingCarId = car.CarId;
-        NewCarModelId = car.ModelId;
+        
+        var model = CarModels.FirstOrDefault(m => m.ModelId == car.ModelId);
+        NewCarModelName = model?.ModelName ?? string.Empty;
+        var color = Colors.FirstOrDefault(c => c.ColorId == car.ColorId);
+        NewCarColorName = color?.ColorName ?? string.Empty;
+
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            NewCarBrandName = brand?.BrandName ?? string.Empty;
+            IsNewCarBrandEnabled = false;
+        }
+        else
+        {
+            NewCarBrandName = string.Empty;
+            IsNewCarBrandEnabled = true;
+        }
+        
         NewCarYearNo = car.YearNo;
-        NewCarColorId = car.ColorId;
         NewCarChassisNo = car.ChassisNo;
         NewCarMotorNo = car.MotorNo;
         NewCarPlateNo = car.PlateNo;
@@ -306,8 +397,10 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         NewCarNotes = null;
         NewCarMileage = 0;
         NewCarYearNo = (short)DateTime.Now.Year;
-        NewCarModelId = CarModels.FirstOrDefault()?.ModelId ?? 0;
-        NewCarColorId = Colors.FirstOrDefault()?.ColorId ?? 0;
+        NewCarModelName = string.Empty;
+        NewCarColorName = string.Empty;
+        NewCarBrandName = string.Empty;
+        IsNewCarBrandEnabled = true;
     }
 
     [RelayCommand]

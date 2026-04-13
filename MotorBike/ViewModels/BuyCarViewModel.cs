@@ -1146,7 +1146,8 @@ public partial class BuyCarViewModel : ObservableObject
                 PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
                 RemainingAmount = Remaining,
-                Payments = paymentsList
+                Payments = paymentsList,
+                IsSupplier = !IsFromCustomer
             };
 
             var document = new MotorBike.Services.BuyCarInvoiceDocument(model, company);

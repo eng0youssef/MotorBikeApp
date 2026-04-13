@@ -36,14 +36,10 @@
             <Border.Effect>
                 <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="4" Color="#000000" />
             </Border.Effect>
-            <DataGrid ItemsSource="{Binding FilteredItems}"
-                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-                      AutoGenerateColumns="False" IsReadOnly="True"
-                      CanUserAddRows="False" SelectionMode="Single"
-                      GridLinesVisibility="Horizontal" HeadersVisibility="Column"
-                      BorderThickness="0" RowHeight="44" ColumnHeaderHeight="48"
-                      AlternatingRowBackground="#2A3040" Background="White"
-                      Foreground="#ECEEF5" FontSize="13" HorizontalGridLinesBrush="#323848">
+            <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                      AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" SelectionMode="Single"
+                      GridLinesVisibility="Horizontal" HeadersVisibility="Column" BorderThickness="0" RowHeight="44"
+                      ColumnHeaderHeight="48" AlternatingRowBackground="#222738" Background="#242940" Foreground="#C8CEE0" FontSize="13" HorizontalGridLinesBrush="#323848">
                 <DataGrid.ColumnHeaderStyle>
                     <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
                 </DataGrid.ColumnHeaderStyle>
