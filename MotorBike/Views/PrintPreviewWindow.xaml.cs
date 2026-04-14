@@ -50,7 +50,6 @@ public partial class PrintPreviewWindow : Window
     private async void OnWindowLoaded(object sender, RoutedEventArgs e)
     {
         LoadPrinters();
-        LoadPaperSizes();
         await GenerateAndShowPreviewAsync();
     }
 
@@ -73,13 +72,6 @@ public partial class PrintPreviewWindow : Window
         {
             TxtError.Text = "تعذّر تحميل قائمة الطابعات: " + ex.Message;
         }
-    }
-
-    private void LoadPaperSizes()
-    {
-        CmbPaperSize.DisplayMemberPath = "Name";
-        CmbPaperSize.ItemsSource       = KnownPaperSizes;
-        CmbPaperSize.SelectedIndex     = 0; // A4 افتراضي
     }
 
     // ─── Preview Generation ───────────────────────────────────────────────
@@ -210,10 +202,6 @@ public partial class PrintPreviewWindow : Window
                 try { pd.PrintQueue = new PrintQueue(new LocalPrintServer(), printerName); }
                 catch { /* سيبقى على الافتراضية */ }
             }
-
-            // تعيين مقاس الورق
-            if (CmbPaperSize.SelectedItem is PaperSizeEntry paper)
-                pd.PrintTicket.PageMediaSize = MapToMediaSize(paper);
 
             pd.PrintTicket.CopyCount = copies;
 
