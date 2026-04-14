@@ -19,6 +19,21 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
 
     [ObservableProperty] private ObservableCollection<Expense> _expenses = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
+    [ObservableProperty] private double _currentCashBalance;
+
+    public int? SelectedCashId
+    {
+        get => FormItem?.CashId;
+        set
+        {
+            if (FormItem != null && FormItem.CashId != value)
+            {
+                FormItem.CashId = value;
+                OnPropertyChanged(nameof(SelectedCashId));
+                CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
 
     // ── لحفظ القيم القديمة عند التعديل ──
     private int? _oldCashId;
@@ -45,7 +60,7 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
             Expenses = new ObservableCollection<Expense>(expenses.Where(x => x.Active));
 
             var cash = await _cashRepo.GetAllAsync();
-            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active));
+            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active && x.OmlaId == 0));
         }
         catch (Exception ex)
         {
@@ -57,13 +72,24 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
     protected override bool IsNewRecord(ExpPayment entity) => entity.PayId == 0;
     protected override void SetEntityId(ExpPayment entity, int id) => entity.PayId = id;
 
+    protected override void OnFormItemChangedHook(ExpPayment value)
+    {
+        if (value != null)
+        {
+            CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value.CashId)?.Bal ?? 0;
+            OnPropertyChanged(nameof(SelectedCashId));
+        }
+    }
+
     protected override void SetDefaultValues(ExpPayment entity)
     {
         base.SetDefaultValues(entity);
         entity.PayDate = DateTime.Now;
 
-        if (Expenses.Any()) entity.ExpId = Expenses.First().ExpId;
-        if (CashList.Any()) entity.CashId = CashList.First().CashId;
+        entity.ExpId = 0;
+        entity.CashId = 0;
+        entity.PayMoney = 0;
+        entity.Notes = string.Empty;
     }
 
     // ── Balance Recalculation Hooks ─────────────────────────────────
@@ -100,6 +126,9 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
         // إعادة حساب رصيد الخزينة الحالية
         if (FormItem.CashId.HasValue && FormItem.CashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId.Value);
+
+        await LoadRelatedDataAsync(); // Refresh balances
+        OnFormItemChangedHook(FormItem);
     }
 
     protected override Task BeforeDeleteAsync()
@@ -117,6 +146,9 @@ public partial class ExpPaymentsViewModel : LookupViewModelBase<ExpPayment>
         // إعادة حساب رصيد الخزينة بعد الحذف
         if (_oldCashId.HasValue && _oldCashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+
+        await LoadRelatedDataAsync();
+        OnFormItemChangedHook(FormItem);
     }
 
     [RelayCommand]

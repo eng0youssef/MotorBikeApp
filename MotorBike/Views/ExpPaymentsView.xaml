@@ -90,7 +90,10 @@
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="بند المصروف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Expenses}" DisplayMemberPath="ExpName" SelectedValuePath="ExpId" SelectedValue="{Binding FormItem.ExpId}" Padding="10,6" FontSize="14" IsEditable="True"/>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="الخزنة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="4" ItemsSource="{Binding CashList}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormItem.CashId}" Padding="10,6" FontSize="14"/>
+                    <StackPanel Grid.Row="2" Grid.Column="4" VerticalAlignment="Center">
+                        <ComboBox ItemsSource="{Binding CashList}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}" Padding="10,6" FontSize="14"/>
+                        <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#10B981" Text="{Binding CurrentCashBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                    </StackPanel>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
