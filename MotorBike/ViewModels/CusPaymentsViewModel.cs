@@ -157,9 +157,9 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
             double previousBalance = await _compositeRepo.GetCustomerOldBalanceAsync(FormItem.CusId, FormItem.PayDate);
 
-            // PayType 1 = تحصيل من عميل (+) | PayType 0 = سداد لعميل (-)
+            // PayType 1 = تحصيل من عميل (-) | PayType 0 = سداد لعميل (+)
             double amount      = FormItem.PayMoney;
-            double balanceAfter = previousBalance + (FormItem.PayType == 1 ? amount : -amount);
+            double balanceAfter = previousBalance - (FormItem.PayType == 1 ? amount : -amount);
 
             var model = new MotorBike.Services.CusPaymentReceiptModel
             {
