@@ -15,9 +15,11 @@ public class CashTransferReceiptModel
 
     // ── Currency info ─────────────────────────────────────────────────────────
     public string CurrencyName { get; set; } = "جنية مصري";
+    public string ToCurrencyName { get; set; } = "جنية مصري";
     public double ExchangeRate { get; set; } = 1.0;
-    public double AmountInLocalCurrency { get; set; }   // المبلغ ل.ع
-    public string AmountInWords { get; set; } = string.Empty; // فقط ...
+    public double FromRate { get; set; } = 1.0;
+    public double ToRate { get; set; } = 1.0;
+    public double AmountInLocalCurrency { get; set; }   // المبلغ للمحول اليه
 
     // ── Cash names ────────────────────────────────────────────────────────────
     public string FromCashName { get; set; } = string.Empty;
@@ -162,49 +164,58 @@ public class CashTransferReceiptDocument : IDocument
 
             col.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
 
-            // ── Row 2: المبلغ | العملة | سعر الصرف | المبلغ ل.ع ──────────────
+            // ── Row 2: المبلغ | سعر الصرف | الإيصال بقيمة ──────────────
             col.Item().PaddingVertical(8).Row(row =>
             {
-                // RIGHT: المبلغ
+                // RIGHT: الإيصال بقيمة (الخزينة الوجهة)
                 row.AutoItem().PaddingLeft(20).Text(t =>
                 {
-                    t.Span("المبلغ ل.ع : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
+                    t.Span("قيمة التحويل : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
                     t.Span(_model.AmountInLocalCurrency.ToString("N2"))
                         .FontSize(11).Bold().DirectionFromLeftToRight();
+                    t.Span($" {_model.ToCurrencyName}").FontSize(11).FontColor(Colors.Grey.Darken2);
                 });
 
-                row.AutoItem().PaddingLeft(20).Text(t =>
+                // MIDDLE: سعر الصرف (يظهر فقط لو العملتين مختلفتين)
+                if (_model.CurrencyName != _model.ToCurrencyName)
                 {
-                    t.Span("سعر الصرف : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
-                    t.Span(_model.ExchangeRate.ToString("F4"))
-                        .FontSize(11).DirectionFromLeftToRight();
-                });
+                    row.AutoItem().PaddingLeft(20).Text(t =>
+                    {
+                        bool showTo = _model.ToRate != 1.0 || _model.ToCurrencyName != "جنية مصري" && _model.ToCurrencyName != "ج.م";
+                        bool showFrom = _model.FromRate != 1.0 || _model.CurrencyName != "جنية مصري" && _model.CurrencyName != "ج.م";
 
-                row.AutoItem().PaddingLeft(20).Text(t =>
-                {
-                    t.Span("العملة : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
-                    t.Span(_model.CurrencyName).FontSize(11);
-                });
+                        if (showFrom)
+                        {
+                            t.Span($"سعر ({_model.CurrencyName}) : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
+                            t.Span(_model.FromRate.ToString("N2")).FontSize(11).DirectionFromLeftToRight();
+                        }
+
+                        if (showFrom && showTo)
+                        {
+                            t.Span("      ").FontSize(11); // مسافة فاصلة بين السعرين
+                        }
+
+                        if (showTo)
+                        {
+                            t.Span($"سعر ({_model.ToCurrencyName}) : ").SemiBold().FontSize(11).FontColor(Colors.Grey.Darken2);
+                            t.Span(_model.ToRate.ToString("N2")).FontSize(11).DirectionFromLeftToRight();
+                        }
+                        
+                    });
+                }
 
                 row.RelativeItem(); // spacer
 
-                // LEFT: المبلغ الرئيسي
+                // LEFT: المبلغ الرئيسي (الخزينة المصدر)
                 row.AutoItem().Text(t =>
                 {
                     t.Span("المبلغ : ").SemiBold().FontSize(11);
                     t.Span(_model.Amount.ToString("N2"))
                         .FontSize(11).Bold().FontColor(Colors.Black)
                         .DirectionFromLeftToRight();
+                    t.Span($" {_model.CurrencyName}").FontSize(11).FontColor(Colors.Grey.Darken2);
                 });
             });
-
-            // ── Row 3: Amount in words ─────────────────────────────────────────
-            if (!string.IsNullOrWhiteSpace(_model.AmountInWords))
-            {
-                col.Item().PaddingBottom(4).AlignRight()
-                    .Text($"فقط {_model.AmountInWords} لاغير")
-                    .FontSize(10).Italic().FontColor(Colors.Grey.Darken2);
-            }
 
             col.Item().PaddingBottom(4).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
 
@@ -232,6 +243,7 @@ public class CashTransferReceiptDocument : IDocument
                 row.RelativeItem()
                     .BorderBottom(0.5f).BorderColor(Colors.Grey.Medium)
                     .PaddingBottom(2)
+                    .AlignRight()
                     .Text(_model.Notes ?? "")
                     .FontSize(11);
                 row.AutoItem().Text(": البيان  ").SemiBold().FontSize(11);
@@ -300,6 +312,7 @@ public class CashTransferReceiptDocument : IDocument
                 nameRow.RelativeItem()
                     .BorderBottom(0.5f).BorderColor(Colors.Grey.Medium)
                     .PaddingBottom(2)
+                    .AlignRight()
                     .Text(cashName)
                     .FontSize(12).FontColor(Colors.Black);
 

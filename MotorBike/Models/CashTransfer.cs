@@ -15,6 +15,16 @@ public partial class CashTransfer
 
     public double PayMoney { get; set; }
 
+    /// <summary>سعر الصرف وقت التحويل (1 لو نفس العملة)</summary>
+    public double ExchangeRate { get; set; } = 1;
+
+    public double FromRate { get; set; } = 1;
+
+    public double ToRate { get; set; } = 1;
+
+    /// <summary>المبلغ بالعملة المحلية للخزينة الوجهة = PayMoney * ExchangeRate</summary>
+    public double PayMoneyTo { get; set; }
+
     public string? Notes { get; set; }
 
     public int? AddUser { get; set; }

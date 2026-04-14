@@ -19,9 +19,98 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
 
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
 
+    // ── أرصدة الخزائن ──
+    [ObservableProperty] private double _fromCashBalance;
+    [ObservableProperty] private double _toCashBalance;
+    [ObservableProperty] private bool _isDifferentCurrency;
+    [ObservableProperty] private string _fromCurrencyName = "";
+    [ObservableProperty] private string _toCurrencyName = "";
+
+    // ── FromRate و ToRate: موجودين في FormItem ──
+    public double FromRate
+    {
+        get => FormItem?.FromRate ?? 1;
+        set
+        {
+            if (FormItem != null && FormItem.FromRate != value)
+            {
+                FormItem.FromRate = value;
+                OnPropertyChanged(nameof(FromRate));
+                UpdateExchangeRate();
+            }
+        }
+    }
+
+    public double ToRate
+    {
+        get => FormItem?.ToRate ?? 1;
+        set
+        {
+            if (FormItem != null && FormItem.ToRate != value)
+            {
+                FormItem.ToRate = value;
+                OnPropertyChanged(nameof(ToRate));
+                UpdateExchangeRate();
+            }
+        }
+    }
+
+    // ── ExchangeRate: يتم حسابه ضمنياً ──
+    public double ExchangeRate
+    {
+        get => FormItem?.ExchangeRate ?? 1;
+    }
+
+    private void UpdateExchangeRate()
+    {
+        if (FormItem == null) return;
+        double f = FormItem.FromRate > 0 ? FormItem.FromRate : 1;
+        double t = FormItem.ToRate > 0 ? FormItem.ToRate : 1;
+        FormItem.ExchangeRate = f / t;
+        OnPropertyChanged(nameof(ExchangeRate));
+        RecalcToAmount();
+    }
+
+    // ── ToAmount: المبلغ المحول — موجود في FormItem.PayMoneyTo ──
+    public double ToAmount => FormItem?.PayMoneyTo ?? 0;
+
+    // ── SelectedCashId: من خزينة ──
+    public int SelectedCashId
+    {
+        get => FormItem?.CashId ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.CashId != value)
+            {
+                FormItem.CashId = value;
+                OnPropertyChanged(nameof(SelectedCashId));
+                RefreshFromCash();
+                RecalcExchangeAndToAmount();
+            }
+        }
+    }
+
+    // ── SelectedCashTo: إلى خزينة ──
+    public int SelectedCashTo
+    {
+        get => FormItem?.CashTo ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.CashTo != value)
+            {
+                FormItem.CashTo = value;
+                OnPropertyChanged(nameof(SelectedCashTo));
+                RefreshToCash();
+                RecalcExchangeAndToAmount();
+            }
+        }
+    }
+
     // ── لحفظ القيم القديمة عند التعديل ──
     private int? _oldCashId;    // الخزينة المصدر القديمة
     private int? _oldCashToId;  // الخزينة الوجهة القديمة
+    
+    private List<MotorBike.Models.Omla> _omlas = new();
 
     public CashTransfersViewModel(
         IDbConnectionFactory dbFactory,
@@ -39,8 +128,17 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
     {
         try
         {
+            using var db = _dbFactory.CreateConnection();
+            _omlas = (await db.QueryAsync<MotorBike.Models.Omla>("SELECT * FROM Omla")).ToList();
+
             var cash = await _cashRepo.GetAllAsync();
             CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active));
+
+            if (FormItem != null)
+            {
+                RefreshFromCash();
+                RefreshToCash();
+            }
         }
         catch (Exception ex)
         {
@@ -52,21 +150,122 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
     protected override bool IsNewRecord(CashTransfer entity) => entity.PayId == 0;
     protected override void SetEntityId(CashTransfer entity, int id) => entity.PayId = id;
 
+    protected override void OnFormItemChangedHook(CashTransfer value)
+    {
+        if (value != null)
+        {
+            RefreshFromCash();
+            RefreshToCash();
+            // عند التعديل: نحدد هل عملتين مختلفتين ونعيد حساب ToAmount
+            RefreshDifferentCurrencyFlag();
+            OnPropertyChanged(nameof(SelectedCashId));
+            OnPropertyChanged(nameof(SelectedCashTo));
+            OnPropertyChanged(nameof(ExchangeRate));
+            OnPropertyChanged(nameof(FromRate));
+            OnPropertyChanged(nameof(ToRate));
+            OnPropertyChanged(nameof(ToAmount));
+            OnPropertyChanged(nameof(PayMoney));
+        }
+    }
+
+    // PayMoney wrapper - live-updates ToAmount
+    public double PayMoney
+    {
+        get => FormItem?.PayMoney ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.PayMoney != value)
+            {
+                FormItem.PayMoney = value;
+                OnPropertyChanged(nameof(PayMoney));
+                RecalcToAmount();
+            }
+        }
+    }
+
+    private void RefreshFromCash()
+    {
+        var cash = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashId ?? 0));
+        FromCashBalance = cash?.Bal ?? 0;
+        
+        if (cash == null || cash.OmlaId == 0 || cash.OmlaId == null)
+        {
+            FromCurrencyName = "ج.م";
+        }
+        else
+        {
+            var omla = _omlas.FirstOrDefault(o => o.OmlaId == cash.OmlaId);
+            FromCurrencyName = omla?.OmlaName ?? $"عملة {cash.OmlaId}";
+        }
+    }
+
+    private void RefreshToCash()
+    {
+        var cash = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashTo ?? 0));
+        ToCashBalance = cash?.Bal ?? 0;
+        
+        if (cash == null || cash.OmlaId == 0 || cash.OmlaId == null)
+        {
+            ToCurrencyName = "ج.م";
+        }
+        else
+        {
+            var omla = _omlas.FirstOrDefault(o => o.OmlaId == cash.OmlaId);
+            ToCurrencyName = omla?.OmlaName ?? $"عملة {cash.OmlaId}";
+        }
+    }
+
+    private void RefreshDifferentCurrencyFlag()
+    {
+        var fromCash = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashId ?? 0));
+        var toCash   = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashTo   ?? 0));
+        IsDifferentCurrency = fromCash?.OmlaId != toCash?.OmlaId;
+    }
+
+    private void RecalcExchangeAndToAmount()
+    {
+        var fromCash = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashId ?? 0));
+        var toCash   = CashList.FirstOrDefault(c => c.CashId == (FormItem?.CashTo   ?? 0));
+
+        // نظهر حقول الصرف بس لو فيه عملة مختلفة عن المحلي أو العملتين مختلفتين
+        IsDifferentCurrency = fromCash?.OmlaId != toCash?.OmlaId;
+
+        double fRate = (double)(fromCash?.OmlaRate > 0 ? fromCash.OmlaRate : 1);
+        double tRate = (double)(toCash?.OmlaRate   > 0 ? toCash.OmlaRate   : 1);
+
+        // فقط لو السجل جديد (ليس نتيجة تعديل) نضبط السعر المقترح
+        if (FormItem != null && FormItem.PayId == 0)
+        {
+            FormItem.FromRate = fRate;
+            FormItem.ToRate = tRate;
+            OnPropertyChanged(nameof(FromRate));
+            OnPropertyChanged(nameof(ToRate));
+            UpdateExchangeRate();
+        }
+        else
+        {
+            OnPropertyChanged(nameof(FromRate));
+            OnPropertyChanged(nameof(ToRate));
+            OnPropertyChanged(nameof(ExchangeRate));
+            RecalcToAmount();
+        }
+    }
+
+    private void RecalcToAmount()
+    {
+        if (FormItem == null) return;
+        FormItem.PayMoneyTo = Math.Round(FormItem.PayMoney * (FormItem.ExchangeRate > 0 ? FormItem.ExchangeRate : 1), 2);
+        OnPropertyChanged(nameof(ToAmount));
+    }
+
     protected override void SetDefaultValues(CashTransfer entity)
     {
         base.SetDefaultValues(entity);
         entity.PayDate = DateTime.Now;
-
-        if (CashList.Count >= 2)
-        {
-            entity.CashId = CashList[0].CashId;
-            entity.CashTo = CashList[1].CashId;
-        }
-        else if (CashList.Any())
-        {
-            entity.CashId = CashList[0].CashId;
-            entity.CashTo = CashList[0].CashId;
-        }
+        entity.CashId  = 0;
+        entity.CashTo  = 0;
+        entity.PayMoney = 0;
+        entity.Notes = string.Empty;
     }
 
     // ── Balance Recalculation Hooks ─────────────────────────────────
@@ -120,6 +319,9 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
         // إعادة حساب رصيد كل الخزائن المتأثرة
         foreach (var cashId in affectedCashIds)
             await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+        await LoadRelatedDataAsync(); // تحديث الأرصدة في الـ UI
+        OnFormItemChangedHook(FormItem);
     }
 
     protected override Task BeforeDeleteAsync()
@@ -142,6 +344,9 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
         // إعادة حساب رصيد الخزينة الوجهة بعد الحذف
         if (_oldCashToId.HasValue && _oldCashToId.Value > 0 && _oldCashToId.Value != _oldCashId)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashToId.Value);
+
+        await LoadRelatedDataAsync();
+        OnFormItemChangedHook(FormItem);
     }
     // ── Replace PrintReceiptAsync in CashTransfersViewModel with this version ────
     // Changes: adds CurrencyName, ExchangeRate, AmountInLocalCurrency, AmountInWords
@@ -163,24 +368,12 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
             using var db = _dbFactory.CreateConnection();
             var company = await db.QueryFirstOrDefaultAsync<Company>("SELECT TOP 1 * FROM Company");
 
-            // ── Currency info from DB (Omla table) ───────────────────────────────
-            // If your CashTransfer has OmlaId / Rate fields, use them directly.
-            // Otherwise fall back to EGP defaults.
-            string currencyName = "جنية مصري";
-            double exchangeRate = 1.0;
+            // ── Currency info ───────────────────────────────
+            string currencyName = string.IsNullOrEmpty(FromCurrencyName) ? "جنية مصري" : FromCurrencyName;
+            string toCurrencyName = string.IsNullOrEmpty(ToCurrencyName) ? "جنية مصري" : ToCurrencyName;
+            double exchangeRate = FormItem.ExchangeRate > 0 ? FormItem.ExchangeRate : 1.0;
 
-            // Uncomment and adjust if CashTransfer carries OmlaId / Rate:
-            // if (FormItem.OmlaId > 0)
-            // {
-            //     var omla = await db.QueryFirstOrDefaultAsync<dynamic>(
-            //         "SELECT OmlaName, Rate FROM Omla WHERE OmlaId = @Id",
-            //         new { Id = FormItem.OmlaId });
-            //     if (omla != null) { currencyName = omla.OmlaName; exchangeRate = omla.Rate; }
-            // }
-
-            double amountInLocal = Math.Round(FormItem.PayMoney * exchangeRate, 2);
-            string amountWords = MotorBike.Services.CashTransferReceiptDocument
-                                       .ToArabicWords(amountInLocal);
+            double amountInLocal = Math.Round(FormItem.PayMoneyTo > 0 ? FormItem.PayMoneyTo : FormItem.PayMoney * exchangeRate, 2);
 
             // ── Supplier balances BEFORE this transfer ────────────────────────────
             double fromCashOld = await _compositeRepo.GetCashOldBalanceAsync(
@@ -195,9 +388,11 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
 
                 // ── NEW currency fields ───────────────────────────────────────────
                 CurrencyName = currencyName,
+                ToCurrencyName = toCurrencyName,
                 ExchangeRate = exchangeRate,
+                FromRate = FormItem.FromRate > 0 ? FormItem.FromRate : 1.0,
+                ToRate = FormItem.ToRate > 0 ? FormItem.ToRate : 1.0,
                 AmountInLocalCurrency = amountInLocal,
-                AmountInWords = amountWords,
                 // ─────────────────────────────────────────────────────────────────
 
                 FromCashName = CashList.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
@@ -208,7 +403,7 @@ public partial class CashTransfersViewModel : LookupViewModelBase<CashTransfer>
                 FromCashPreviousBalance = fromCashOld,
                 FromCashBalanceAfter = fromCashOld - FormItem.PayMoney,
                 ToCashPreviousBalance = toCashOld,
-                ToCashBalanceAfter = toCashOld + FormItem.PayMoney
+                ToCashBalanceAfter = toCashOld + amountInLocal
             };
 
             var document = new MotorBike.Services.CashTransferReceiptDocument(model, company);

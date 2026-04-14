@@ -19,6 +19,26 @@ public partial class SuppPaymentsViewModel : LookupViewModelBase<SuppPayment>
 
     [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentCashBalance;
+    [ObservableProperty] private string _supplierSearchText = string.Empty;
+    [ObservableProperty] private bool _isSupplierSearchPopupOpen;
+    [ObservableProperty] private ObservableCollection<Supplier> _filteredSuppliersList = [];
+    private bool _isSelectingSupplier;
+
+    public int? SelectedCashId
+    {
+        get => FormItem?.CashId;
+        set
+        {
+            if (FormItem != null && FormItem.CashId != value)
+            {
+                FormItem.CashId = value;
+                OnPropertyChanged(nameof(SelectedCashId));
+                CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
 
     public ObservableCollection<KeyValuePair<byte, string>> PayTypes { get; } =
     [
@@ -50,9 +70,10 @@ public partial class SuppPaymentsViewModel : LookupViewModelBase<SuppPayment>
         {
             var suppliers = await _supplierRepo.GetAllAsync();
             Suppliers = new ObservableCollection<Supplier>(suppliers.Where(x => x.Active));
+            FilteredSuppliersList = new ObservableCollection<Supplier>(Suppliers);
 
             var cash = await _cashRepo.GetAllAsync();
-            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active));
+            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active && x.OmlaId == 0));
         }
         catch (Exception ex)
         {
@@ -64,14 +85,31 @@ public partial class SuppPaymentsViewModel : LookupViewModelBase<SuppPayment>
     protected override bool IsNewRecord(SuppPayment entity) => entity.PayId == 0;
     protected override void SetEntityId(SuppPayment entity, int id) => entity.PayId = id;
 
+    protected override void OnFormItemChangedHook(SuppPayment value)
+    {
+        if (value != null)
+        {
+            CurrentSupplierBalance = Suppliers.FirstOrDefault(c => c.SuppId == value.SuppId)?.Bal ?? 0;
+            CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value.CashId)?.Bal ?? 0;
+            
+            _isSelectingSupplier = true;
+            SupplierSearchText = Suppliers.FirstOrDefault(c => c.SuppId == value.SuppId)?.SuppName ?? string.Empty;
+            _isSelectingSupplier = false;
+            
+            OnPropertyChanged(nameof(SelectedCashId));
+        }
+    }
+
     protected override void SetDefaultValues(SuppPayment entity)
     {
         base.SetDefaultValues(entity);
         entity.PayDate = DateTime.Now;
         entity.PayType = 0; // Default: سداد لمورد
 
-        if (Suppliers.Any()) entity.SuppId = Suppliers.First().SuppId;
-        if (CashList.Any()) entity.CashId = CashList.First().CashId;
+        entity.SuppId = 0;
+        entity.CashId = 0;
+        entity.PayMoney = 0;
+        entity.Notes = string.Empty;
     }
 
     // ── Balance Recalculation Hooks ─────────────────────────────────
@@ -117,6 +155,9 @@ public partial class SuppPaymentsViewModel : LookupViewModelBase<SuppPayment>
         // إعادة حساب رصيد الخزينة الحالية
         if (FormItem.CashId.HasValue && FormItem.CashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId.Value);
+
+        await LoadRelatedDataAsync(); // Refresh balances
+        OnFormItemChangedHook(FormItem); // Update local balance properties
     }
 
     protected override Task BeforeDeleteAsync()
@@ -139,6 +180,45 @@ public partial class SuppPaymentsViewModel : LookupViewModelBase<SuppPayment>
         // إعادة حساب رصيد الخزينة بعد الحذف
         if (_oldCashId.HasValue && _oldCashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+
+        await LoadRelatedDataAsync();
+        OnFormItemChangedHook(FormItem);
+    }
+
+    partial void OnSupplierSearchTextChanged(string value)
+    {
+        if (_isSelectingSupplier) return;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredSuppliersList = new ObservableCollection<Supplier>(Suppliers);
+            IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Suppliers.Where(s =>
+        {
+            var name = s.SuppName?.ToLower() ?? string.Empty;
+            var tel = s.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+
+        FilteredSuppliersList = new ObservableCollection<Supplier>(filtered);
+        IsSupplierSearchPopupOpen = FilteredSuppliersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectSupplier(Supplier supplier)
+    {
+        if (supplier == null) return;
+        _isSelectingSupplier = true;
+        FormItem.SuppId = supplier.SuppId;
+        SupplierSearchText = supplier.SuppName;
+        CurrentSupplierBalance = supplier.Bal ?? 0;
+        IsSupplierSearchPopupOpen = false;
+        _isSelectingSupplier = false;
+        OnPropertyChanged(nameof(FormItem));
     }
 
     [RelayCommand]

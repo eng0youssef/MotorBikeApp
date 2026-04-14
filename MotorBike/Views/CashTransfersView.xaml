@@ -109,6 +109,8 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="16" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="16" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
@@ -125,27 +127,118 @@
                     <TextBlock Grid.Row="0" Grid.Column="6" VerticalAlignment="Center"
                                Style="{StaticResource FormLabel}"
                                Text="المبلغ" />
-                    <TextBox Grid.Row="0" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.PayMoney, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBox Grid.Row="0" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding PayMoney, UpdateSourceTrigger=PropertyChanged}" />
 
                     <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
                                Style="{StaticResource FormLabel}"
                                Text="من خزينة" />
-                    <ComboBox Grid.Row="2" Grid.Column="1" Padding="10,6" DisplayMemberPath="CashName" FontSize="14"
-                              ItemsSource="{Binding CashList}"
-                              SelectedValue="{Binding FormItem.CashId}"
-                              SelectedValuePath="CashId" />
+                    <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                        <ComboBox Padding="10,6" DisplayMemberPath="CashName" FontSize="14"
+                                  ItemsSource="{Binding CashList}"
+                                  SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="CashId" />
+                        <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#10B981"
+                                   Text="{Binding FromCashBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                    </StackPanel>
                     <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
                                Style="{StaticResource FormLabel}"
                                Text="إلى خزينة" />
-                    <ComboBox Grid.Row="2" Grid.Column="4" Padding="10,6" DisplayMemberPath="CashName" FontSize="14"
-                              ItemsSource="{Binding CashList}"
-                              SelectedValue="{Binding FormItem.CashTo}"
-                              SelectedValuePath="CashId" />
+                    <StackPanel Grid.Row="2" Grid.Column="4" VerticalAlignment="Center">
+                        <ComboBox Padding="10,6" DisplayMemberPath="CashName" FontSize="14"
+                                  ItemsSource="{Binding CashList}"
+                                  SelectedValue="{Binding SelectedCashTo, UpdateSourceTrigger=PropertyChanged}"
+                                  SelectedValuePath="CashId" />
+                        <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#10B981"
+                                   Text="{Binding ToCashBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                    </StackPanel>
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
+                    <!-- سعر العملة المحول منها -->
+                    <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="{Binding FromCurrencyName, StringFormat='سعر ({0})'}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource FormLabel}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox Grid.Row="4" Grid.Column="1" Padding="8,6"
+                             Text="{Binding FromRate, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBox}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <!-- سعر العملة المحول إليها -->
+                    <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center" Text="{Binding ToCurrencyName, StringFormat='سعر ({0})'}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource FormLabel}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBox Grid.Row="4" Grid.Column="4" Padding="8,6"
+                             Text="{Binding ToRate, UpdateSourceTrigger=PropertyChanged}">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBox}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <!-- المبلغ المحول -->
+                    <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center" Text="المبلغ المحول">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource FormLabel}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Grid.Row="4" Grid.Column="7" VerticalAlignment="Center"
+                               FontSize="15" FontWeight="Bold" Foreground="#F59E0B"
+                               Text="{Binding ToAmount, StringFormat='{}{0:N2}'}"
+                               ToolTip="المبلغ بعد التحويل بعملة الخزينة الوجهة">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsDifferentCurrency}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center"
                                Style="{StaticResource FormLabel}"
                                Text="ملاحظات" />
-                    <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="7"
+                    <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="7"
                              Style="{StaticResource FormTextBox}"
                              Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>

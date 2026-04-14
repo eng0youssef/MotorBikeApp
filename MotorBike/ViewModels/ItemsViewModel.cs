@@ -24,6 +24,9 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
     private ObservableCollection<Store> _stores = [];
 
     [ObservableProperty]
+    private ObservableCollection<Unit> _itemFormUnits = [];
+
+    [ObservableProperty]
     private double _openBalanceQty;
 
     [ObservableProperty]
@@ -104,13 +107,42 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
             OpenBalanceStoreId = Stores.First().StoreId;
             NewOS_StoreId = Stores.First().StoreId;
         }
+    }
         
-        if (Units.Any())
-            NewOS_UnitId = Units.First().UnitId;
+    public int FormUnitId
+    {
+        get => FormItem?.UnitId ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.UnitId != value)
+            {
+                FormItem.UnitId = value;
+                OnPropertyChanged(nameof(FormUnitId));
+                UpdateItemFormUnits();
+            }
+        }
+    }
+
+    public int FormUnit2
+    {
+        get => FormItem?.Unit2 ?? 0;
+        set
+        {
+            if (FormItem != null && FormItem.Unit2 != value)
+            {
+                FormItem.Unit2 = value;
+                OnPropertyChanged(nameof(FormUnit2));
+                UpdateItemFormUnits();
+            }
+        }
     }
 
     protected override async void OnFormItemChangedHook(Item value)
     {
+        UpdateItemFormUnits();
+        OnPropertyChanged(nameof(FormUnitId));
+        OnPropertyChanged(nameof(FormUnit2));
+
         if (value != null && value.ItemId > 0)
         {
             // Load existing opening stocks for this item
@@ -128,7 +160,35 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
         NewOS_Qty = 1;
         NewOS_Price = value?.Price0 ?? 0;
         NewOS_DiscPer = 0;
-        NewOS_UnitId = value?.UnitId ?? (Units.FirstOrDefault()?.UnitId ?? 0);
+        
+        if (!ItemFormUnits.Any(u => u.UnitId == NewOS_UnitId))
+        {
+            NewOS_UnitId = ItemFormUnits.FirstOrDefault()?.UnitId ?? (value?.UnitId ?? 0);
+        }
+    }
+
+    private void UpdateItemFormUnits()
+    {
+        var filtered = new System.Collections.Generic.List<Unit>();
+        if (FormItem != null)
+        {
+            if (FormItem.UnitId > 0)
+            {
+                var u1 = Units.FirstOrDefault(u => u.UnitId == FormItem.UnitId);
+                if (u1 != null && !filtered.Any(x => x.UnitId == u1.UnitId)) filtered.Add(u1);
+            }
+            if (FormItem.Unit2 > 0)
+            {
+                var u2 = Units.FirstOrDefault(u => u.UnitId == FormItem.Unit2);
+                if (u2 != null && !filtered.Any(x => x.UnitId == u2.UnitId)) filtered.Add(u2);
+            }
+        }
+        ItemFormUnits = new ObservableCollection<Unit>(filtered);
+
+        if (!ItemFormUnits.Any(u => u.UnitId == NewOS_UnitId))
+        {
+            NewOS_UnitId = ItemFormUnits.FirstOrDefault()?.UnitId ?? 0;
+        }
     }
 
     [CommunityToolkit.Mvvm.Input.RelayCommand]

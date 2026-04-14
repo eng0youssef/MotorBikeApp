@@ -19,6 +19,26 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
 
     [ObservableProperty] private ObservableCollection<Customer> _customers = [];
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
+    [ObservableProperty] private double _currentCustomerBalance;
+    [ObservableProperty] private double _currentCashBalance;
+    [ObservableProperty] private string _customerSearchText = string.Empty;
+    [ObservableProperty] private bool _isCustomerSearchPopupOpen;
+    [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
+    private bool _isSelectingCustomer;
+
+    public int? SelectedCashId
+    {
+        get => FormItem?.CashId;
+        set
+        {
+            if (FormItem != null && FormItem.CashId != value)
+            {
+                FormItem.CashId = value;
+                OnPropertyChanged(nameof(SelectedCashId));
+                CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
 
     public ObservableCollection<KeyValuePair<byte, string>> PayTypes { get; } =
     [
@@ -50,9 +70,10 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
         {
             var customers = await _customerRepo.GetAllAsync();
             Customers = new ObservableCollection<Customer>(customers.Where(x => x.Active));
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
 
             var cash = await _cashRepo.GetAllAsync();
-            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active));
+            CashList = new ObservableCollection<Cash>(cash.Where(x => x.Active && x.OmlaId == 0));
         }
         catch (Exception ex)
         {
@@ -64,14 +85,31 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
     protected override bool IsNewRecord(CusPayment entity) => entity.PayId == 0;
     protected override void SetEntityId(CusPayment entity, int id) => entity.PayId = id;
 
+    protected override void OnFormItemChangedHook(CusPayment value)
+    {
+        if (value != null)
+        {
+            CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.Bal ?? 0;
+            CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value.CashId)?.Bal ?? 0;
+            
+            _isSelectingCustomer = true;
+            CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName ?? string.Empty;
+            _isSelectingCustomer = false;
+            
+            OnPropertyChanged(nameof(SelectedCashId));
+        }
+    }
+
     protected override void SetDefaultValues(CusPayment entity)
     {
         base.SetDefaultValues(entity);
         entity.PayDate = DateTime.Now;
         entity.PayType = 1; // Default: تحصيل من عميل
 
-        if (Customers.Any()) entity.CusId = Customers.First().CusId;
-        if (CashList.Any()) entity.CashId = CashList.First().CashId;
+        entity.CusId = 0;
+        entity.CashId = 0;
+        entity.PayMoney = 0;
+        entity.Notes = string.Empty;
     }
 
     // ── Balance Recalculation Hooks ─────────────────────────────────
@@ -117,6 +155,9 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
         // إعادة حساب رصيد الخزينة الحالية
         if (FormItem.CashId.HasValue && FormItem.CashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId.Value);
+            
+        await LoadRelatedDataAsync(); // Refresh balances in UI Collections
+        OnFormItemChangedHook(FormItem); // Update CurrentCustomerBalance and CurrentCashBalance
     }
 
     protected override Task BeforeDeleteAsync()
@@ -139,6 +180,45 @@ public partial class CusPaymentsViewModel : LookupViewModelBase<CusPayment>
         // إعادة حساب رصيد الخزينة بعد الحذف
         if (_oldCashId.HasValue && _oldCashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+            
+        await LoadRelatedDataAsync(); // Refresh balances in UI Collections
+        OnFormItemChangedHook(FormItem); // Update balances
+    }
+
+    partial void OnCustomerSearchTextChanged(string value)
+    {
+        if (_isSelectingCustomer) return;
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+            IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+            return;
+        }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Customers.Where(c =>
+        {
+            var name = c.CusName?.ToLower() ?? string.Empty;
+            var tel = c.Tel?.ToLower() ?? string.Empty;
+            return keywords.All(k => name.Contains(k) || tel.Contains(k));
+        });
+
+        FilteredCustomersList = new ObservableCollection<Customer>(filtered);
+        IsCustomerSearchPopupOpen = FilteredCustomersList.Any();
+    }
+
+    [RelayCommand]
+    private void SelectCustomer(Customer customer)
+    {
+        if (customer == null) return;
+        _isSelectingCustomer = true;
+        FormItem.CusId = customer.CusId;
+        CustomerSearchText = customer.CusName;
+        CurrentCustomerBalance = customer.Bal ?? 0;
+        IsCustomerSearchPopupOpen = false;
+        _isSelectingCustomer = false;
+        OnPropertyChanged(nameof(FormItem));
     }
 
     [RelayCommand]

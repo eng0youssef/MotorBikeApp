@@ -96,9 +96,50 @@
                     <TextBlock Grid.Row="2" Grid.Column="0" Text="نـوع العملية" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding PayTypes}" DisplayMemberPath="Value" SelectedValuePath="Key" SelectedValue="{Binding FormItem.PayType}" Padding="10,6" FontSize="14"/>
                     <TextBlock Grid.Row="2" Grid.Column="3" Text="المورد" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="4" ItemsSource="{Binding Suppliers}" DisplayMemberPath="SuppName" SelectedValuePath="SuppId" SelectedValue="{Binding FormItem.SuppId}" Padding="10,6" FontSize="14" IsEditable="True"/>
+                    <StackPanel Grid.Row="2" Grid.Column="4" VerticalAlignment="Center">
+                        <Grid>
+                            <TextBox x:Name="SupplierSearchBox" Padding="8,6" Style="{StaticResource FormTextBox}"
+                                     Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}" ToolTip="ابحث عن المورد بالاسم" />
+                            <Popup x:Name="SupplierSearchPopup" Width="{Binding ActualWidth, ElementName=SupplierSearchBox}" AllowsTransparency="True"
+                                   IsOpen="{Binding IsSupplierSearchPopupOpen}" Placement="Bottom" PlacementTarget="{Binding ElementName=SupplierSearchBox}" StaysOpen="False">
+                                <Border MaxHeight="250" Background="White" BorderBrush="#2F3549" BorderThickness="1" CornerRadius="8">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.1" ShadowDepth="4" Color="#0F172A" />
+                                    </Border.Effect>
+                                    <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredSuppliersList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="8,6" Cursor="Hand">
+                                                    <Border.InputBindings>
+                                                        <MouseBinding MouseAction="LeftClick" Command="{Binding DataContext.SelectSupplierCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                                    </Border.InputBindings>
+                                                    <TextBlock FontSize="13" Foreground="#334155" Text="{Binding SuppName, Mode=OneWay}" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                <Setter Property="Padding" Value="0" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#EFF6FF" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B" Text="{Binding CurrentSupplierBalance, StringFormat='رصيد المورد: {0:N2}'}" />
+                    </StackPanel>
+
                     <TextBlock Grid.Row="2" Grid.Column="6" Text="الخزنة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="2" Grid.Column="7" ItemsSource="{Binding CashList}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding FormItem.CashId}" Padding="10,6" FontSize="14"/>
+                    <StackPanel Grid.Row="2" Grid.Column="7" VerticalAlignment="Center">
+                        <ComboBox ItemsSource="{Binding CashList}" DisplayMemberPath="CashName" SelectedValuePath="CashId" SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}" Padding="10,6" FontSize="14"/>
+                        <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#10B981" Text="{Binding CurrentCashBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
+                    </StackPanel>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="ملاحظات" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="7" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
