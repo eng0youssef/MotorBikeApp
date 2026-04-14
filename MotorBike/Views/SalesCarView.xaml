@@ -112,7 +112,7 @@
         <!--  FORM SECTION  -->
         <!--  ════════════════════════════════════════════════════════════════  -->
         <Grid Style="{StaticResource FormContainerStyle}">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" ScrollChanged="ScrollViewer_ScrollChanged" VerticalScrollBarVisibility="Auto">
                 <Border Style="{StaticResource FormCard}">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
@@ -210,39 +210,49 @@
                                        Style="{StaticResource FormLabel}"
                                        Text="العميل" />
                             <StackPanel Grid.Row="0" Grid.Column="7" VerticalAlignment="Center">
-                                <Border x:Name="CustomerDisplayBorder" MinHeight="38" Padding="12,0" Background="#2F3549" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                                    <Grid Background="#2F3549">
-                                        <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="White" Text="{Binding SelectedCustomerDisplay}" />
-                                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#CBD5E1" Text="اختر العميل…">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedCustomerDisplay}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedCustomerDisplay}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
-                                    <Border.InputBindings>
-                                        <MouseBinding Command="{Binding OpenCustomerSearchCommand}" MouseAction="LeftClick" />
-                                    </Border.InputBindings>
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Cursor" Value="Hand" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsCustomerPopupOpen}" Value="True">
-                                                    <Setter Property="BorderBrush" Value="#6366F1" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                </Border>
+                                <Grid>
+                                    <TextBox x:Name="CustomerSearchBox" Padding="8,6" GotFocus="CustomerSearch_GotFocus"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="ابحث عن العميل بالاسم" />
+                                    <Popup x:Name="CustomerSearchPopup"
+                                           Width="{Binding ActualWidth, ElementName=CustomerSearchBox}"
+                                           AllowsTransparency="True"
+                                           IsOpen="{Binding IsCustomerPopupOpen}"
+                                           Placement="Bottom"
+                                           PlacementTarget="{Binding ElementName=CustomerSearchBox}"
+                                           StaysOpen="False">
+                                        <Border MaxHeight="250" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="10">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.2" ShadowDepth="4" Color="#000000" />
+                                            </Border.Effect>
+                                            <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredCustomersList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="10,8" Cursor="Hand">
+                                                            <TextBlock FontSize="13" Foreground="#C8CEE0">
+                                                                <Run Text="{Binding CusName, Mode=OneWay}" />
+                                                            </TextBlock>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchCustomer_Click" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#323F58" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
+                                            </ListBox>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
                                 <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B"
                                            Text="{Binding CurrentCustomerBalance, StringFormat='الرصيد الحالي: {0:N2}'}" />
                             </StackPanel>
@@ -251,41 +261,61 @@
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
                                        Text="الموتوسيكل" />
-                            <Grid Grid.Row="2" Grid.Column="1">
-                                <Border x:Name="CarDisplayBorder" MinHeight="38" Padding="12,0" Background="#2F3549" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8">
-                                    <Grid>
-                                        <TextBlock VerticalAlignment="Center" FontSize="14" Foreground="White" Text="{Binding SelectedCarDisplay}" />
-                                        <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#CBD5E1" Text="اختر الموتوسيكل…">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedCarDisplay}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedCarDisplay}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
-                                    <Border.InputBindings>
-                                        <MouseBinding Command="{Binding OpenCarSearchCommand}" MouseAction="LeftClick" />
-                                    </Border.InputBindings>
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Cursor" Value="Hand" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsCarPopupOpen}" Value="True">
-                                                    <Setter Property="BorderBrush" Value="#6366F1" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                </Border>
-                            </Grid>
+                            <StackPanel Grid.Row="2" Grid.Column="1" VerticalAlignment="Center">
+                                <Grid>
+                                    <TextBox x:Name="CarSearchBox" Padding="8,6" GotFocus="CarSearch_GotFocus"
+                                             Style="{StaticResource FormTextBox}"
+                                             Text="{Binding CarSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="ابحث عن الموتوسيكل بالشاسيه أو اللوحة" />
+                                    <Popup x:Name="CarSearchPopup"
+                                           Width="{Binding ActualWidth, ElementName=CarSearchBox}"
+                                           AllowsTransparency="True"
+                                           IsOpen="{Binding IsCarPopupOpen}"
+                                           Placement="Bottom"
+                                           PlacementTarget="{Binding ElementName=CarSearchBox}"
+                                           StaysOpen="False">
+                                        <Border MaxHeight="250" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="10">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.2" ShadowDepth="4" Color="#000000" />
+                                            </Border.Effect>
+                                            <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredCarsList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Padding="10,8" Cursor="Hand">
+                                                            <StackPanel>
+                                                                <TextBlock FontSize="13" Foreground="#C8CEE0">
+                                                                    <Run Text="{Binding ChassisNo, StringFormat='شاسيه: {0}', Mode=OneWay}" />
+                                                                </TextBlock>
+                                                                <TextBlock Margin="0,2,0,0" FontSize="11" Foreground="#9BA4B5">
+                                                                    <TextBlock.Text>
+                                                                        <MultiBinding StringFormat="{}لوحة: {0}  |  موتور: {1}">
+                                                                            <Binding Path="PlateNo" />
+                                                                            <Binding Path="MotorNo" />
+                                                                        </MultiBinding>
+                                                                    </TextBlock.Text>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                                <ListBox.ItemContainerStyle>
+                                                    <Style TargetType="ListBoxItem">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchCar_Click" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#323F58" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ListBox.ItemContainerStyle>
+                                            </ListBox>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </StackPanel>
 
                             <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
@@ -769,135 +799,6 @@
                             </StackPanel>
                         </Border>
                     </StackPanel>
-                </Grid>
-            </Border>
-        </Grid>
-        <!--  ████████ CUSTOMER SEARCH OVERLAY ████████  -->
-        <Grid Panel.ZIndex="200" Background="#B20F172A" Visibility="{Binding IsCustomerPopupOpen, Converter={StaticResource BoolToVis}}">
-            <Border Width="440" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1E2233" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="32" Direction="270" Opacity="0.3" ShadowDepth="12" Color="#000000" />
-                </Border.Effect>
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <!--  Header  -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock VerticalAlignment="Center" DockPanel.Dock="Left" FontSize="18" FontWeight="Bold" Foreground="#ECEEF5" Text="🔍 بحث عن العميل" />
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Command="{Binding CloseCustomerSearchCommand}"
-                                Content="✖" Cursor="Hand" DockPanel.Dock="Right" FontSize="18" FontWeight="Bold" Foreground="#7B84A0" ToolTip="إغلاق" />
-                    </DockPanel>
-
-                    <!--  Search input  -->
-                    <Border Grid.Row="1" Margin="0,0,0,12" Padding="10,6" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#94A3B8" Text="🔍" />
-                            <TextBox Grid.Column="1" Padding="0,6" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" FontSize="14"
-                                     Style="{StaticResource FormTextBox}"
-                                     Text="{Binding CustomerSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                    </Border>
-
-                    <!--  Results  -->
-                    <Border Grid.Row="2" Background="#242940" BorderBrush="#3D4560" HorizontalAlignment="Center" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding FilteredCustomersList}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button HorizontalAlignment="Stretch" Command="{Binding DataContext.SelectCustomerCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource PopupItemButton}">
-                                            <TextBlock FontSize="14" Foreground="White" Text="{Binding CusName}"  />
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-
-                    <!--  Footer  -->
-                    <Button Grid.Row="3" Margin="0,14,0,0" Padding="16,10" HorizontalAlignment="Left"
-                            Command="{Binding CloseCustomerSearchCommand}"
-                            Content="✖ إغلاق"
-                            Style="{StaticResource SecondaryButton}" />
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!--  ████████ CAR SEARCH OVERLAY ████████  -->
-        <Grid Panel.ZIndex="200" Background="#B20F172A" Visibility="{Binding IsCarPopupOpen, Converter={StaticResource BoolToVis}}">
-            <Border Width="500" MaxHeight="520" HorizontalAlignment="Center" VerticalAlignment="Center" Background="#1E2233" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="16">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="32" Direction="270" Opacity="0.3" ShadowDepth="12" Color="#000000" />
-                </Border.Effect>
-                <Grid Margin="20">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <!--  Header  -->
-                    <DockPanel Grid.Row="0" Margin="0,0,0,16">
-                        <TextBlock VerticalAlignment="Center" DockPanel.Dock="Left" FontSize="18" FontWeight="Bold" Foreground="#ECEEF5" Text="🏍️ بحث عن الموتوسيكل" />
-                        <Button HorizontalAlignment="Right" VerticalAlignment="Center" Background="Transparent" BorderThickness="0"
-                                Command="{Binding CloseCarSearchCommand}"
-                                Content="✖" Cursor="Hand" DockPanel.Dock="Right" FontSize="18" FontWeight="Bold" Foreground="#7B84A0" ToolTip="إغلاق" />
-                    </DockPanel>
-
-                    <!--  Search input  -->
-                    <Border Grid.Row="1" Margin="0,0,0,12" Padding="10,6" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#94A3B8" Text="🔍" />
-                            <TextBox Grid.Column="1" Padding="0,6" VerticalAlignment="Center" Background="Transparent" BorderThickness="0" FontSize="14"
-                                     Style="{StaticResource FormTextBox}"
-                                     Text="{Binding CarSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                        </Grid>
-                    </Border>
-
-                    <!--  Results  -->
-                    <Border Grid.Row="2" Background="#242940" BorderBrush="#3D4560"  HorizontalAlignment="Center" BorderThickness="1" ClipToBounds="True" CornerRadius="8">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding FilteredCarsList}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button HorizontalAlignment="Stretch" Command="{Binding DataContext.SelectCarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Style="{StaticResource PopupItemButton}">
-                                            <StackPanel>
-                                                <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="White" Text="{Binding ChassisNo}" />
-                                                <TextBlock Margin="0,2,0,0" FontSize="12" Foreground="#9BA4B5">
-                                                    <TextBlock.Text>
-                                                        <MultiBinding StringFormat="{}لوحة: {0}  |  موتور: {1}">
-                                                            <Binding Path="PlateNo" />
-                                                            <Binding Path="MotorNo" />
-                                                        </MultiBinding>
-                                                    </TextBlock.Text>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Button>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
-
-                    <!--  Footer  -->
-                    <Button Grid.Row="3" Margin="0,14,0,0" Padding="16,10" HorizontalAlignment="Left"
-                            Command="{Binding CloseCarSearchCommand}"
-                            Content="✖ إغلاق"
-                            Style="{StaticResource SecondaryButton}" />
                 </Grid>
             </Border>
         </Grid>

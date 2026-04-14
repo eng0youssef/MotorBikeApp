@@ -419,7 +419,6 @@ public partial class BuyCarViewModel : ObservableObject
 
         CurrentSupplierBalance = 0;
         CurrentCustomerBalance = 0;
-        CurrentSafeBalance = 0;
 
         FormPayments.Clear();
         TotalPayed = 0;

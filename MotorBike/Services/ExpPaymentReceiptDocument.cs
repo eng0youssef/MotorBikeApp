@@ -80,8 +80,8 @@ public class ExpPaymentReceiptDocument : IDocument
         {
             var fields = new List<KeyValuePair<string, string>>
             {
-                new("رقم الإيصال", _model.ReceiptNo), new("التاريخ", _model.IssueDate),
-                new("بند المصروف", _model.ExpenseName), new("الخزينة", _model.CashName),
+                 new("الخزينة", _model.CashName) ,new("بند المصروف", _model.ExpenseName)
+               , new("التاريخ", _model.IssueDate), new("رقم الإيصال", _model.ReceiptNo),
             };
             col.Item().Table(table =>
             {
@@ -89,7 +89,9 @@ public class ExpPaymentReceiptDocument : IDocument
                 foreach (var field in fields) { var f = field; table.Cell().Padding(4).Element(c => RenderField(c, f)); }
             });
             col.Item().PaddingTop(15).Element(ComposeTotals);
+            
         });
+
     }
 
     private static void RenderField(IContainer container, KeyValuePair<string, string> item)
@@ -101,7 +103,7 @@ public class ExpPaymentReceiptDocument : IDocument
             var valueCell = c.Item().PaddingTop(2).BorderBottom(1).BorderColor(Colors.Teal.Darken2).AlignCenter();
             if (!containsArabic && !string.IsNullOrWhiteSpace(item.Value))
                 valueCell.Text(item.Value ?? "").FontSize(11).FontColor(Colors.Black).SemiBold().DirectionFromLeftToRight();
-            else valueCell.Text(item.Value ?? "").FontSize(11).FontColor(Colors.Black).SemiBold();
+            else valueCell.Text(item.Value ?? "").FontSize(11).FontColor(Colors.Black).SemiBold();           
         });
     }
 

@@ -63,12 +63,14 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
     [ObservableProperty] private bool _isCustomerPopupOpen;
     [ObservableProperty] private string? _selectedCustomerDisplay;
+    private bool _isSelectingCustomer;
 
     // ── Car popup ──────────────────────────────────────────────────────────
     [ObservableProperty] private string _carSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Car> _filteredCarsList = [];
     [ObservableProperty] private bool _isCarPopupOpen;
     [ObservableProperty] private string? _selectedCarDisplay;
+    private bool _isSelectingCar;
 
     // ── Proxy Properties for Tax Calculation ───────────────────────────
     public double FormTotal
@@ -642,22 +644,34 @@ public partial class SalesCarViewModel : ObservableObject
         FormItem.CusId = customer.CusId;
         SelectedCustomerDisplay = customer.CusName;
         CurrentCustomerBalance = customer.Bal ?? 0;
-        IsCustomerPopupOpen = false;
+        
+        _isSelectingCustomer = true;
         CustomerSearchText = string.Empty;
+        IsCustomerPopupOpen = false;
+        _isSelectingCustomer = false;
     }
 
     partial void OnCustomerSearchTextChanged(string value)
     {
+        if (_isSelectingCustomer) return;
+
         if (string.IsNullOrWhiteSpace(value))
-            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
-        else
         {
-            var lower = value.ToLower();
-            FilteredCustomersList = new ObservableCollection<Customer>(
-                Customers.Where(c =>
-                    c.CusName?.ToLower().Contains(lower) == true ||
-                    c.CusId.ToString().Contains(lower)));
+            FilteredCustomersList = new ObservableCollection<Customer>(Customers);
+            IsCustomerPopupOpen = FilteredCustomersList.Any();
+            return;
         }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = Customers.Where(c =>
+        {
+            var name = c.CusName?.ToLower() ?? string.Empty;
+            var idStr = c.CusId.ToString();
+            return keywords.All(k => name.Contains(k) || idStr.Contains(k));
+        });
+        
+        FilteredCustomersList = new ObservableCollection<Customer>(filtered);
+        IsCustomerPopupOpen = FilteredCustomersList.Any();
     }
 
     // ── Car popup commands ─────────────────────────────────────────────────
@@ -686,25 +700,38 @@ public partial class SalesCarViewModel : ObservableObject
         FormItem.CarId = car.CarId;
         FormItem.Mileage = car.Mileage;  
         SelectedCarDisplay = car.ChassisNo;
-        IsCarPopupOpen = false;
+        
+        _isSelectingCar = true;
         CarSearchText = string.Empty;
+        IsCarPopupOpen = false;
+        _isSelectingCar = false;
+        
         OnPropertyChanged(nameof(FormItem));
     }
 
     partial void OnCarSearchTextChanged(string value)
     {
+        if (_isSelectingCar) return;
+
         var pool = Cars.Where(c => c.IsStock || c.CarId == FormItem.CarId);
         if (string.IsNullOrWhiteSpace(value))
-            FilteredCarsList = new ObservableCollection<Car>(pool);
-        else
         {
-            var lower = value.ToLower();
-            FilteredCarsList = new ObservableCollection<Car>(
-                pool.Where(c =>
-                    c.ChassisNo?.ToLower().Contains(lower) == true ||
-                    c.PlateNo?.ToLower().Contains(lower) == true ||
-                    c.MotorNo?.ToLower().Contains(lower) == true));
+            FilteredCarsList = new ObservableCollection<Car>(pool);
+            IsCarPopupOpen = FilteredCarsList.Any();
+            return;
         }
+
+        var keywords = value.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = pool.Where(c =>
+        {
+            var chassis = c.ChassisNo?.ToLower() ?? string.Empty;
+            var plate = c.PlateNo?.ToLower() ?? string.Empty;
+            var motor = c.MotorNo?.ToLower() ?? string.Empty;
+            return keywords.All(k => chassis.Contains(k) || plate.Contains(k) || motor.Contains(k));
+        });
+                
+        FilteredCarsList = new ObservableCollection<Car>(filtered);
+        IsCarPopupOpen = FilteredCarsList.Any();
     }
 
     // ── Helper ─────────────────────────────────────────────────────────────
