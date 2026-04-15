@@ -34,7 +34,7 @@ public class IdToNameConverter : IMultiValueConverter
             if (item == null) continue;
             var type = item.GetType();
             var idProp = type.GetProperty(idPropName);
-            var nameProp = type.GetProperty(namePropName);
+            var nameProp = type.GetProperty(namePropName);  
             if (idProp != null && nameProp != null)
             {
                 // ✅ مقارنة موحدة بدل is int i

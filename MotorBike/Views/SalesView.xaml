@@ -248,9 +248,18 @@
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock>
+                                            <Run Text="الشاسية: " />
                                             <Run Text="{Binding ChassisNo, Mode=OneWay}" />
+
                                             <Run Foreground="#64748B" Text=" — " />
+
+                                            <Run Text="الموتور: " />
                                             <Run Foreground="#94A3B8" Text="{Binding MotorNo, Mode=OneWay}" />
+
+                                            <Run Foreground="#64748B" Text=" — " />
+
+                                            <Run Text="رقم اللوحة: " />
+                                            <Run Foreground="#94A3B8" Text="{Binding PlateNo, Mode=OneWay}" />
                                         </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
