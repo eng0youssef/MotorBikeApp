@@ -31,6 +31,7 @@ public partial class SalesViewModel : ObservableObject
 
     // ── Customer car selection (optional) ────────────────────────────────
     [ObservableProperty] private ObservableCollection<Car> _customerCars = [];
+    [ObservableProperty] private bool _printCarData = true;
 
     [ObservableProperty] private ObservableCollection<Sale> _invoices = [];
     [ObservableProperty] private ObservableCollection<Sale> _filteredInvoices = [];
@@ -1192,6 +1193,14 @@ public partial class SalesViewModel : ObservableObject
                 paymentsList.Add((p.PayMoney, cashName, p.Notes ?? ""));
             }
 
+            var carDetails = await db.QueryFirstOrDefaultAsync<dynamic>(@"
+                SELECT b.BrandName, m.ModelName, c.ColorName, car.YearNo, car.ChassisNo, car.MotorNo, car.PlateNo 
+                FROM Cars car
+                LEFT JOIN CarModels m ON car.ModelId = m.Model_ID
+                LEFT JOIN CarBrands b ON m.BrandID = b.Brand_ID
+                LEFT JOIN Colors c ON car.ColorId = c.Color_ID
+                WHERE car.Car_ID = @CarId", new { CarId = FormItem.CarId });
+
             var model = new MotorBike.Services.SalesInvoiceModel
             {
                 InvoiceNo = FormItem.SalesId.ToString(),
@@ -1210,7 +1219,15 @@ public partial class SalesViewModel : ObservableObject
                 PreviousBalance = previousBalance,
                 PaidAmount = TotalPayed,
                 RemainingAmount = Remaining,
-                Payments = paymentsList
+                Payments = paymentsList,
+                PrintCarData = PrintCarData && FormItem.CarId != null && FormItem.CarId > 0 && carDetails != null,
+                CarBrand = carDetails?.BrandName ?? "",
+                CarModel = carDetails?.ModelName ?? "",
+                CarColor = carDetails?.ColorName ?? "",
+                CarYear = carDetails?.YearNo?.ToString() ?? "",
+                CarChassisNo = carDetails?.ChassisNo ?? "",
+                CarMotorNo = carDetails?.MotorNo ?? "",
+                CarPlateNo = carDetails?.PlateNo ?? ""
             };
 
             foreach (var sub in FormSubItems)

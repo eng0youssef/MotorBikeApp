@@ -165,58 +165,59 @@
                                           SelectedValuePath="CashId"
                                           Style="{DynamicResource {x:Type ComboBox}}" />
 
-                                <!--  Row 4: Model, Color, Year  -->
+                                <!--  Row 4: Brand, Model, Color  -->
                                 <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="الموديل" />
-                                <ComboBox Grid.Row="4" Grid.Column="1" Padding="8,6" VerticalContentAlignment="Center" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="ModelName"
-                                          ItemsSource="{Binding Models}"
-                                          SelectedValue="{Binding FormItem.ModelId, UpdateSourceTrigger=PropertyChanged}"
-                                          SelectedValuePath="ModelId"
-                                          Style="{DynamicResource {x:Type ComboBox}}" />
+                                           Text="الماركة" />
+                                <TextBox Grid.Row="4" Grid.Column="1" IsEnabled="{Binding IsBrandEnabled}" Style="{StaticResource FormTextBox}" Text="{Binding CarBrandName, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="اللون" />
-                                <ComboBox Grid.Row="4" Grid.Column="4" Padding="8,6" VerticalContentAlignment="Center" Background="White" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="ColorName"
-                                          ItemsSource="{Binding Colors}"
-                                          SelectedValue="{Binding FormItem.ColorId, UpdateSourceTrigger=PropertyChanged}"
-                                          SelectedValuePath="ColorId"
-                                          Style="{DynamicResource {x:Type ComboBox}}" />
+                                           Text="الموديل" />
+                                <TextBox Grid.Row="4" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding CarModelName, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="سنة الصنع" />
-                                <TextBox Grid.Row="4" Grid.Column="7" MaxLength="4"
-                                         Style="{StaticResource FormTextBox}"
-                                         Text="{Binding FormItem.YearNo, UpdateSourceTrigger=PropertyChanged}" />
+                                           Text="اللون" />
+                                <TextBox Grid.Row="4" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding CarColorName, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <!--  Row 6: Chassis, Motor, Plate  -->
+                                <!--  Row 5: Spacing  -->
+                                <Border Grid.Row="5" Height="20" />
+
+                                <!--  Row 6: Year, Chassis, Motor  -->
                                 <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="رقم الشاسيه" />
-                                <TextBox Grid.Row="6" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.ChassisNo, UpdateSourceTrigger=PropertyChanged}" />
+                                           Text="سنة الصنع" />
+                                <TextBox Grid.Row="6" Grid.Column="1" MaxLength="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.YearNo, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="6" Grid.Column="3" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="رقم الموتور" />
-                                <TextBox Grid.Row="6" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.MotorNo, UpdateSourceTrigger=PropertyChanged}" />
+                                           Text="رقم الشاسيه" />
+                                <TextBox Grid.Row="6" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.ChassisNo, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="6" Grid.Column="6" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="رقم اللوحة" />
-                                <TextBox Grid.Row="6" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.PlateNo, UpdateSourceTrigger=PropertyChanged}" />
+                                           Text="رقم الموتور" />
+                                <TextBox Grid.Row="6" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.MotorNo, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <!--  Row 8: Mileage, Notes  -->
+                                <!--  Row 7: Spacing  -->
+                                <Border Grid.Row="7" Height="20" />
+
+                                <!--  Row 8: Plate, Mileage, Notes  -->
                                 <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
-                                           Text="العداد (كم)" />
-                                <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" />
+                                           Text="رقم اللوحة" />
+                                <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.PlateNo, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <TextBlock Grid.Row="8" Grid.Column="3" VerticalAlignment="Center"
                                            Style="{StaticResource FormLabel}"
+                                           Text="العداد (كم)" />
+                                <TextBox Grid.Row="8" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <TextBlock Grid.Row="8" Grid.Column="6" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
                                            Text="ملاحظات" />
-                                <TextBox Grid.Row="8" Grid.Column="4" Grid.ColumnSpan="4"
+                                <TextBox Grid.Row="8" Grid.Column="7"
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>

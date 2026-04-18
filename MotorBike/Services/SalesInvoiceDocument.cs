@@ -40,6 +40,15 @@ public class SalesInvoiceModel
 
     // Payments table (for credit invoices)
     public List<(double Amount, string CashName, string Notes)> Payments { get; set; } = new();
+
+    public bool PrintCarData { get; set; }
+    public string CarBrand { get; set; } = string.Empty;
+    public string CarModel { get; set; } = string.Empty;
+    public string CarColor { get; set; } = string.Empty;
+    public string CarYear { get; set; } = string.Empty;
+    public string CarChassisNo { get; set; } = string.Empty;
+    public string CarMotorNo { get; set; } = string.Empty;
+    public string CarPlateNo { get; set; } = string.Empty;
 }
 
 public class SalesInvoiceDocument : IDocument
@@ -198,6 +207,27 @@ public class SalesInvoiceDocument : IDocument
     {
         container.PaddingVertical(1).Column(colContainer =>
         {
+            if (_model.PrintCarData)
+            {
+                colContainer.Item().PaddingBottom(10).Border(1).BorderColor(Colors.Grey.Lighten1).Padding(10).Column(carCol =>
+                {
+                    carCol.Item().PaddingBottom(5).Text("بيانات الموتوسيكل المباع:").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                    carCol.Item().Row(r =>
+                    {
+                        r.RelativeItem().Column(c => { c.Item().Text("الماركة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarBrand).FontSize(11).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("الموديل").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarModel).FontSize(11).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("اللون").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarColor).FontSize(11).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("السنة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarYear).FontSize(11).SemiBold(); });
+                    });
+                    carCol.Item().PaddingTop(5).Row(r =>
+                    {
+                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الشاسيه").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarChassisNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
+                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الموتور").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarMotorNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
+                        r.RelativeItem(1).Column(c => { c.Item().Text("اللوحة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarPlateNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
+                    });
+                });
+            }
+
             colContainer.Item().Table(table =>
             {
                 table.ColumnsDefinition(columns =>

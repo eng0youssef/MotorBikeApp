@@ -243,7 +243,7 @@
                                        Text="الموتوسيكل" />
                             <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Padding="8,5" FontSize="13"
                                       ItemsSource="{Binding CustomerCars}"
-                                      SelectedValue="{Binding FormItem.CarId}"
+                                      SelectedValue="{Binding FormItem.CarId, UpdateSourceTrigger=PropertyChanged}"
                                       SelectedValuePath="CarId">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
@@ -264,6 +264,11 @@
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
+
+                            <CheckBox Grid.Row="2" Grid.Column="4" VerticalAlignment="Center"
+                                      Content="طباعة بيانات الموتوسيكل بالفاتورة"
+                                      IsChecked="{Binding PrintCarData, UpdateSourceTrigger=PropertyChanged}"
+                                      Foreground="#1E293B" FontSize="13" FontWeight="SemiBold" />
 
                             <!--  Row 4: Toggle, Notes  -->
                             <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"

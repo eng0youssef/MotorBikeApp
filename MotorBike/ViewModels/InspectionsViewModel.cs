@@ -13,6 +13,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     private readonly IRepository<CarModel> _modelRepository;
     private readonly IRepository<Color> _colorRepository;
     private readonly IRepository<Cash> _cashRepository;
+    private readonly IRepository<CarBrand> _carBrandRepository;
     private readonly IDbConnectionFactory _dbFactory;
     private readonly CompositeKeyRepository _compositeRepo;
 
@@ -29,6 +30,29 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     private ObservableCollection<Color> _colors = [];
 
     [ObservableProperty]
+    private ObservableCollection<CarBrand> _brands = [];
+
+    [ObservableProperty] private string _carModelName = string.Empty;
+    [ObservableProperty] private string _carBrandName = string.Empty;
+    [ObservableProperty] private string _carColorName = string.Empty;
+    [ObservableProperty] private bool _isBrandEnabled = true;
+
+    partial void OnCarModelNameChanged(string value)
+    {
+        var model = Models.FirstOrDefault(m => string.Equals(m.ModelName, value?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (model != null)
+        {
+            var brand = Brands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            if (brand != null) CarBrandName = brand.BrandName;
+            IsBrandEnabled = false;
+        }
+        else
+        {
+            IsBrandEnabled = true;
+        }
+    }
+
+    [ObservableProperty]
     private ObservableCollection<Cash> _cashes = [];
 
     [ObservableProperty]
@@ -43,12 +67,14 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     public InspectionsViewModel(
         IDbConnectionFactory dbFactory,
         IRepository<Inspection> repository,
+        IRepository<CarBrand> carBrandRepository,
         IRepository<CarModel> modelRepository,
         IRepository<Color> colorRepository,
         IRepository<Cash> cashRepository,
         CompositeKeyRepository compositeRepo) : base(repository)
     {
         _dbFactory = dbFactory;
+        _carBrandRepository = carBrandRepository;
         _modelRepository = modelRepository;
         _colorRepository = colorRepository;
         _cashRepository = cashRepository;
@@ -60,6 +86,9 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     {
         try 
         {
+            var brands = await _carBrandRepository.GetAllAsync();
+            Brands = new ObservableCollection<CarBrand>(brands.Where(b => b.Active));
+
             var models = await _modelRepository.GetAllAsync();
             Models = new ObservableCollection<CarModel>(models);
 
@@ -137,11 +166,12 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     {
         base.SetDefaultValues(entity);
         entity.InspDate = DateTime.Now;
-        if (Models.Any()) entity.ModelId = Models.First().ModelId;
-        if (Colors.Any()) entity.ColorId = Colors.First().ColorId;
-        if (Cashes.Any()) entity.CashId = Cashes.First().CashId;
-
         _formSubItems.Clear();
+
+        CarBrandName = string.Empty;
+        CarModelName = string.Empty;
+        CarColorName = string.Empty;
+        IsBrandEnabled = true;
     }
 
     [RelayCommand]
@@ -178,9 +208,34 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     protected override void OnFormItemChangedHook(Inspection value)
     {
         base.OnFormItemChangedHook(value);
-        if (value != null && value.InspId > 0)
+        if (value != null)
         {
-            _ = LoadSubItemsAsync(value.InspId);
+            var model = Models.FirstOrDefault(m => m.ModelId == value.ModelId);
+            CarModelName = model?.ModelName ?? string.Empty;
+
+            var color = Colors.FirstOrDefault(c => c.ColorId == value.ColorId);
+            CarColorName = color?.ColorName ?? string.Empty;
+
+            if (model != null)
+            {
+                var brand = Brands.FirstOrDefault(b => b.BrandId == model.BrandId);
+                CarBrandName = brand?.BrandName ?? string.Empty;
+                IsBrandEnabled = false;
+            }
+            else
+            {
+                CarBrandName = string.Empty;
+                IsBrandEnabled = true;
+            }
+
+            if (value.InspId > 0)
+            {
+                _ = LoadSubItemsAsync(value.InspId);
+            }
+            else
+            {
+                FormSubItems.Clear();
+            }
         }
         else
         {
@@ -217,6 +272,51 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
 
             try
             {
+                var selectedColorName = CarColorName?.Trim() ?? "بدون";
+                var colorObj = Colors.FirstOrDefault(c => string.Equals(c.ColorName, selectedColorName, StringComparison.OrdinalIgnoreCase));
+                if (colorObj != null)
+                {
+                    FormItem.ColorId = colorObj.ColorId;
+                }
+                else
+                {
+                    int newColorId = await _colorRepository.GetNextIdAsync();
+                    var newColor = new Color { ColorId = newColorId, ColorName = selectedColorName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO Colors (Color_ID, ColorName, Active, AddDate, AddPC, AddUser) VALUES (@ColorId, @ColorName, @Active, @AddDate, @AddPc, @AddUser)", newColor, tx);
+                    Colors.Add(newColor);
+                    FormItem.ColorId = newColorId;
+                }
+
+                var selectedModelName = CarModelName?.Trim() ?? "بدون";
+                var modelObj = Models.FirstOrDefault(m => string.Equals(m.ModelName, selectedModelName, StringComparison.OrdinalIgnoreCase));
+                if (modelObj != null)
+                {
+                    FormItem.ModelId = modelObj.ModelId;
+                }
+                else
+                {
+                    var selectedBrandName = CarBrandName?.Trim() ?? "بدون";
+                    var brandObj = Brands.FirstOrDefault(b => string.Equals(b.BrandName, selectedBrandName, StringComparison.OrdinalIgnoreCase));
+                    int currentBrandId;
+                    if (brandObj != null)
+                    {
+                        currentBrandId = brandObj.BrandId;
+                    }
+                    else
+                    {
+                        currentBrandId = await _carBrandRepository.GetNextIdAsync();
+                        var newBrand = new CarBrand { BrandId = currentBrandId, BrandName = selectedBrandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                        await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand, tx);
+                        Brands.Add(newBrand);
+                    }
+
+                    int newModelId = await _modelRepository.GetNextIdAsync();
+                    var newModel = new CarModel { ModelId = newModelId, ModelName = selectedModelName, BrandId = currentBrandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel, tx);
+                    Models.Add(newModel);
+                    FormItem.ModelId = newModelId;
+                }
+
                 if (isInsert)
                 {
                     await db.ExecuteAsync(@"
