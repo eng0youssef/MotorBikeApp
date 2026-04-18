@@ -14,6 +14,7 @@ public partial class Inspection
     public string Buyer { get; set; } = null!;
 
     public int ModelId { get; set; }
+    public int BrandId { get; set; }
 
     public short YearNo { get; set; }
 
@@ -50,6 +51,7 @@ public partial class Inspection
     public virtual Cash Cash { get; set; } = null!;
 
     public virtual Color Color { get; set; } = null!;
+    public virtual CarBrand Brand { get; set; } = null!;
 
     public virtual CarModel Model { get; set; } = null!;
 

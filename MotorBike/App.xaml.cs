@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MotorBike.DataAccess;
 using MotorBike.ViewModels;
+using MotorBike.Services.Activation;
+using MotorBike.Views;
 
 namespace MotorBike;
 
@@ -11,7 +13,7 @@ public partial class App : Application
 {
     public static IServiceProvider Services { get; private set; } = null!;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -35,6 +37,12 @@ public partial class App : Application
         services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>();
         services.AddTransient(typeof(IRepository<>), typeof(Repository<>));
         services.AddTransient<CompositeKeyRepository>();
+
+        // Activation Services
+        services.AddSingleton<HardwareInfoService>();
+        services.AddSingleton<ActivationService>();
+        services.AddTransient<ActivationViewModel>();
+        services.AddTransient<ActivationWindow>();
 
         // ViewModels
         services.AddTransient<CarBrandsViewModel>();
@@ -94,6 +102,39 @@ public partial class App : Application
 
         Services = services.BuildServiceProvider();
 
+        // --- Activation Logic (Online First with Offline Fallback) ---
+        var activationService = Services.GetRequiredService<ActivationService>();
+        
+        // 1. Try silent server check first (if internet is available)
+        var (status, _) = await activationService.CheckServerAsync();
+        
+        if (status == ActivationService.ServerCheckStatus.NotActivated)
+        {
+            // Device is explicitly not activated on server - block access
+            var activationWindow = Services.GetRequiredService<ActivationWindow>();
+            if (activationWindow.ShowDialog() != true)
+            {
+                Current.Shutdown();
+                return;
+            }
+        }
+        else if (status == ActivationService.ServerCheckStatus.NetworkError)
+        {
+            // No internet - fall back to local 30-day grace period
+            if (!activationService.IsActivatedLocally())
+            {
+                // Local cache expired or missing - must show activation window
+                var activationWindow = Services.GetRequiredService<ActivationWindow>();
+                if (activationWindow.ShowDialog() != true)
+                {
+                    Current.Shutdown();
+                    return;
+                }
+            }
+        }
+        // If status == Success, we proceed normally
+
+        // --- Normal Startup ---
         var loginWindow = Services.GetRequiredService<MotorBike.Views.LoginWindow>();
         loginWindow.Show();
     }

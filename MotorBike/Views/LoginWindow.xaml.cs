@@ -52,4 +52,10 @@ public partial class LoginWindow : Window
             }
         }
     }
+
+    private void btnActivation_Click(object sender, RoutedEventArgs e)
+    {
+        var activationWindow = App.Services.GetRequiredService<ActivationWindow>();
+        activationWindow.ShowDialog();
+    }
 }

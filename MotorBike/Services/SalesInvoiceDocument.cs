@@ -209,22 +209,23 @@ public class SalesInvoiceDocument : IDocument
         {
             if (_model.PrintCarData)
             {
-                colContainer.Item().PaddingBottom(10).Border(1).BorderColor(Colors.Grey.Lighten1).Padding(10).Column(carCol =>
+                colContainer.Item().PaddingBottom(5).Border(1).CornerRadius(10).BorderColor(Colors.Grey.Lighten1).Padding(5).Column(carCol =>
                 {
-                    carCol.Item().PaddingBottom(5).Text("بيانات الموتوسيكل المباع:").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken2);
+                    carCol.Item().PaddingBottom(5).Text("بيانات الموتوسيكل").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken2).AlignCenter();
                     carCol.Item().Row(r =>
                     {
-                        r.RelativeItem().Column(c => { c.Item().Text("الماركة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarBrand).FontSize(11).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("الموديل").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarModel).FontSize(11).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("اللون").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarColor).FontSize(11).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("السنة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarYear).FontSize(11).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("السنة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarYear).FontSize(9).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("اللون").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarColor).FontSize(9).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("الموديل").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarModel).FontSize(9).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("الماركة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarBrand).FontSize(9).SemiBold(); });
+
                     });
-                    carCol.Item().PaddingTop(5).Row(r =>
+                    carCol.Item().PaddingTop(3).Row(r =>
                     {
-                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الشاسيه").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarChassisNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
-                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الموتور").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarMotorNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
-                        r.RelativeItem(1).Column(c => { c.Item().Text("اللوحة").FontSize(10).FontColor(Colors.Grey.Medium); c.Item().Text(_model.CarPlateNo).FontSize(11).SemiBold().DirectionFromLeftToRight(); });
-                    });
+                        r.RelativeItem(1).Column(c => { c.Item().Text("اللوحة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarPlateNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
+                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الموتور").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarMotorNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
+                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الشاسيه").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarChassisNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
+                    });                
                 });
             }
 
@@ -282,12 +283,12 @@ public class SalesInvoiceDocument : IDocument
 
         var leftItems = new[]
         {
-    ("الإجمالي",      _model.NetAmount.ToString("N2")),
-    ("الرصيد السابق", _model.PreviousBalance.ToString("N2")),
-    ("الإجمالي",      totalAccount.ToString("N2")),
-    ("المدفوع",       _model.PaidAmount.ToString("N2")),
-    ("المتبقي",       remaining.ToString("N2")),
-};
+            ("الإجمالي",      _model.NetAmount.ToString("N2")),
+            ("الرصيد السابق", _model.PreviousBalance.ToString("N2")),
+            ("الإجمالي",      totalAccount.ToString("N2")),
+            ("المدفوع",       _model.PaidAmount.ToString("N2")),
+            ("المتبقي",       remaining.ToString("N2")),
+        };
 
         var rightItems = BuildRightTotals();
 

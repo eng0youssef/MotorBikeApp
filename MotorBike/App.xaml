@@ -3,6 +3,8 @@
 
         <!--  Global Converters  -->
         <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        <conv:BooleanToColorConverter x:Key="BooleanToColorConverter" />
+        <conv:InverseBoolConverter x:Key="InverseBooleanConverter" />
 
         <!--  ═══════════════════════════════════════════════════════════════  -->
         <!--  MotorBike Theme  ·  Refined Dark Slate  ·  Warm Orange Accent  -->

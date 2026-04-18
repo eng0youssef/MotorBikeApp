@@ -25,6 +25,7 @@ public class InspectionPrintModel
 
     // Car info
     public string CarModel { get; set; } = string.Empty;
+    public string CarBrand { get; set; } = string.Empty;
     public string ChassisNo { get; set; } = string.Empty;
     public string MotorNo { get; set; } = string.Empty;
     public string PlateNo { get; set; } = string.Empty;
@@ -136,13 +137,14 @@ public class InspectionDocument : IDocument
                 });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "الكيلومترات", "اللون", "السنة", "الموديل" })
+                    foreach (var title in new[] { "الكيلومترات", "اللون", "السنة", "الموديل","الماركة" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
                 RenderCell(table, _model.Mileage.ToString("N0"), true);
                 RenderCell(table, _model.ColorName, false);
                 RenderCell(table, _model.YearNo.ToString(), true);
                 RenderCell(table, _model.CarModel, false);
+                RenderCell(table, _model.CarBrand, false);
             });
             colContainer.Item().PaddingTop(5).Table(table =>
             {

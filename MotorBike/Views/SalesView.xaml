@@ -268,7 +268,7 @@
                             <CheckBox Grid.Row="2" Grid.Column="4" VerticalAlignment="Center"
                                       Content="طباعة بيانات الموتوسيكل بالفاتورة"
                                       IsChecked="{Binding PrintCarData, UpdateSourceTrigger=PropertyChanged}"
-                                      Foreground="#1E293B" FontSize="13" FontWeight="SemiBold" />
+                                      Foreground="White" FontSize="13" FontWeight="SemiBold" />
 
                             <!--  Row 4: Toggle, Notes  -->
                             <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"

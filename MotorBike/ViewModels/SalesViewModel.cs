@@ -409,7 +409,7 @@ public partial class SalesViewModel : ObservableObject
 
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
             if (FormItem.CusId > 0)
-                LoadCustomerCarsAsync(FormItem.CusId).ConfigureAwait(false);
+                LoadCustomerCarsAsync(FormItem.CusId, value.CarId).ConfigureAwait(false);
             else
                 CustomerCars.Clear();
         }
@@ -826,8 +826,9 @@ public partial class SalesViewModel : ObservableObject
         LoadCustomerCarsAsync(customer.CusId).ConfigureAwait(false);
     }
 
-    private async Task LoadCustomerCarsAsync(int cusId)
+    private async Task LoadCustomerCarsAsync(int cusId, int? preserveCarId = null)
     {
+        int? targetCarId = preserveCarId ?? FormItem?.CarId;
         try
         {
             using var db = _dbFactory.CreateConnection();
@@ -835,6 +836,12 @@ public partial class SalesViewModel : ObservableObject
                 @"SELECT * FROM Cars WHERE OwnerID = @CusId",
                 new { CusId = cusId });
             CustomerCars = new ObservableCollection<Car>(cars);
+            
+            if (FormItem != null && targetCarId > 0)
+            {
+                FormItem.CarId = targetCarId;
+                OnPropertyChanged(nameof(FormItem));
+            }
         }
         catch
         {

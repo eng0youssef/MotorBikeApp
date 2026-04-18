@@ -107,13 +107,20 @@
                     <TextBlock Text="{Binding ErrorMessage}" Foreground="#D9534F" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </Border>
 
-                <!-- Action Button -->
+                <!-- Action Buttons -->
                 <Button Content="تسجيل دخول " 
                         Style="{StaticResource PrimaryButton}" 
                         Command="{Binding LoginCommand}" 
                         Height="48" 
                         FontSize="15" 
                         FontWeight="Bold" />
+
+                <Button Content="إعدادات التفعيل" 
+                        Style="{StaticResource SecondaryButton}" 
+                        Margin="0,12,0,0"
+                        Height="40" 
+                        FontSize="13"
+                        Click="btnActivation_Click" />
 
             </StackPanel>
         </Border>

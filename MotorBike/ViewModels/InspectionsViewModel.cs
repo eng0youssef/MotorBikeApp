@@ -448,6 +448,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                 Buyer = FormItem.Buyer ?? "",
                 Notes = FormItem.Notes ?? "",
                 CarModel = Models.FirstOrDefault(m => m.ModelId == FormItem.ModelId)?.ModelName ?? "",
+                CarBrand = Brands.FirstOrDefault(m => m.BrandId == FormItem.BrandId)?.BrandName ?? "",
                 ChassisNo = FormItem.ChassisNo ?? "",
                 MotorNo = FormItem.MotorNo ?? "",
                 PlateNo = FormItem.PlateNo ?? "",
