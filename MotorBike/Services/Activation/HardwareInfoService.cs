@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Management;
 using System.Linq;
 
@@ -40,7 +40,7 @@ public class HardwareInfoService
 
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             byte[] bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawData));
-            return BitConverter.ToString(bytes).Replace("-", "").Substring(0, 32); // 32-char Hex ID
+            return BitConverter.ToString(bytes).Replace("-", "").Substring(0, 16); // 16-char Hex ID (matches Android ID standard)
         }
         catch
         {
@@ -52,31 +52,80 @@ public class HardwareInfoService
     {
         try
         {
-            // We want the physical drive hosting the OS (usually C:). 
-            // Querying Index 0 is the most reliable way to get the boot/primary physical drive.
-            using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_DiskDrive WHERE Index = 0");
-            foreach (var obj in searcher.Get())
-            {
-                var serial = obj["SerialNumber"]?.ToString()?.Trim();
-                if (!string.IsNullOrEmpty(serial)) return serial;
-            }
-        }
-        catch { }
+            // مكان تشغيل البرنامج
+            string exePath = AppDomain.CurrentDomain.BaseDirectory;
 
-        // Fallback to any fixed drive if Index 0 fails
-        try
-        {
-            using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_DiskDrive WHERE MediaType LIKE 'Fixed%'");
-            foreach (var obj in searcher.Get())
+            // حرف الدرايف C: / D:
+            string driveLetter = System.IO.Path.GetPathRoot(exePath)?
+                .Replace("\\", "")
+                .Trim();
+
+            if (string.IsNullOrWhiteSpace(driveLetter))
+                return "DISK-UNK";
+
+            // الدرايف -> بارتشن
+            string partitionQuery = $@"
+                                    ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{driveLetter}'}}
+                                    WHERE AssocClass = Win32_LogicalDiskToPartition";
+
+            using var partitionSearcher =
+                new ManagementObjectSearcher(partitionQuery);
+
+            foreach (ManagementObject partition in partitionSearcher.Get())
             {
-                var serial = obj["SerialNumber"]?.ToString()?.Trim();
-                if (!string.IsNullOrEmpty(serial)) return serial;
+                string partitionId = partition["DeviceID"].ToString();
+
+                // البارتشن -> الهارد الحقيقي
+                string diskQuery = $@"
+                                    ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partitionId}'}}
+                                    WHERE AssocClass = Win32_DiskDriveToDiskPartition";
+
+                using var diskSearcher =
+                    new ManagementObjectSearcher(diskQuery);
+
+                foreach (ManagementObject disk in diskSearcher.Get())
+                {
+                    var serial = disk["SerialNumber"]?.ToString()?.Trim();
+
+                    if (!string.IsNullOrWhiteSpace(serial))
+                        return serial;
+                }
             }
         }
         catch { }
 
         return "DISK-UNK";
     }
+
+    //private string GetDiskSerialNumber()
+    //{
+    //    try
+    //    {
+    //        // We want the physical drive hosting the OS (usually C:). 
+    //        // Querying Index 0 is the most reliable way to get the boot/primary physical drive.
+    //        using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_DiskDrive WHERE Index = 0");
+    //        foreach (var obj in searcher.Get())
+    //        {
+    //            var serial = obj["SerialNumber"]?.ToString()?.Trim();
+    //            if (!string.IsNullOrEmpty(serial)) return serial;
+    //        }
+    //    }
+    //    catch { }
+
+    //    // Fallback to any fixed drive if Index 0 fails
+    //    try
+    //    {
+    //        using var searcher = new ManagementObjectSearcher("SELECT SerialNumber FROM Win32_DiskDrive WHERE MediaType LIKE 'Fixed%'");
+    //        foreach (var obj in searcher.Get())
+    //        {
+    //            var serial = obj["SerialNumber"]?.ToString()?.Trim();
+    //            if (!string.IsNullOrEmpty(serial)) return serial;
+    //        }
+    //    }
+    //    catch { }
+
+    //    return "DISK-UNK";
+    //}
 
     private string GetUUID()
     {

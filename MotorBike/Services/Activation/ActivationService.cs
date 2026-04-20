@@ -13,7 +13,7 @@ public class ActivationService
     private readonly HttpClient _httpClient;
     private readonly HardwareInfoService _hardwareService;
     private const string ServerUrl = "https://activationapp.runasp.net";
-    private const string SecretKey = "Mazaya@Activation#Secret!Key$2024";
+    private const string SecretKey = "ThisIsAMostImportantSecretKeyInTheWorld2828";
     private const int GracePeriodDays = 30;
 
     private readonly string _localStatePath;
@@ -96,9 +96,9 @@ public class ActivationService
             }
             return (ServerCheckStatus.NetworkError, "فشل الاتصال بسيرفر التفعيل");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return (ServerCheckStatus.NetworkError, $"خطأ اتصال: {ex.Message}");
+            return (ServerCheckStatus.NetworkError, "خطأ اتصال: لا يمكن الوصول لسيرفر التفعيل، تأكد من اتصالك بالإنترنت");
         }
     }
 
@@ -132,9 +132,9 @@ public class ActivationService
             string error = await response.Content.ReadAsStringAsync();
             return (false, $"فشل الطلب: {response.StatusCode} - {error}");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return (false, $"خطأ اتصال: {ex.Message}");
+            return (false, "خطأ اتصال: لا يمكن الوصول لسيرفر التفعيل، تأكد من اتصالك بالإنترنت");
         }
     }
 

@@ -36,7 +36,7 @@ public partial class PrintPreviewWindow : Window
     ];
 
     // ─── Constructor ──────────────────────────────────────────────────────
-    public PrintPreviewWindow(IDocument document, string title = "معاينة الإيصال")
+    public PrintPreviewWindow(IDocument document, string title = "معاينة البيان")
     {
         InitializeComponent();
         _document = document;
@@ -208,7 +208,7 @@ public partial class PrintPreviewWindow : Window
             // ── بناء FixedDocument من صور الصفحات ────────────────────
             var doc = BuildFixedDocument(pagesToPrint, pd.PrintableAreaWidth, pd.PrintableAreaHeight);
 
-            pd.PrintDocument(doc.DocumentPaginator, "إيصال");
+            pd.PrintDocument(doc.DocumentPaginator, "بيان");
 
             var pageInfo = pageList != null
                 ? $"الصفحات: {string.Join(", ", pageList)}"
@@ -291,8 +291,8 @@ public partial class PrintPreviewWindow : Window
         {
             Filter     = "PDF Document (*.pdf)|*.pdf",
             DefaultExt = "pdf",
-            Title      = "حفظ الإيصال كـ PDF",
-            FileName   = $"إيصال_{DateTime.Now:yyyyMMdd_HHmm}"
+            Title      = "حفظ البيان كـ PDF",
+            FileName   = $"بيان_{DateTime.Now:yyyyMMdd_HHmm}"
         };
         if (dlg.ShowDialog(this) != true) return;
 
