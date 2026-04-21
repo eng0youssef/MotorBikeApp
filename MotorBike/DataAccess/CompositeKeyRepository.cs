@@ -183,7 +183,8 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(Net) FROM ReBuy WHERE SuppID = @SuppId AND BuyDate < @ToDate), 0)
                 + ISNULL((SELECT SUM(rp.PayMoney) FROM ReBuy_Payments rp INNER JOIN ReBuy rb ON rp.BuyId = rb.Buy_ID WHERE rb.SuppID = @SuppId AND rp.PayDate < @ToDate), 0)
                 - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0)
-                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0);
+                + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId AND PayDate < @ToDate), 0)
+                + ISNULL((SELECT SUM(Cost) FROM Sales_Maintenance sm INNER JOIN Sales s ON sm.SalesId = s.Sales_ID WHERE sm.SuppId = @SuppId AND sm.IsCash = 0 AND s.SalesDate < @ToDate), 0);
             SELECT @Bal;";
 
         return await db.QueryFirstOrDefaultAsync<double>(sql, new { SuppId = suppId, ToDate = toDate });
@@ -237,7 +238,8 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(PayMoney) FROM Cash_Transfer WHERE CashID = @CashId AND PayDate < @ToDate), 0)
                 - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashID = @CashId AND PayDate < @ToDate), 0)
                 - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId AND PayDate < @ToDate), 0)
-                + ISNULL((SELECT SUM(Total) FROM Inspection WHERE CashId = @CashId AND InspDate < @ToDate), 0);
+                + ISNULL((SELECT SUM(Total) FROM Inspection WHERE CashId = @CashId AND InspDate < @ToDate), 0)
+                - ISNULL((SELECT SUM(Cost) FROM Sales_Maintenance sm INNER JOIN Sales s ON sm.SalesId = s.Sales_ID WHERE sm.CashId = @CashId AND sm.IsCash = 1 AND s.SalesDate < @ToDate), 0);
             SELECT @Bal;";
 
         return await db.QueryFirstOrDefaultAsync<double>(sql, new { CashId = cashId, ToDate = toDate });
@@ -263,6 +265,7 @@ public class CompositeKeyRepository
                 + ISNULL((SELECT SUM(rp.PayMoney) FROM ReBuy_Payments rp INNER JOIN ReBuy rb ON rp.BuyId = rb.Buy_ID WHERE rb.SuppID = @SuppId), 0)
                 - ISNULL((SELECT SUM(CASE WHEN PayType = 0 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId), 0)
                 + ISNULL((SELECT SUM(CASE WHEN PayType = 1 THEN PayMoney ELSE 0 END) FROM Supp_Payments WHERE SuppID = @SuppId), 0)
+                + ISNULL((SELECT SUM(Cost) FROM Sales_Maintenance WHERE SuppId = @SuppId AND IsCash = 0), 0)
             WHERE Supp_ID = @SuppId";
         await db.ExecuteAsync(sql, new { SuppId = suppId });
     }
@@ -323,6 +326,7 @@ public class CompositeKeyRepository
                 - ISNULL((SELECT SUM(PayMoney) FROM Import_Payments WHERE CashID = @CashId), 0)
                 - ISNULL((SELECT SUM(PayTotal) FROM Import_Exp WHERE CashId = @CashId), 0)
                 + ISNULL((SELECT SUM(Total) FROM Inspection WHERE CashId = @CashId), 0)
+                - ISNULL((SELECT SUM(Cost) FROM Sales_Maintenance WHERE CashId = @CashId AND IsCash = 1), 0)
             WHERE Cash_ID = @CashId";
         await db.ExecuteAsync(sql, new { CashId = cashId });
     }

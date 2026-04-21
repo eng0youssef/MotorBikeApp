@@ -20,6 +20,8 @@ public partial class Sale
     public double AddMony { get; set; }
 
     public double Net { get; set; }
+    public double MaintTotal { get; set; }
+    public bool IsMaintenance { get; set; }
 
     public bool IsPer { get; set; }
 

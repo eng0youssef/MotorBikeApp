@@ -110,6 +110,8 @@
                             <RowDefinition Height="Auto" />
                             <!--  DataGrid SubItems  -->
                             <RowDefinition Height="Auto" />
+                            <!--  Maintenance Section  -->
+                            <RowDefinition Height="Auto" />
                             <!--  Totals & Footer  -->
                             <RowDefinition Height="Auto" />
                             <!--  Cash Mode Treasury  -->
@@ -493,8 +495,110 @@
                             </DataGrid>
                         </Border>
 
+                        <!--  Maintenance Section (Row 5)  -->
+                        <Border Grid.Row="5" Margin="0,0,0,16" Padding="16" Background="#2F3549" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12" IsEnabled="{Binding IsEditing}">
+                            <Expander IsExpanded="{Binding IsMaintenanceSectionVisible}" Foreground="White" FontSize="15" FontWeight="SemiBold">
+                                <Expander.Header>
+                                    <CheckBox Content="صيانة / خدمات " IsChecked="{Binding IsMaintenanceSectionVisible, Mode=TwoWay}" Foreground="White" FontSize="15" FontWeight="SemiBold"/>
+                                </Expander.Header>
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <!-- Inputs -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="2*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="1*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="1.5*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                            <TextBlock Text="اسم الخدمة/الصيانة" Foreground="White" FontSize="13" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding CurrentMaintenanceItem.ItemName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                            <TextBlock Text="التكلفة (مورد/خزينة)" Foreground="White" FontSize="13" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding CurrentMaintenanceItem.Cost, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                                            <TextBlock Text="سعر البيع" Foreground="White" FontSize="13" Margin="0,0,0,4"/>
+                                            <TextBox Text="{Binding CurrentMaintenanceItem.Price, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="3" Margin="0,0,12,0" VerticalAlignment="Bottom">
+                                            <CheckBox Content="كاش؟" IsChecked="{Binding CurrentMaintenanceItem.IsCash}" Foreground="White" FontSize="13" Margin="0,0,0,8"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="4" Margin="0,0,12,0">
+                                            <TextBlock Text="المورد" Foreground="White" FontSize="13" Margin="0,0,0,4"/>
+                                            <ComboBox ItemsSource="{Binding Suppliers}" SelectedValue="{Binding CurrentMaintenanceItem.SuppId}" SelectedValuePath="SuppId" DisplayMemberPath="SuppName" Padding="8,4" FontSize="13"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="5" Margin="0,0,12,0"
+                                                    Visibility="{Binding CurrentMaintenanceItem.IsCash, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="الخزينة" Foreground="White" FontSize="13" Margin="0,0,0,4"/>
+                                            <ComboBox ItemsSource="{Binding Cashes}" SelectedValue="{Binding CurrentMaintenanceItem.CashId}" SelectedValuePath="CashId" DisplayMemberPath="CashName" Padding="8,4" FontSize="13"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="6" Command="{Binding AddMaintenanceItemCommand}" Content="➕ إضافة" Style="{StaticResource PrimaryButton}" Padding="16,8" VerticalAlignment="Bottom"/>
+                                    </Grid>
+                                    
+                                    <!-- DataGrid -->
+                                    <DataGrid Grid.Row="1" ItemsSource="{Binding FormMaintenanceItems}" AutoGenerateColumns="False" Background="#272C3F" RowHeight="36" HeadersVisibility="Column" SelectionMode="Single" IsReadOnly="True" MaxHeight="150" AlternatingRowBackground="#2A3040">
+                                        <DataGrid.ColumnHeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DarkColumnHeader}"/>
+                                        </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.RowStyle>
+                                            <Style TargetType="DataGridRow" BasedOn="{StaticResource DarkRow}"/>
+                                        </DataGrid.RowStyle>
+                                        <DataGrid.CellStyle>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource DarkCell}"/>
+                                        </DataGrid.CellStyle>
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="الخدمة" Binding="{Binding ItemName}" Width="2*"/>
+                                            <DataGridTextColumn Header="التكلفة" Binding="{Binding Cost}" Width="*"/>
+                                            <DataGridTextColumn Header="سعر البيع" Binding="{Binding Price}" Width="*"/>
+                                            <DataGridTemplateColumn Header="الخزينة/المورد" Width="2*">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                                            <!-- When Credit (IsCash=false): show Supplier only -->
+                                                            <TextBlock Text="{Binding SuppName}" 
+                                                                       Visibility="{Binding IsCash, Converter={StaticResource InverseBoolToVis}}"
+                                                                       TextAlignment="Right"/>
+                                                            <!-- When Cash (IsCash=true): show both -->
+                                                            <TextBlock Visibility="{Binding IsCash, Converter={StaticResource BoolToVis}}"
+                                                                       TextAlignment="Right">
+                                                                <Run Text="خزينة: "/><Run Text="{Binding CashName}"/>
+                                                            </TextBlock>
+                                                            <TextBlock Visibility="{Binding IsCash, Converter={StaticResource BoolToVis}}"
+                                                                       Foreground="#94A3B8" FontSize="11"
+                                                                       TextAlignment="Right">
+                                                                <Run Text="مورد: "/><Run Text="{Binding SuppName}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                            <DataGridCheckBoxColumn Header="كاش؟" Binding="{Binding IsCash}" Width="60"/>
+                                            <DataGridTemplateColumn Width="50">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="🗑️" Foreground="Red" Background="Transparent" BorderThickness="0" FontSize="14" Command="{Binding DataContext.RemoveMaintenanceItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"/>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </Grid>
+                            </Expander>
+                        </Border>
+
                         <!--  Totals & Footer (Responsive Layout)  -->
-                        <Border Grid.Row="5" Margin="0,0,0,24" Padding="20"
+                        <Border Grid.Row="6" Margin="0,0,0,24" Padding="20"
                                 Background="{StaticResource SectionBg}"
                                 BorderBrush="#2F3549" BorderThickness="1" CornerRadius="12">
                             <Grid>
@@ -598,7 +702,7 @@
                         </Border>
 
                         <!--  Cash Mode Treasury Selector (Only visible in Cash mode)  -->
-                        <Border Grid.Row="6" Margin="0,0,0,24" Padding="24" Background="#283830" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="7" Margin="0,0,0,24" Padding="24" Background="#283830" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}"
                                 Visibility="{Binding IsCashPaymentMode, Converter={StaticResource BoolToVis}}">
                             <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
@@ -613,7 +717,7 @@
                         </Border>
 
                         <!--  Payments Section Trigger Button (Only visible in Credit mode)  -->
-                        <Border Grid.Row="7" Margin="0,0,0,20" Padding="18" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
+                        <Border Grid.Row="8" Margin="0,0,0,20" Padding="18" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="12"
                                 IsEnabled="{Binding IsEditing}"
                                 Visibility="{Binding IsCashPaymentMode, Converter={StaticResource InverseBoolToVis}}">
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
@@ -629,7 +733,7 @@
                         </Border>
 
                         <!--  Footer Action Buttons  -->
-                        <DockPanel Grid.Row="8">
+                        <DockPanel Grid.Row="9">
                             <TextBlock MaxWidth="300" Margin="0,0,16,0" HorizontalAlignment="Right" VerticalAlignment="Center" DockPanel.Dock="Right" FontSize="14" FontWeight="SemiBold" Foreground="#10B981"
                                        Text="{Binding StatusMessage}"
                                        TextWrapping="Wrap" />

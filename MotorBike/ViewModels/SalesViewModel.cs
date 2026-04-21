@@ -39,9 +39,14 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private Sale _formItem = new();
     [ObservableProperty] private ObservableCollection<SalesSub> _formSubItems = [];
     [ObservableProperty] private ObservableCollection<SalesPayment> _formPayments = [];
+    [ObservableProperty] private ObservableCollection<SalesMaintenance> _formMaintenanceItems = [];
 
     [ObservableProperty] private SalesSub _currentSubItem = new();
     [ObservableProperty] private SalesPayment _currentPayment = new();
+    [ObservableProperty] private SalesMaintenance _currentMaintenanceItem = new();
+    
+    [ObservableProperty] private bool _isMaintenanceSectionVisible;
+    [ObservableProperty] private ObservableCollection<Supplier> _suppliers = [];
     
     [ObservableProperty] private string _itemSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Item> _filteredItemsList = [];
@@ -305,6 +310,10 @@ public partial class SalesViewModel : ObservableObject
             var units = await _unitRepository.GetAllAsync();
             Units = new ObservableCollection<Unit>(units);
 
+            using var db = _dbFactory.CreateConnection();
+            var suppliersList = await db.QueryAsync<Supplier>("SELECT * FROM Suppliers WHERE Active = 1");
+            Suppliers = new ObservableCollection<Supplier>(suppliersList);
+
             await LoadInvoicesAsync();
         }
         catch (Exception ex)
@@ -407,6 +416,8 @@ public partial class SalesViewModel : ObservableObject
             IsCashPaymentMode = FormItem.IsCash;
             if (FormItem.IsCash && FormPayments.Any()) SelectedCashId = FormPayments[0].CashId;
 
+            IsMaintenanceSectionVisible = FormItem.IsMaintenance;
+
             LoadSubItemsAsync(value.SalesId).ConfigureAwait(false);
             if (FormItem.CusId > 0)
                 LoadCustomerCarsAsync(FormItem.CusId, value.CarId).ConfigureAwait(false);
@@ -428,6 +439,15 @@ public partial class SalesViewModel : ObservableObject
             FormPayments = new ObservableCollection<SalesPayment>(payments);
             WirePaymentsCollection();
             CalculatePayedTotal();
+
+            var maintenance = await db.QueryAsync<SalesMaintenance>("SELECT * FROM Sales_Maintenance WHERE SalesId = @SalesId", new { SalesId = salesId });
+            foreach (var m in maintenance)
+            {
+                m.CashName = Cashes.FirstOrDefault(c => c.CashId == m.CashId)?.CashName ?? string.Empty;
+                m.SuppName = Suppliers.FirstOrDefault(s => s.SuppId == m.SuppId)?.SuppName ?? string.Empty;
+            }
+            FormMaintenanceItems = new ObservableCollection<SalesMaintenance>(maintenance);
+            WireMaintenanceCollection();
 
             CalculateTotals();
 
@@ -487,9 +507,12 @@ public partial class SalesViewModel : ObservableObject
         WireSubItemsCollection();
         FormPayments.Clear();
         WirePaymentsCollection();
+        FormMaintenanceItems.Clear();
+        WireMaintenanceCollection();
         TotalPayed = 0;
         Remaining = 0;
         IsCashPaymentMode = false;
+        IsMaintenanceSectionVisible = false;
         
         CurrentSubItem = new SalesSub { SalesId = item.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
         _isUpdatingSubDiscount = true;
@@ -503,6 +526,8 @@ public partial class SalesViewModel : ObservableObject
         CurrentPayment = new SalesPayment { SalesId = item.SalesId, PayDate = item.SalesDate.AddSeconds(20), CashId = Cashes.FirstOrDefault()?.CashId ?? 0 };
         SelectedCashId = Cashes.FirstOrDefault()?.CashId ?? 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
+
+        CurrentMaintenanceItem = new SalesMaintenance { SalesId = item.SalesId, CashId = Cashes.FirstOrDefault()?.CashId, IsCash = false };
         
         // Reset customer search
         _isSelectingCustomer = true;
@@ -542,11 +567,14 @@ public partial class SalesViewModel : ObservableObject
         
         FormSubItems.Clear();
         FormPayments.Clear();
+        FormMaintenanceItems.Clear();
         TotalPayed = 0;
         Remaining = 0;
         IsCashPaymentMode = false;
+        IsMaintenanceSectionVisible = false;
         CurrentSubItem = new SalesSub();
         CurrentPayment = new SalesPayment();
+        CurrentMaintenanceItem = new SalesMaintenance();
         SelectedCashId = 0;
         CurrentSafeBalance = 0;
         CurrentCustomerBalance = 0;
@@ -587,6 +615,10 @@ public partial class SalesViewModel : ObservableObject
 
             var affectedItemIds = FormSubItems.Select(s => s.ItemId).Distinct().ToList();
             var affectedCashIds = FormPayments.Select(p => p.CashId).Where(id => id > 0).Distinct().ToList();
+            var affectedSuppIds = FormMaintenanceItems.Select(m => m.SuppId).Where(id => id.HasValue).Select(id => id.Value).Distinct().ToList();
+            var maintCashIds = FormMaintenanceItems.Select(m => m.CashId).Where(id => id.HasValue).Select(id => id.Value).Distinct().ToList();
+            affectedCashIds.AddRange(maintCashIds.Where(id => !affectedCashIds.Contains(id)));
+            
             int? oldCusId = null;
 
             if (!_isInsertMode)
@@ -604,6 +636,18 @@ public partial class SalesViewModel : ObservableObject
                     new { SalesId = FormItem.SalesId });
                 foreach (var cid in oldCashIds)
                     if (cid > 0 && !affectedCashIds.Contains(cid)) affectedCashIds.Add(cid);
+
+                var oldMaintCashIds = await dbPre.QueryAsync<int?>(
+                    "SELECT DISTINCT CashId FROM Sales_Maintenance WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var cid in oldMaintCashIds)
+                    if (cid.HasValue && cid.Value > 0 && !affectedCashIds.Contains(cid.Value)) affectedCashIds.Add(cid.Value);
+
+                var oldSuppIds = await dbPre.QueryAsync<int?>(
+                    "SELECT DISTINCT SuppId FROM Sales_Maintenance WHERE SalesId = @SalesId",
+                    new { SalesId = FormItem.SalesId });
+                foreach (var sid in oldSuppIds)
+                    if (sid.HasValue && sid.Value > 0 && !affectedSuppIds.Contains(sid.Value)) affectedSuppIds.Add(sid.Value);
 
                 oldCusId = await dbPre.QueryFirstOrDefaultAsync<int?>(
                     "SELECT CusID FROM Sales WHERE Sales_ID = @SalesId",
@@ -637,8 +681,8 @@ public partial class SalesViewModel : ObservableObject
                     FormItem.AddDate = DateTime.Now;
                     FormItem.AddUser = AppSession.CurrentUserId ?? 1;
                     await db.ExecuteAsync(@"
-                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo, CarID) 
-                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo, @CarId)",
+                    INSERT INTO Sales (Sales_ID, SalesDate, CusId, Total, Disc, AddMony, IsPer, IsCash, Notes, AddDate, AddPc, AddUser, IsTax, VatTax, Tax, TaxNo, CarID, MaintTotal, IsMaintenance) 
+                    VALUES (@SalesId, @SalesDate, @CusId, @Total, @Disc, @AddMony, @IsPer, @IsCash, @Notes, @AddDate, @AddPc, @AddUser, @IsTax, @VatTax, @Tax, @TaxNo, @CarId, @MaintTotal, @IsMaintenance)",
                         FormItem, tx);
                 }
                 else
@@ -650,13 +694,16 @@ public partial class SalesViewModel : ObservableObject
                     UPDATE Sales SET SalesDate=@SalesDate, CusId=@CusId, Total=@Total,
                     Disc=@Disc, AddMony=@AddMony, IsPer=@IsPer, IsCash=@IsCash, Notes=@Notes, 
                     EditDate=@EditDate, EditPc=@EditPc, EditUser=@EditUser,
-                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo, CarID=@CarId
+                    IsTax=@IsTax, VatTax=@VatTax, Tax=@Tax, TaxNo=@TaxNo, CarID=@CarId,
+                    MaintTotal=@MaintTotal, IsMaintenance=@IsMaintenance
                     WHERE Sales_ID = @SalesId",
                         FormItem, tx);
 
                     await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId",
                         new { SalesId = FormItem.SalesId }, tx);
                     await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId",
+                        new { SalesId = FormItem.SalesId }, tx);
+                    await db.ExecuteAsync("DELETE FROM Sales_Maintenance WHERE SalesId = @SalesId",
                         new { SalesId = FormItem.SalesId }, tx);
                 }
 
@@ -685,6 +732,29 @@ public partial class SalesViewModel : ObservableObject
                         p, tx);
                 }
 
+                foreach (var m in FormMaintenanceItems)
+                {
+                    m.SalesId = FormItem.SalesId;
+
+                    // Cash case: save CashId, keep SuppId as-is (user may have selected both)
+                    if (m.IsCash)
+                    {
+                        if (m.CashId == null || m.CashId <= 0)
+                            m.CashId = SelectedCashId > 0 ? SelectedCashId : Cashes.FirstOrDefault()?.CashId;
+                        // SuppId is kept as user selected
+                    }
+                    else
+                    {
+                        // Credit case: no cash, only supplier
+                        m.CashId = null;
+                    }
+
+                    await db.ExecuteAsync(@"
+                    INSERT INTO Sales_Maintenance (SalesId, ItemName, Cost, Price, IsCash, CashId, SuppId) 
+                    VALUES (@SalesId, @ItemName, @Cost, @Price, @IsCash, @CashId, @SuppId)",
+                        new { m.SalesId, m.ItemName, m.Cost, m.Price, m.IsCash, m.CashId, m.SuppId }, tx);
+                }
+
                 tx.Commit();
                 // Retained IsEditing to enable further modifications
                 StatusMessage = "تم حفظ فاتورة البيع بنجاح ✓ ";
@@ -708,6 +778,9 @@ public partial class SalesViewModel : ObservableObject
 
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+                
+            foreach (var suppId in affectedSuppIds)
+                await _compositeRepo.RecalcBalanceForSupplierAsync(suppId);
 
             _isInsertMode = false;
             await LoadInvoicesAsync();
@@ -738,6 +811,7 @@ public partial class SalesViewModel : ObservableObject
             db.Open();
             using var tx = db.BeginTransaction();
             try {
+                await db.ExecuteAsync("DELETE FROM Sales_Maintenance WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
                 await db.ExecuteAsync("DELETE FROM Sales_Payments WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
                 await db.ExecuteAsync("DELETE FROM Sales_Sub WHERE SalesId = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
                 await db.ExecuteAsync("DELETE FROM Sales WHERE Sales_ID = @SalesId", new { SalesId = SelectedInvoice.SalesId }, tx);
@@ -757,8 +831,14 @@ public partial class SalesViewModel : ObservableObject
 
             // إعادة حساب رصيد كل خزينة متأثرة من كل الحركات
             var affectedCashIds = FormPayments.Select(p => p.CashId).Distinct().ToList();
+            var affectedMaintCash = FormMaintenanceItems.Where(m => m.IsCash && m.CashId.HasValue).Select(m => m.CashId.Value).ToList();
+            affectedCashIds.AddRange(affectedMaintCash.Where(id => !affectedCashIds.Contains(id)));
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+                
+            var affectedSuppIds = FormMaintenanceItems.Where(m => !m.IsCash && m.SuppId.HasValue).Select(m => m.SuppId.Value).Distinct().ToList();
+            foreach(var suppId in affectedSuppIds)
+                await _compositeRepo.RecalcBalanceForSupplierAsync(suppId);
 
             StatusMessage = "تم حذف الفاتورة بنجاح ✓";
             IsEditing = false;
@@ -771,9 +851,11 @@ public partial class SalesViewModel : ObservableObject
             
             FormSubItems.Clear();
             FormPayments.Clear();
+            FormMaintenanceItems.Clear();
             TotalPayed = 0;
             Remaining = 0;
             IsCashPaymentMode = false;
+            IsMaintenanceSectionVisible = false;
             SelectedInvoice = null;
             SelectedCashId = 0;
             CurrentSafeBalance = 0;
@@ -1024,7 +1106,7 @@ public partial class SalesViewModel : ObservableObject
         if (FormItem == null || _isUpdatingDiscount) return;
         
         _isUpdatingDiscount = true;
-        FormItem.Total = FormSubItems.Sum(x => x.Total);
+        FormItem.Total = FormSubItems.Sum(x => x.Total) + FormMaintenanceItems.Sum(m => m.Price);
         
         if (IsInvoiceDiscountPer)
         {
@@ -1055,6 +1137,7 @@ public partial class SalesViewModel : ObservableObject
 
     private void CalculateTotalsInternal()
     {
+        // FormItem.Total already includes FormMaintenanceItems.Sum(m => m.Price) from CalculateSubTotals
         NetBeforeTax = FormItem.Total - FormItem.Disc + FormItem.AddMony;
         
         if (FormItem.IsTax)
@@ -1069,6 +1152,8 @@ public partial class SalesViewModel : ObservableObject
         }
 
         FormItem.Net = NetBeforeTax + FormItem.VatTax - FormItem.Tax;
+        FormItem.MaintTotal = FormMaintenanceItems.Sum(m => m.Price);
+        FormItem.IsMaintenance = IsMaintenanceSectionVisible;
         FormItem.NetPer = FormItem.Total > 0 ? Math.Round(FormItem.Net / FormItem.Total, 4) : 1;
         OnPropertyChanged(nameof(FormItem));
         UpdateRemaining();
@@ -1147,6 +1232,85 @@ public partial class SalesViewModel : ObservableObject
         }
     }
 
+    // --- Maintenance Management ---
+
+    [RelayCommand]
+    private void AddMaintenanceItem()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentMaintenanceItem.ItemName)) return;
+        
+        // When IsCash and no CashId set, default to the first available
+        if (CurrentMaintenanceItem.IsCash && (CurrentMaintenanceItem.CashId == null || CurrentMaintenanceItem.CashId <= 0))
+        {
+            CurrentMaintenanceItem.CashId = SelectedCashId > 0 ? SelectedCashId : Cashes.FirstOrDefault()?.CashId;
+        }
+
+        FormMaintenanceItems.Add(new SalesMaintenance
+        {
+            ItemName = CurrentMaintenanceItem.ItemName,
+            Cost = CurrentMaintenanceItem.Cost,
+            Price = CurrentMaintenanceItem.Price,
+            IsCash = CurrentMaintenanceItem.IsCash,
+            CashId = CurrentMaintenanceItem.CashId,
+            SuppId = CurrentMaintenanceItem.SuppId,
+            CashName = Cashes.FirstOrDefault(c => c.CashId == CurrentMaintenanceItem.CashId)?.CashName ?? string.Empty,
+            SuppName = Suppliers.FirstOrDefault(s => s.SuppId == CurrentMaintenanceItem.SuppId)?.SuppName ?? string.Empty
+        });
+        
+        CalculateTotals();
+
+        CurrentMaintenanceItem = new SalesMaintenance
+        { 
+            SalesId = FormItem?.SalesId ?? 0, 
+            IsCash = false, 
+            CashId = Cashes.FirstOrDefault()?.CashId
+        };
+    }
+
+    [RelayCommand]
+    private void RemoveMaintenanceItem(SalesMaintenance item)
+    {
+        if (item != null && FormMaintenanceItems.Contains(item))
+        {
+            FormMaintenanceItems.Remove(item);
+            CalculateTotals();
+        }
+    }
+
+    private void WireMaintenanceCollection()
+    {
+        FormMaintenanceItems.CollectionChanged -= OnMaintenanceCollectionChanged;
+        FormMaintenanceItems.CollectionChanged += OnMaintenanceCollectionChanged;
+
+        foreach (var m in FormMaintenanceItems)
+        {
+            m.PropertyChanged -= OnMaintenancePropertyChanged;
+            m.PropertyChanged += OnMaintenancePropertyChanged;
+        }
+    }
+
+    private void OnMaintenanceCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.NewItems != null)
+            foreach (SalesMaintenance m in e.NewItems)
+            {
+                m.PropertyChanged -= OnMaintenancePropertyChanged;
+                m.PropertyChanged += OnMaintenancePropertyChanged;
+            }
+
+        if (e.OldItems != null)
+            foreach (SalesMaintenance m in e.OldItems)
+                m.PropertyChanged -= OnMaintenancePropertyChanged;
+    }
+
+    private void OnMaintenancePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SalesMaintenance.Price) || e.PropertyName == nameof(SalesMaintenance.Cost))
+        {
+            CalculateTotals();
+        }
+    }
+
     private Sale CloneInvoice(Sale source)
     {
         return new Sale
@@ -1168,6 +1332,7 @@ public partial class SalesViewModel : ObservableObject
             Tax = source.Tax,
             TaxNo = source.TaxNo,
             CarId = source.CarId,
+            IsMaintenance = source.IsMaintenance,
             AddUser = source.AddUser,
             AddDate = source.AddDate,
             AddPc = source.AddPc
@@ -1246,6 +1411,21 @@ public partial class SalesViewModel : ObservableObject
                     Price = sub.Price,
                     Discount = sub.Disc,
                     Total = sub.Total
+                });
+            }
+
+            foreach (var m in FormMaintenanceItems)
+            {
+                var cashName = Cashes.FirstOrDefault(c => c.CashId == m.CashId)?.CashName ?? "";
+                var suppName = Suppliers.FirstOrDefault(s => s.SuppId == m.SuppId)?.SuppName ?? "";
+                model.MaintenanceItems.Add(new MotorBike.Services.SalesMaintenanceItemModel
+                {
+                    ItemName = m.ItemName,
+                    Cost = m.Cost,
+                    Price = m.Price,
+                    IsCash = m.IsCash,
+                    CashName = cashName,
+                    SuppName = suppName
                 });
             }
 

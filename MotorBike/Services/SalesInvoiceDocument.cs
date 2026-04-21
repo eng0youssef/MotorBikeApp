@@ -17,6 +17,16 @@ public class SalesInvoiceItemModel
     public double Total { get; set; }
 }
 
+public class SalesMaintenanceItemModel
+{
+    public string ItemName { get; set; } = string.Empty;
+    public double Cost { get; set; }
+    public double Price { get; set; }
+    public bool IsCash { get; set; }
+    public string CashName { get; set; } = string.Empty;
+    public string SuppName { get; set; } = string.Empty;
+}
+
 public class SalesInvoiceModel
 {
     public string InvoiceNo { get; set; } = string.Empty;
@@ -26,6 +36,7 @@ public class SalesInvoiceModel
     public string Notes { get; set; } = string.Empty;
     public bool IsCash { get; set; }
     public List<SalesInvoiceItemModel> Items { get; set; } = new();
+    public List<SalesMaintenanceItemModel> MaintenanceItems { get; set; } = new();
 
     public double Total { get; set; }
     public double Discount { get; set; }
@@ -259,6 +270,17 @@ public class SalesInvoiceDocument : IDocument
                     RenderCell(table, item.Quantity.ToString(), ltr: false);
                     RenderCell(table, item.ItemName, ltr: false);
                     RenderCell(table, index++.ToString(), ltr: true);
+                }
+
+                // Append maintenance/service items at the bottom of the same table
+                foreach (var svc in _model.MaintenanceItems)
+                {
+                    RenderCell(table, svc.Price.ToString("N2"), ltr: true); // الإجمالي
+                    RenderCell(table, "-", ltr: true);                    // خصم
+                    RenderCell(table, "-", ltr: true);                    // السعر
+                    RenderCell(table, "-", ltr: true);                    // الكمية
+                    RenderCell(table, svc.ItemName, ltr: false);            // الصنف
+                    RenderCell(table, index++.ToString(), ltr: true);       // م
                 }
             });
 
