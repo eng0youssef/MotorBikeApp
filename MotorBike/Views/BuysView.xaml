@@ -368,7 +368,7 @@
 
                                 <Grid Grid.Column="2" Margin="0,0,10,0">
                                     <TextBlock Margin="2,-16,0,0" FontSize="13" Foreground="#fff" Text="الوحدة" />
-                                    <ComboBox DisplayMemberPath="UnitName" ItemsSource="{Binding CurrentItemUnits}" SelectedValue="{Binding CurrentSubItem.UnitId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="UnitId" />
+                                    <ComboBox DisplayMemberPath="UnitName" ItemsSource="{Binding CurrentItemUnits}" SelectedValue="{Binding SubItemUnitId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="UnitId" />
                                 </Grid>
 
                                 <Grid Grid.Column="3" Margin="0,0,10,0">

@@ -6,7 +6,9 @@
         xmlns:vm="clr-namespace:MotorBike.ViewModels"
         xmlns:views="clr-namespace:MotorBike.Views"
         mc:Ignorable="d"
-        Title="نظام إدارة وكالة الموتوسيكلات" MinWidth="800" MinHeight="600"
+        Title="  نظام إدارة وكالة الموتوسيكلات    |     شركة مزايا للبرمجيات  -  الدعم الفني: 01000503370 - 01026535655  -  م/ ابراهيم: 01118152828    " 
+        Icon="pack://application:,,,/Assets/logo.png"
+        MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen" WindowState="Maximized"
         FlowDirection="RightToLeft" FontFamily="Segoe UI" FontSize="14">
     
@@ -95,14 +97,8 @@
                 <!-- Logo / Brand -->
                 <Border DockPanel.Dock="Top" Padding="20,22,20,18" Background="#171B28">
                     <StackPanel>
-                        <Border HorizontalAlignment="Center" Width="52" Height="52" CornerRadius="12" Margin="0,0,0,10">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#E8A54B" Offset="0"/>
-                                    <GradientStop Color="#D4922F" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                            <TextBlock Text="🏍️" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border HorizontalAlignment="Center" Width="52" Height="52" CornerRadius="10" Margin="0,0,0,10">
+                            <Image Source="pack://application:,,,/Assets/logo.png" Margin="4" RenderOptions.BitmapScalingMode="HighQuality" />
                         </Border>
                         <TextBlock Text="موتوربايك" FontSize="19" FontWeight="Bold"
                                    Foreground="#ECEEF5" HorizontalAlignment="Center"/>

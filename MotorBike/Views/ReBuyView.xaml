@@ -301,7 +301,7 @@
                                     <TextBlock Margin="2,-16,0,0" FontSize="13" FontWeight="Bold"  Foreground="White" Text="الوحدة" />
                                     <ComboBox Padding="8,6" DisplayMemberPath="UnitName" FontSize="13"
                                               ItemsSource="{Binding CurrentItemUnits}"
-                                              SelectedValue="{Binding CurrentSubItem.UnitId}"
+                                              SelectedValue="{Binding SubItemUnitId, UpdateSourceTrigger=PropertyChanged}"
                                               SelectedValuePath="UnitId" />
                                 </Grid>
                                 <Grid Grid.Column="3" Margin="0,0,12,0">

@@ -89,6 +89,39 @@ public partial class SalesViewModel : ObservableObject
     [ObservableProperty] private bool _isSubItemDiscountPer = true;
 
     [ObservableProperty] private double _subItemQty;
+    [ObservableProperty] private int _subItemUnitId;
+
+    partial void OnSubItemUnitIdChanged(int value)
+    {
+        if (CurrentSubItem != null)
+        {
+            CurrentSubItem.UnitId = value;
+            UpdatePriceBasedOnUnit();
+        }
+    }
+
+    private void UpdatePriceBasedOnUnit()
+    {
+        if (CurrentSubItem == null || CurrentSubItem.ItemId == 0) return;
+
+        var item = Items.FirstOrDefault(i => i.ItemId == CurrentSubItem.ItemId);
+        if (item == null) return;
+
+        var basePrice = item.Price1 > 0 ? item.Price1 : item.Price0;
+
+        if (SubItemUnitId == item.Unit2 && item.Unit2 > 0 && item.Unit2Qty > 0)
+        {
+            // Large Unit
+            SubItemPrice = Math.Round(basePrice * item.Unit2Qty, 2);
+            CurrentSubItem.UnitQty = item.Unit2Qty;
+        }
+        else
+        {
+            // Small Unit
+            SubItemPrice = basePrice;
+            CurrentSubItem.UnitQty = 1;
+        }
+    }
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - (CurrentSubItem?.Disc ?? 0)), 2);
 
     [ObservableProperty] private double _netBeforeTax;
@@ -990,6 +1023,7 @@ public partial class SalesViewModel : ObservableObject
             Total = price
         };
         
+        SubItemUnitId = item.UnitId;
         _isUpdatingSubDiscount = true;
         SubItemQty = 1;
         SubItemPrice = price;
@@ -1012,12 +1046,14 @@ public partial class SalesViewModel : ObservableObject
         FormSubItems.Add(CurrentSubItem);
         
         CurrentSubItem = new SalesSub { SalesId = FormItem.SalesId, StoreId = Stores.FirstOrDefault()?.StoreId ?? 0 };
+        SubItemUnitId = 0;
         _isUpdatingSubDiscount = true;
         SubItemQty = 1;
         SubItemPrice = 0;
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
         _isUpdatingSubDiscount = false;
+        SubItemUnitId = 0;
         
         ItemSearchText = string.Empty;
         CurrentItemUnits = [];

@@ -270,6 +270,18 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
             return;
         }
 
+        if (FormItem.UnitId > 0 && FormItem.UnitId == FormItem.Unit2)
+        {
+            StatusMessage = "⚠️ لا يمكن أن تكون الوحدة الكبرى هي نفسها الوحدة الصغرى";
+            return;
+        }
+
+        if (FormItem.Unit2 > 0 && FormItem.Unit2Qty <= 0)
+        {
+            StatusMessage = "⚠️ يرجى إدخال العدد للوحدة الكبرى";
+            return;
+        }
+
         await base.SaveAsync();
     }
 

@@ -80,6 +80,38 @@ public partial class BuysViewModel : ObservableObject
     [ObservableProperty] private bool _isSubItemDiscountPer = true;
 
     [ObservableProperty] private double _subItemQty;
+    [ObservableProperty] private int _subItemUnitId;
+
+    partial void OnSubItemUnitIdChanged(int value)
+    {
+        if (CurrentSubItem != null)
+        {
+            CurrentSubItem.UnitId = value;
+            UpdatePriceBasedOnUnit();
+        }
+    }
+
+    private void UpdatePriceBasedOnUnit()
+    {
+        if (CurrentSubItem == null || CurrentSubItem.ItemId == 0) return;
+
+        var item = Items.FirstOrDefault(i => i.ItemId == CurrentSubItem.ItemId);
+        if (item == null) return;
+
+        if (SubItemUnitId == item.Unit2 && item.Unit2 > 0 && item.Unit2Qty > 0)
+        {
+            // Large Unit: Price = SmallUnitPrice * Unit2Qty
+            SubItemPrice = Math.Round(item.Price0 * item.Unit2Qty, 2);
+            CurrentSubItem.UnitQty = item.Unit2Qty;
+        }
+        else
+        {
+            // Small Unit: Price = item.Price0
+            SubItemPrice = item.Price0;
+            CurrentSubItem.UnitQty = 1;
+        }
+    }
+
     public double SubItemTotal => Math.Round(SubItemQty * (SubItemPrice - (CurrentSubItem?.Disc ?? 0)), 2);
 
     partial void OnSubItemQtyChanged(double value)
@@ -874,6 +906,7 @@ public partial class BuysViewModel : ObservableObject
             Total = item.Price0
         };
         
+        SubItemUnitId = item.UnitId;
         _isUpdatingSubDiscount = true;
         SubItemQty = 1;
         SubItemPrice = item.Price0;
@@ -902,6 +935,7 @@ public partial class BuysViewModel : ObservableObject
         SubItemDiscountPercent = 0;
         SubItemDiscountValue = 0;
         _isUpdatingSubDiscount = false;
+        SubItemUnitId = 0;
         
         ItemSearchText = string.Empty;
         CurrentItemUnits = [];
