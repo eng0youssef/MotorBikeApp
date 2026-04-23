@@ -68,6 +68,8 @@ public partial class MainViewModel : ObservableObject
             
             "OpenStock"     => (services.GetRequiredService<OpenStockViewModel>(),     "أرصدة أول المدة"),
 
+            "Settings"      => (services.GetRequiredService<SettingsViewModel>(),      "الإعدادات"),
+
             _ => (null!, "الرئيسية")
         };
     }

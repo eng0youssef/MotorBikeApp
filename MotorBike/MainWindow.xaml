@@ -67,6 +67,7 @@
         <DataTemplate DataType="{x:Type vm:CarsReportsViewModel}"><views:CarsReportsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:ImportReportsViewModel}"><views:ImportReportsView/></DataTemplate>
         <DataTemplate DataType="{x:Type vm:CashReportsViewModel}"><views:CashReportsView/></DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}"><views:SettingsView/></DataTemplate>
     </Window.Resources>
 
     <Grid>
@@ -141,6 +142,9 @@
 
                         <TextBlock Text="التقارير" Foreground="#6B7490" FontSize="10" FontWeight="Bold" Margin="24,18,0,6"/>
                         <Button Content="📊  التقارير" Command="{Binding NavigateToCommand}" CommandParameter="ReportsData" Style="{StaticResource MenuButtonStyle}"/>
+
+                        <TextBlock Text="النظام" Foreground="#6B7490" FontSize="12" FontWeight="Bold" Margin="24,18,0,6"/>
+                        <Button Content="⚙️  الإعدادات" Command="{Binding NavigateToCommand}" CommandParameter="Settings" Style="{StaticResource MenuButtonStyle}"/>
                     </StackPanel>
                 </ScrollViewer>
             </DockPanel>

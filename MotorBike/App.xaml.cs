@@ -94,6 +94,7 @@ public partial class App : Application
         services.AddTransient<MainViewModel>();
         services.AddTransient<ExpensesViewModel>();
         services.AddTransient<OpenStockViewModel>();
+        services.AddTransient<SettingsViewModel>();
 
         // MainWindow and LoginWindow
         services.AddTransient<MainWindow>();

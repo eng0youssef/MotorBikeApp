@@ -16,13 +16,30 @@ public partial class LoginWindow : Window
         _viewModel = viewModel;
         DataContext = _viewModel;
         
-        // Setup success callback
+        // نجاح تسجيل الدخول → افتح الـ MainWindow
         _viewModel.OnLoginSuccess = () =>
         {
             var mainWindow = App.Services.GetRequiredService<MainWindow>();
             Application.Current.MainWindow = mainWindow;
             mainWindow.Show();
             this.Close();
+        };
+
+        // فشل الاتصال بالـ DB → افتح نافذة إعداد الاتصال
+        _viewModel.OnConnectionFailed = () =>
+        {
+            var setupVm = new DbConnectionSetupViewModel();
+            var setupWindow = new DbConnectionSetupWindow(setupVm);
+
+            setupVm.OnSavedAndReady = () =>
+            {
+                // بعد الحفظ: أغلق نافذة الإعداد وأعد تركيز اللوجن
+                setupWindow.Close();
+                _viewModel.ErrorMessage = string.Empty;
+            };
+
+            setupWindow.Owner = this;
+            setupWindow.ShowDialog();
         };
     }
 
@@ -57,5 +74,23 @@ public partial class LoginWindow : Window
     {
         var activationWindow = App.Services.GetRequiredService<ActivationWindow>();
         activationWindow.ShowDialog();
+    }
+
+    private void btnServerSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var setupVm = new DbConnectionSetupViewModel();
+        var setupWindow = new DbConnectionSetupWindow(setupVm);
+
+        setupVm.OnSavedAndReady = () =>
+        {
+            setupWindow.Close();
+            if (DataContext is LoginViewModel vm)
+            {
+                vm.ErrorMessage = string.Empty;
+            }
+        };
+
+        setupWindow.Owner = this;
+        setupWindow.ShowDialog();
     }
 }

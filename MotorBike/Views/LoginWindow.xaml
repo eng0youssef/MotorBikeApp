@@ -116,12 +116,27 @@
                         FontSize="15" 
                         FontWeight="Bold" />
 
-                <Button Content="إعدادات التفعيل" 
-                        Style="{StaticResource SecondaryButton}" 
-                        Margin="0,12,0,0"
-                        Height="40" 
-                        FontSize="13"
-                        Click="btnActivation_Click" />
+                <Grid Margin="0,12,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="إعدادات السيرفر" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Height="40" 
+                            FontSize="13"
+                            Click="btnServerSettings_Click" />
+
+                    <Button Grid.Column="2"
+                            Content="إعدادات التفعيل" 
+                            Style="{StaticResource SecondaryButton}" 
+                            Height="40" 
+                            FontSize="13"
+                            Click="btnActivation_Click" />
+                </Grid>
 
             </StackPanel>
         </Border>

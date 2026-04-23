@@ -28,6 +28,11 @@ public partial class LoginViewModel : ObservableObject
 
     public Action? OnLoginSuccess { get; set; }
 
+    /// <summary>
+    /// يُستدعى لما يفشل الاتصال بالـ Database (مش خطأ في اليوزر/باسورد)
+    /// </summary>
+    public Action? OnConnectionFailed { get; set; }
+
     [RelayCommand]
     private async Task LoginAsync()
     {
@@ -48,16 +53,20 @@ public partial class LoginViewModel : ObservableObject
 
             if (user != null)
             {
-                // Login successful
                 AppSession.CurrentUserId = (int)user.UserId;
                 AppSession.CurrentUserName = (string)user.UserName;
-                
                 OnLoginSuccess?.Invoke();
             }
             else
             {
                 ErrorMessage = "اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب غير نشط.";
             }
+        }
+        catch (Exception ex) when (IsConnectionError(ex))
+        {
+            // خطأ في الاتصال بالـ Database → افتح نافذة الإعداد
+            ErrorMessage = "تعذّر الاتصال بقاعدة البيانات.";
+            OnConnectionFailed?.Invoke();
         }
         catch (Exception ex)
         {
@@ -67,5 +76,24 @@ public partial class LoginViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    /// <summary>
+    /// يحدد إذا كان الـ Exception ده ناتج عن فشل الاتصال بالـ SQL Server
+    /// </summary>
+    private static bool IsConnectionError(Exception ex)
+    {
+        // SqlException بكودات الاتصال الشائعة
+        if (ex is Microsoft.Data.SqlClient.SqlException sqlEx)
+        {
+            return sqlEx.Number is -1 or 2 or 53 or 258 or 40613 or 10053 or 10054 or 10060 or 10061;
+        }
+        // أو SocketException داخل InnerException
+        if (ex.InnerException is System.Net.Sockets.SocketException)
+            return true;
+        // أو الرسالة بتتكلم عن network/server
+        var msg = ex.Message.ToLowerInvariant();
+        return msg.Contains("network") || msg.Contains("server") || msg.Contains("connection")
+            || msg.Contains("timeout") || msg.Contains("شبكة") || msg.Contains("اتصال");
     }
 }
