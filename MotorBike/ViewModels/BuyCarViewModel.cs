@@ -796,6 +796,32 @@ public partial class BuyCarViewModel : ObservableObject
                 await db.ExecuteAsync(
                     "DELETE FROM Buy_Car WHERE Buy_ID = @BuyId",
                     new { BuyId = SelectedInvoice.BuyId }, tx);
+
+                if (SelectedInvoice.CarId.HasValue)
+                {
+                    int carId = SelectedInvoice.CarId.Value;
+                    var salesCount = await db.QueryFirstOrDefaultAsync<int>(
+                        "SELECT COUNT(*) FROM Sales_Car WHERE CarID = @CarId",
+                        new { CarId = carId }, tx);
+
+                    if (salesCount == 0)
+                    {
+                        // No sales history, safe to delete the car completely
+                        await db.ExecuteAsync("DELETE FROM Cars WHERE Car_ID = @CarId", new { CarId = carId }, tx);
+                    }
+                    else
+                    {
+                        // Car was likely a return, revert its status to sold
+                        var lastSaleOwner = await db.QueryFirstOrDefaultAsync<int?>(
+                            "SELECT TOP 1 CusId FROM Sales_Car WHERE CarID = @CarId ORDER BY SalesDate DESC",
+                            new { CarId = carId }, tx);
+
+                        await db.ExecuteAsync(
+                            "UPDATE Cars SET IsStock = 0, StatusID = 2, OwnerID = @OwnerId, IsFromCustomer = 0, SourceCustomerID = NULL WHERE Car_ID = @CarId",
+                            new { CarId = carId, OwnerId = lastSaleOwner }, tx);
+                    }
+                }
+
                 tx.Commit();
             }
             catch { tx.Rollback(); throw; }

@@ -62,14 +62,12 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private string _customerSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Customer> _filteredCustomersList = [];
     [ObservableProperty] private bool _isCustomerPopupOpen;
-    [ObservableProperty] private string? _selectedCustomerDisplay;
     private bool _isSelectingCustomer;
 
     // ── Car popup ──────────────────────────────────────────────────────────
     [ObservableProperty] private string _carSearchText = string.Empty;
     [ObservableProperty] private ObservableCollection<Car> _filteredCarsList = [];
     [ObservableProperty] private bool _isCarPopupOpen;
-    [ObservableProperty] private string? _selectedCarDisplay;
     private bool _isSelectingCar;
 
     // ── Proxy Properties for Tax Calculation ───────────────────────────
@@ -219,9 +217,16 @@ public partial class SalesCarViewModel : ObservableObject
             
             FormItem = CloneInvoice(value);
             IsCashPaymentMode = FormItem.IsCash;
-            SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName;
+            
+            _isSelectingCustomer = true;
+            CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.CusName ?? string.Empty;
+            _isSelectingCustomer = false;
+            
             CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == value.CusId)?.Bal ?? 0;
-            SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo;
+            
+            _isSelectingCar = true;
+            CarSearchText = Cars.FirstOrDefault(c => c.CarId == value.CarId)?.ChassisNo ?? string.Empty;
+            _isSelectingCar = false;
 
             // Infer tax percentages from saved amounts
             double netBefore = FormItem.Total;
@@ -290,8 +295,14 @@ public partial class SalesCarViewModel : ObservableObject
             CashId = Cashes.FirstOrDefault()?.CashId ?? 0
         };
 
-        SelectedCarDisplay = null;
-        SelectedCustomerDisplay = null;
+        _isSelectingCar = true;
+        CarSearchText = string.Empty;
+        _isSelectingCar = false;
+        
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        _isSelectingCustomer = false;
+        
         CurrentCustomerBalance = 0;
         CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == SelectedCashId)?.Bal ?? 0;
 
@@ -309,9 +320,15 @@ public partial class SalesCarViewModel : ObservableObject
     {
         if (SelectedInvoice is null) return;
         FormItem = CloneInvoice(SelectedInvoice);
-        SelectedCustomerDisplay = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName;
+        _isSelectingCustomer = true;
+        CustomerSearchText = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.CusName ?? string.Empty;
+        _isSelectingCustomer = false;
+        
         CurrentCustomerBalance = Customers.FirstOrDefault(c => c.CusId == FormItem.CusId)?.Bal ?? 0;
-        SelectedCarDisplay = Cars.FirstOrDefault(c => c.CarId == FormItem.CarId)?.ChassisNo;
+        
+        _isSelectingCar = true;
+        CarSearchText = Cars.FirstOrDefault(c => c.CarId == FormItem.CarId)?.ChassisNo ?? string.Empty;
+        _isSelectingCar = false;
         _isInsertMode = false;
         IsEditing = true;
         IsCashPaymentMode = FormItem.IsCash;
@@ -336,8 +353,14 @@ public partial class SalesCarViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         CurrentPayment = new SalesCarPayment { PayDate = DateTime.Now };
-        SelectedCarDisplay = null;
-        SelectedCustomerDisplay = null;
+        _isSelectingCar = true;
+        CarSearchText = string.Empty;
+        _isSelectingCar = false;
+        
+        _isSelectingCustomer = true;
+        CustomerSearchText = string.Empty;
+        _isSelectingCustomer = false;
+        
         IsCustomerPopupOpen = false;
         IsCarPopupOpen = false;
         CurrentCustomerBalance = 0;
@@ -548,8 +571,14 @@ public partial class SalesCarViewModel : ObservableObject
             FormPayments.Clear();
             TotalPayed = 0;
             SelectedInvoice = null;
-            SelectedCarDisplay = null;
-            SelectedCustomerDisplay = null;
+            _isSelectingCar = true;
+            CarSearchText = string.Empty;
+            _isSelectingCar = false;
+
+            _isSelectingCustomer = true;
+            CustomerSearchText = string.Empty;
+            _isSelectingCustomer = false;
+
             CurrentCustomerBalance = 0;
             CurrentSafeBalance = 0;
             SelectedCashId = 0;
@@ -642,11 +671,10 @@ public partial class SalesCarViewModel : ObservableObject
     {
         if (customer is null) return;
         FormItem.CusId = customer.CusId;
-        SelectedCustomerDisplay = customer.CusName;
         CurrentCustomerBalance = customer.Bal ?? 0;
         
         _isSelectingCustomer = true;
-        CustomerSearchText = string.Empty;
+        CustomerSearchText = customer.CusName ?? string.Empty;
         IsCustomerPopupOpen = false;
         _isSelectingCustomer = false;
     }
@@ -699,10 +727,9 @@ public partial class SalesCarViewModel : ObservableObject
         if (car is null) return;
         FormItem.CarId = car.CarId;
         FormItem.Mileage = car.Mileage;  
-        SelectedCarDisplay = car.ChassisNo;
         
         _isSelectingCar = true;
-        CarSearchText = string.Empty;
+        CarSearchText = car.ChassisNo ?? string.Empty;
         IsCarPopupOpen = false;
         _isSelectingCar = false;
         

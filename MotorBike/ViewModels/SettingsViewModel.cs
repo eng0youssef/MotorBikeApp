@@ -14,11 +14,7 @@ public partial class SettingsViewModel : ObservableObject
     // ════════════════════════════════════════════════════════════
     // المسار الكامل لملف appsettings.json
     // ════════════════════════════════════════════════════════════
-    private static string AppSettingsPath =>
-        Path.Combine(
-            Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName)
-            ?? AppContext.BaseDirectory,
-            "appsettings.json");
+    private static string AppSettingsPath => Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
     // ════════════════════════════════════════════════════════════
     // Properties
@@ -64,8 +60,16 @@ public partial class SettingsViewModel : ObservableObject
             var node = JsonNode.Parse(json, documentOptions: documentOptions);
             var raw = node?["ConnectionStrings"]?["DefaultConnection"]?.GetValue<string>() ?? string.Empty;
 
-            // فك التشفير عشان يعرض النص العادي للمستخدم
-            ConnectionString = ConnectionStringEncryptor.Decrypt(raw);
+            try
+            {
+                // فك التشفير عشان يعرض النص العادي للمستخدم
+                ConnectionString = ConnectionStringEncryptor.Decrypt(raw);
+            }
+            catch (Exception ex) when (ex is System.Security.Cryptography.CryptographicException || ex is FormatException)
+            {
+                ConnectionString = "";
+                ShowStatus("⚠️ فشل فك تشفير نص الاتصال، قد يكون تم تشفيره على جهاز آخر أو تالف. يرجى إدخال نص اتصال جديد.", false);
+            }
         }
         catch (Exception ex)
         {
