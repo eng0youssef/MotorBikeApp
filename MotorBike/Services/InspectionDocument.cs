@@ -137,10 +137,9 @@ public class InspectionDocument : IDocument
                 });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "الكيلومترات", "اللون", "السنة", "الموديل","الماركة" })
+                    foreach (var title in new[] { "اللون", "السنة", "الموديل","الماركة" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
-                RenderCell(table, _model.Mileage.ToString("N0"), true);
                 RenderCell(table, _model.ColorName, false);
                 RenderCell(table, _model.YearNo.ToString(), true);
                 RenderCell(table, _model.CarModel, false);
@@ -148,12 +147,13 @@ public class InspectionDocument : IDocument
             });
             colContainer.Item().PaddingTop(5).Table(table =>
             {
-                table.ColumnsDefinition(columns => { columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); });
+                table.ColumnsDefinition(columns => { columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "رقم اللوحة", "رقم الموتور", "رقم الشاسيه" })
+                    foreach (var title in new[] { "الكيلومترات", "رقم اللوحة", "رقم الموتور", "رقم الشاسيه" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
+                RenderCell(table, _model.Mileage.ToString("N0"), true);
                 RenderCell(table, _model.PlateNo, true);
                 RenderCell(table, _model.MotorNo, true);
                 RenderCell(table, _model.ChassisNo, true);

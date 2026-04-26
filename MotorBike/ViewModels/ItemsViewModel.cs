@@ -228,7 +228,8 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
             DiscPer = NewOS_DiscPer,
             Disc = NewOS_Disc,
             UnitQty = unitQtyValue,
-            QtyAll = NewOS_Qty * unitQtyValue 
+            QtyAll = NewOS_Qty * unitQtyValue,
+            Total = (NewOS_Qty * NewOS_Price) - NewOS_Disc
         };
 
         if (FormItem.ItemId > 0)
