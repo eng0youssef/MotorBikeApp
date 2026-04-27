@@ -58,6 +58,12 @@ public partial class DbConnectionSetupViewModel : ObservableObject
     private string _serverIpAddress = string.Empty;
 
     [ObservableProperty]
+    private string _instanceName = "SQLEXPRESS";
+
+    [ObservableProperty]
+    private string _sqlPort = string.Empty;   // فاضي = الافتراضي 1433
+
+    [ObservableProperty]
     private bool _useSqlServerAuth;
 
     [ObservableProperty]
@@ -74,6 +80,10 @@ public partial class DbConnectionSetupViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isNetworkStatusVisible;
+
+    /// <summary>يصبح true بعد نجاح اختبار الاتصال بالسيرفر الخارجي – يفتح زرار الحفظ</summary>
+    [ObservableProperty]
+    private bool _canSaveRemote;
 
     // ════════════════════════════════════════════════════════════
     // Callback – يُستدعى بعد الحفظ الناجح لإعادة تشغيل الـ Login
@@ -241,36 +251,115 @@ public partial class DbConnectionSetupViewModel : ObservableObject
             return;
         }
 
+        CanSaveRemote = false;
+        IsTesting = true;
         ShowNetworkStatus("⏳  جاري اختبار الاتصال بالسيرفر...", true);
 
         try
         {
+            // ── خطوة 1: Ping ────────────────────────────────────────
             using var ping = new Ping();
             var reply = await ping.SendPingAsync(ServerIpAddress, 2000);
 
-            if (reply.Status == IPStatus.Success)
+            if (reply.Status != IPStatus.Success)
             {
-                // جرب تبني الـ connection string من IP السيرفر واسم المستخدم لو متاح
-                var authPart = UseSqlServerAuth && !string.IsNullOrWhiteSpace(SqlServerUserName)
-                    ? $"User Id={SqlServerUserName};Password={SqlServerPassword};"
-                    : "Trusted_Connection=True;";
-
-                var cs = $"Server={ServerIpAddress}\\SQLEXPRESS;Database=MotorBike_DB;{authPart}TrustServerCertificate=True;";
-                ConnectionString = cs;
                 ShowNetworkStatus(
-                    $"✅  السيرفر ({ServerIpAddress}) يستجيب بنجاح!\n" +
-                    $"تم تحميل نص الاتصال تلقائياً. اختبر الاتصال بالداتابيز ثم احفظ.",
-                    true);
+                    $"❌  لا يمكن الوصول للجهاز ({ServerIpAddress}).\n" +
+                    $"تأكد من أن الجهازين على نفس الشبكة وأن الـ Firewall لا يحجب الـ Ping.",
+                    false);
+                return;
             }
-            else
-            {
-                ShowNetworkStatus($"❌  لا يوجد اتصال بالسيرفر ({ServerIpAddress}). Status: {reply.Status}", false);
-            }
+
+            // ── خطوة 2: بناء Connection String ─────────────────────
+            var serverPart = BuildServerPart();
+            var authPart = UseSqlServerAuth && !string.IsNullOrWhiteSpace(SqlServerUserName)
+                ? $"User Id={SqlServerUserName};Password={SqlServerPassword};"
+                : "Trusted_Connection=True;";
+            var cs = $"Server={serverPart};Database=MotorBike_DB;{authPart}TrustServerCertificate=True;";
+
+            // ── خطوة 3: SqlConnection فعلي ──────────────────────────
+            await using var conn = new SqlConnection(cs);
+            await conn.OpenAsync();
+
+            // نجح الاتصال
+            ConnectionString = cs;
+            CanSaveRemote = true;
+            ShowNetworkStatus(
+                $"✅  تم الاتصال بقاعدة البيانات على ({ServerIpAddress}) بنجاح!\n" +
+                $"اضغط \"حفظ الاتصال بالسيرفر\" لتثبيت الإعداد على هذا الجهاز.",
+                true);
         }
         catch (Exception ex)
         {
-            ShowNetworkStatus($"❌  خطأ: {ex.Message}", false);
+            CanSaveRemote = false;
+            var hint = ex.Message.Contains("login", StringComparison.OrdinalIgnoreCase)
+                ? "\nتلميح: جرّب تفعيل مصادقة SQL Server أو تحقق من اسم المستخدم وكلمة المرور."
+                : ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
+                  ex.Message.Contains("connect", StringComparison.OrdinalIgnoreCase)
+                ? "\nتلميح: تأكد من تفعيل TCP/IP في SQL Server Configuration Manager على الجهاز الرئيسي."
+                : string.Empty;
+            ShowNetworkStatus($"❌  {ex.Message}{hint}", false);
         }
+        finally
+        {
+            IsTesting = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveRemoteConnectionAsync()
+    {
+        IsSaving = true;
+        try
+        {
+            var encrypted = ConnectionStringEncryptor.Encrypt(ConnectionString);
+            var json = await File.ReadAllTextAsync(AppSettingsPath);
+            var documentOptions = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip };
+            var node = JsonNode.Parse(json, documentOptions: documentOptions)
+                ?? throw new InvalidOperationException("ملف الإعدادات تالف.");
+
+            if (node["ConnectionStrings"] is not JsonObject connStrings)
+            {
+                connStrings = new JsonObject();
+                node["ConnectionStrings"] = connStrings;
+            }
+            connStrings["DefaultConnection"] = encrypted;
+
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            await File.WriteAllTextAsync(AppSettingsPath, node.ToJsonString(options));
+
+            ShowNetworkStatus("✅  تم حفظ الإعدادات بنجاح! جاري العودة لتسجيل الدخول...", true);
+            await Task.Delay(1200);
+            OnSavedAndReady?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            ShowNetworkStatus($"❌  فشل الحفظ: {ex.Message}", false);
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // Helpers – Network
+    // ════════════════════════════════════════════════════════════
+
+    private string BuildServerPart()
+    {
+        // مثال: 192.168.1.10\SQLEXPRESS  أو  192.168.1.10,1433
+        var ip = ServerIpAddress.Trim();
+        var instance = InstanceName.Trim();
+        var port = SqlPort.Trim();
+
+        if (!string.IsNullOrWhiteSpace(port))
+            return $"{ip},{port}";
+
+        if (!string.IsNullOrWhiteSpace(instance))
+            return $"{ip}\\{instance}";
+
+        return ip;
     }
 
     // ════════════════════════════════════════════════════════════

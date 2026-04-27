@@ -452,9 +452,9 @@
                                 أدخل عنوان IP الجهاز الذي يعمل عليه SQL Server واضغط "اختبار" لمحاولة الاتصال وتحميل الإعدادات تلقائياً.
                             </TextBlock>
 
-                            <!-- IP Input -->
+                            <!-- IP + Instance + Port row -->
                             <TextBlock Text="عنوان IP السيرفر" Style="{StaticResource FieldLbl}"/>
-                            <Grid Margin="0,0,0,16">
+                            <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -464,7 +464,10 @@
                                          Style="{StaticResource SetupTextBox}"
                                          Height="42" FontFamily="Consolas"
                                          Margin="0,0,10,0"
-                                         VerticalContentAlignment="Center"/>
+                                         VerticalContentAlignment="Center"
+                                         xml:lang="en-US"
+                                         FlowDirection="LeftToRight"
+                                         HorizontalContentAlignment="Left"/>
                                 <Button Grid.Column="1" Command="{Binding TestServerConnectionCommand}">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource TestBtn}">
@@ -478,6 +481,30 @@
                                         </Style>
                                     </Button.Style>
                                 </Button>
+                            </Grid>
+
+                            <!-- Instance Name + Port (advanced) -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="120"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="اسم الـ Instance (SQL Instance Name)" Style="{StaticResource FieldLbl}"/>
+                                    <TextBox Text="{Binding InstanceName, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource SetupTextBox}" Height="40"
+                                             FontFamily="Consolas" FlowDirection="LeftToRight"
+                                             HorizontalContentAlignment="Left"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="الـ Port (اختياري)" Style="{StaticResource FieldLbl}"/>
+                                    <TextBox Text="{Binding SqlPort, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource SetupTextBox}" Height="40"
+                                             FontFamily="Consolas" FlowDirection="LeftToRight"
+                                             HorizontalContentAlignment="Left"
+                                             ToolTip="اترك فارغاً إذا كنت تستخدم Instance Name"/>
+                                </StackPanel>
                             </Grid>
 
                             <!-- Auth Options -->
@@ -504,6 +531,23 @@
                                              Style="{StaticResource SetupTextBox}" Height="40" Margin="0"/>
                                 </StackPanel>
                             </Grid>
+
+                            <!-- Save Remote Button (ظاهر بعد نجاح الاختبار) -->
+                            <Button Command="{Binding SaveRemoteConnectionCommand}"
+                                    Margin="0,0,0,4" HorizontalAlignment="Right"
+                                    Visibility="{Binding CanSaveRemote, Converter={StaticResource BoolToVis}}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+                                        <Setter Property="Content" Value="💾  حفظ الاتصال بالسيرفر"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsSaving}" Value="True">
+                                                <Setter Property="Content" Value="⏳  جاري الحفظ..."/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
 
                             <!-- Network Status -->
                             <Border Visibility="{Binding IsNetworkStatusVisible, Converter={StaticResource BoolToVis}}"
