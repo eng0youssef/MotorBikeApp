@@ -299,6 +299,7 @@ public partial class StoreReportsViewModel : ObservableObject
                     WithBalance AS (
                         SELECT
                             n.SortDate,
+                            n.SortOrder,
                             n.RefId,
                             n.MovType,
                             n.InQty,
@@ -317,7 +318,7 @@ public partial class StoreReportsViewModel : ObservableObject
                         RunningQty                             AS [الرصيد]
                     FROM WithBalance
                     WHERE NOT (MovType = N'ما قبله' AND RunningQty = 0)
-                    ORDER BY SortDate ASC, MovType ASC, RefId ASC";
+                    ORDER BY SortDate ASC, SortOrder ASC, RefId ASC";
             }
             // ── 3. الأصناف الأكثر حركة ───────────────────────────────────
             else if (SelectedReportType == "الأصناف الأكثر حركة")
