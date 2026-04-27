@@ -126,15 +126,45 @@ public partial class DbConnectionSetupViewModel : ObservableObject
     {
         try
         {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            LocalIpAddress = host.AddressList
-                .FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork)
-                ?.ToString() ?? "غير متاح";
+            // ── أفضل طريقة: UDP socket trick لمعرفة الـ IP المستخدم فعلياً على الشبكة
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, 0);
+            socket.Connect("8.8.8.8", 65530);
+            var localEndPoint = socket.LocalEndPoint as IPEndPoint;
+            var detected = localEndPoint?.Address.ToString();
+
+            // تحقق إنه Private IP (LAN)
+            if (!string.IsNullOrEmpty(detected) && IsPrivateIp(detected))
+            {
+                LocalIpAddress = detected;
+                return;
+            }
+
+            // ── Fallback: ابحث في كل الـ adapters عن Private IP
+            var privateIp = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(n => n.OperationalStatus == OperationalStatus.Up &&
+                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                .SelectMany(n => n.GetIPProperties().UnicastAddresses)
+                .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork &&
+                            IsPrivateIp(a.Address.ToString()))
+                .Select(a => a.Address.ToString())
+                .FirstOrDefault();
+
+            LocalIpAddress = privateIp ?? detected ?? "غير متاح";
         }
         catch
         {
             LocalIpAddress = "غير متاح";
         }
+    }
+
+    /// <summary>يتحقق إن الـ IP من نطاق الشبكة الداخلية (Private)</summary>
+    private static bool IsPrivateIp(string ip)
+    {
+        if (!IPAddress.TryParse(ip, out var addr)) return false;
+        var bytes = addr.GetAddressBytes();
+        return bytes[0] == 10 ||                                         // 10.x.x.x
+               (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) || // 172.16-31.x.x
+               (bytes[0] == 192 && bytes[1] == 168);                     // 192.168.x.x
     }
 
     // ════════════════════════════════════════════════════════════
@@ -257,31 +287,31 @@ public partial class DbConnectionSetupViewModel : ObservableObject
 
         try
         {
-            // ── خطوة 1: Ping ────────────────────────────────────────
-            using var ping = new Ping();
-            var reply = await ping.SendPingAsync(ServerIpAddress, 2000);
-
-            if (reply.Status != IPStatus.Success)
+            // ── خطوة 1: Ping (تحذيري فقط – لا يوقف العملية) ──────────
+            bool pingOk = false;
+            try
             {
-                ShowNetworkStatus(
-                    $"❌  لا يمكن الوصول للجهاز ({ServerIpAddress}).\n" +
-                    $"تأكد من أن الجهازين على نفس الشبكة وأن الـ Firewall لا يحجب الـ Ping.",
-                    false);
-                return;
+                using var ping = new Ping();
+                var reply = await ping.SendPingAsync(ServerIpAddress, 2000);
+                pingOk = reply.Status == IPStatus.Success;
             }
+            catch { /* Ping محجوب أو مش متاح – نكمل */ }
 
-            // ── خطوة 2: بناء Connection String ─────────────────────
+            if (!pingOk)
+                ShowNetworkStatus("⚠️  الـ Ping محجوب أو غير متاح – جاري تجربة الاتصال بـ SQL مباشرة...", true);
+
+            // ── خطوة 2: بناء Connection String ─────────────────────────
             var serverPart = BuildServerPart();
             var authPart = UseSqlServerAuth && !string.IsNullOrWhiteSpace(SqlServerUserName)
                 ? $"User Id={SqlServerUserName};Password={SqlServerPassword};"
                 : "Trusted_Connection=True;";
-            var cs = $"Server={serverPart};Database=MotorBike_DB;{authPart}TrustServerCertificate=True;";
+            var cs = $"Server={serverPart};Database=MotorBike_DB;{authPart}TrustServerCertificate=True;Connect Timeout=8;";
 
-            // ── خطوة 3: SqlConnection فعلي ──────────────────────────
+            // ── خطوة 3: SqlConnection فعلي ──────────────────────────────
             await using var conn = new SqlConnection(cs);
             await conn.OpenAsync();
 
-            // نجح الاتصال
+            // نجح الاتصال ✅
             ConnectionString = cs;
             CanSaveRemote = true;
             ShowNetworkStatus(
@@ -292,12 +322,17 @@ public partial class DbConnectionSetupViewModel : ObservableObject
         catch (Exception ex)
         {
             CanSaveRemote = false;
-            var hint = ex.Message.Contains("login", StringComparison.OrdinalIgnoreCase)
-                ? "\nتلميح: جرّب تفعيل مصادقة SQL Server أو تحقق من اسم المستخدم وكلمة المرور."
-                : ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
-                  ex.Message.Contains("connect", StringComparison.OrdinalIgnoreCase)
-                ? "\nتلميح: تأكد من تفعيل TCP/IP في SQL Server Configuration Manager على الجهاز الرئيسي."
-                : string.Empty;
+            string hint;
+            if (ex.Message.Contains("login", StringComparison.OrdinalIgnoreCase))
+                hint = "\n💡 فعّل مصادقة SQL Server (Mixed Mode) أو تحقق من اسم المستخدم وكلمة المرور.";
+            else if (ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase) ||
+                     ex.Message.Contains("connect", StringComparison.OrdinalIgnoreCase) ||
+                     ex.Message.Contains("server", StringComparison.OrdinalIgnoreCase))
+                hint = "\n💡 تأكد من تفعيل TCP/IP في SQL Server Configuration Manager وفتح Port 1433 في Firewall.";
+            else if (ex.Message.Contains("timeout", StringComparison.OrdinalIgnoreCase))
+                hint = "\n💡 انتهت مهلة الاتصال – تأكد من صحة الـ IP وأن SQL Server شغّال.";
+            else
+                hint = string.Empty;
             ShowNetworkStatus($"❌  {ex.Message}{hint}", false);
         }
         finally
