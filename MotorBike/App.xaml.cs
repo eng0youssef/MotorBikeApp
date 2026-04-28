@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MotorBike.DataAccess;
 using MotorBike.ViewModels;
+using MotorBike.Services;
 using MotorBike.Services.Activation;
 using MotorBike.Views;
 
@@ -96,6 +97,9 @@ public partial class App : Application
         services.AddTransient<OpenStockViewModel>();
         services.AddTransient<SettingsViewModel>();
 
+        // Backup Service - Singleton عشان نستدعيه عند الإغلاق
+        services.AddSingleton<BackupService>();
+
         // MainWindow and LoginWindow
         services.AddTransient<MainWindow>();
         services.AddTransient<MotorBike.ViewModels.LoginViewModel>();
@@ -138,5 +142,23 @@ public partial class App : Application
         // --- Normal Startup ---
         var loginWindow = Services.GetRequiredService<MotorBike.Views.LoginWindow>();
         loginWindow.Show();
+    }
+
+    /// <summary>
+    /// عند إغلاق التطبيق: شغّل الباك أب تلقائياً على D:\MotoBackUp
+    /// </summary>
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        try
+        {
+            var backupService = Services.GetRequiredService<BackupService>();
+            await backupService.RunBackupAsync();
+        }
+        catch
+        {
+            // لو الخدمة مش موجودة أو فيه exception غير متوقع، ما نوقفش الإغلاق
+        }
+
+        base.OnExit(e);
     }
 }
