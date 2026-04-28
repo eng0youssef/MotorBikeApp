@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -146,19 +147,36 @@ public partial class App : Application
 
     /// <summary>
     /// عند إغلاق التطبيق: شغّل الباك أب تلقائياً على D:\MotoBackUp
+    /// 
+    /// Task.Run → نشغّل الباك أب على Thread Pool thread (مش الـ UI thread)
+    /// GetAwaiter().GetResult() → نستنى الباك أب يكمل قبل ما الـ process تتقفل
+    /// لو حذفنا Task.Run ورجعنا لـ GetAwaiter().GetResult() مباشرة
+    /// هيحصل Deadlock لأن الـ await جوا بيحاول يرجع على الـ UI thread المحجوز
     /// </summary>
-    protected override async void OnExit(ExitEventArgs e)
+    protected override void OnExit(ExitEventArgs e)
     {
         try
         {
             var backupService = Services.GetRequiredService<BackupService>();
-            await backupService.RunBackupAsync();
+            // Task.Run → نشغّل على background thread بعيد عن الـ UI thread
+            // GetAwaiter().GetResult() → نبلوك الـ OnExit لحد ما يكمل
+            Task.Run(async () => await backupService.RunBackupAsync())
+                .GetAwaiter()
+                .GetResult();
         }
-        catch
+        catch (Exception ex)
         {
-            // لو الخدمة مش موجودة أو فيه exception غير متوقع، ما نوقفش الإغلاق
+            // لو حصل exception خارج RunBackupAsync (مثلاً Services مش متهيئ)
+            // نكتب في لوج بسيط
+            try
+            {
+                File.AppendAllText(@"D:\MotoBackUp\backup_errors.log",
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] OnExit ERROR: {ex.Message}{Environment.NewLine}");
+            }
+            catch { }
         }
 
         base.OnExit(e);
     }
 }
+

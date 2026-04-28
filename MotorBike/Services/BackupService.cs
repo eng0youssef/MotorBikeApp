@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
+using System.Windows;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -56,9 +57,12 @@ public class BackupService
             // ← التاريخ والوقت الحالي
             DateTime now = DateTime.Now;
             string dateFolder  = now.ToString("yyyy-MM-dd");           // 2026-04-28
-            string dateTimePart = now.ToString("yyyyMMdd_HHmm");       // 20260428_1715
+            
+            // ← صيغة جديدة أسهل في القراءة: سنة-شهر-يوم_ساعة-دقيقة-AM/PM (إنجليزي لضمان الترتيب)
+            // مثال: 2026-04-28_05-15-PM
+            string dateTimePart = now.ToString("yyyy-MM-dd_hh-mm-tt", System.Globalization.CultureInfo.InvariantCulture);
 
-            // ← اسم ملف الباك أب:  MotorBike_DB_20260428_1715_MYPC.bak
+            // ← اسم ملف الباك أب:  MotorBike_DB_2026-04-28_05-15-PM_MYPC.bak
             string fileName = $"{dbName}_{dateTimePart}_{machineName}.bak";
 
             // ← مسار فولدر اليوم:  D:\MotoBackUp\2026-04-28
@@ -71,7 +75,7 @@ public class BackupService
             string fullPath = Path.Combine(dailyFolder, fileName);
 
             // ← نفذ أمر BACKUP DATABASE عبر T-SQL
-            await ExecuteBackupCommandAsync(dbName, fullPath);
+            await ExecuteBackupCommandAsync(dbName, fullPath).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -89,14 +93,14 @@ public class BackupService
     {
         // SQL Server بيحتاج المسار يكون بصلاحياته هو، مش صلاحيات الـ app
         // لذلك هنستخدم BACKUP DATABASE مع TO DISK مباشرة
+        // ملاحظة: COMPRESSION محذوفة لأن SQL Server Express لا يدعمها
         string sql = $@"
             BACKUP DATABASE [{dbName}]
             TO DISK = N'{backupFilePath}'
             WITH FORMAT,
                  MEDIANAME = N'MotoBackUp',
                  NAME = N'{dbName} - Auto Backup',
-                 STATS = 10,
-                 COMPRESSION;";
+                 STATS = 10;";
 
         // نفتح كونكشن جديد على master أو على الداتابيز نفسها
         // BACKUP DATABASE يشتغل من أي داتابيز
@@ -107,7 +111,7 @@ public class BackupService
         };
 
         using var conn = new SqlConnection(builder.ConnectionString);
-        await conn.OpenAsync();
+        await conn.OpenAsync().ConfigureAwait(false);
 
         using var cmd = new SqlCommand(sql, conn)
         {
@@ -115,7 +119,7 @@ public class BackupService
             CommandTimeout = 600
         };
 
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -137,20 +141,29 @@ public class BackupService
     }
 
     /// <summary>
-    /// يكتب الأخطاء في ملف لوج بجانب البرنامج بدون ما يوقفه.
+    /// يكتب الخطأ في لوج ويعرضه للمستخدم بـ MessageBox.
     /// </summary>
     private static void LogError(Exception ex)
     {
+        // 1) اكتب في ملف اللوج
         try
         {
             string logPath = Path.Combine(BackupRoot, "backup_errors.log");
-            Directory.CreateDirectory(BackupRoot); // تأكد إن المجلد موجود
+            Directory.CreateDirectory(BackupRoot);
             File.AppendAllText(logPath,
                 $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR: {ex.Message}{Environment.NewLine}{ex.StackTrace}{Environment.NewLine}{Environment.NewLine}");
         }
-        catch
+        catch { /* اللوج فشل - مش مشكلة */ }
+
+        // 2) أظهر رسالة للمستخدم عشان نعرف إيه المشكلة بالظبط
+        try
         {
-            // لو حتى اللوج فشل، مش هنعمل حاجة - البرنامج لازم يقفل
+            MessageBox.Show(
+                $"⚠️ فشل الباك أب التلقائي:{Environment.NewLine}{Environment.NewLine}{ex.Message}{Environment.NewLine}{Environment.NewLine}تفاصيل الخطأ محفوظة في:{Environment.NewLine}{Path.Combine(BackupRoot, "backup_errors.log")}",
+                "خطأ في الباك أب",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
         }
+        catch { /* لو حتى الـ MessageBox فشل */ }
     }
 }
