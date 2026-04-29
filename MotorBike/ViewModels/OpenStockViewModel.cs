@@ -151,6 +151,13 @@ public partial class OpenStockViewModel : ObservableObject
     {
         ErrorMessage = string.Empty;
 
+        var requiredAbility = SelectedItem == null ? AppAbility.Add : AppAbility.Edit;
+        if (!AppSession.HasPermission(ScreenId.OpenStock, requiredAbility))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         if (FormItem.StoreId == 0 || FormItem.ItemId == 0)
         {
             StatusMessage = "يرجى تحديد المخزن والصنف.";
@@ -222,6 +229,12 @@ public partial class OpenStockViewModel : ObservableObject
         if (SelectedItem == null)
         {
             StatusMessage = "الرجاء تحديد سجل للحذف.";
+            return;
+        }
+
+        if (!AppSession.HasPermission(ScreenId.OpenStock, AppAbility.Delete))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
             return;
         }
 

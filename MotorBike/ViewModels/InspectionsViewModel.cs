@@ -247,6 +247,13 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     {
         if (FormItem is null) return;
 
+        var requiredAbility = IsInsertMode ? AppAbility.Add : AppAbility.Edit;
+        if (!AppSession.HasPermission(ScreenId.Inspections, requiredAbility))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         try
         {
             bool isInsert = IsInsertMode;
@@ -388,6 +395,13 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     public override async Task DeleteAsync()
     {
         if (SelectedItem is null) return;
+
+        if (!AppSession.HasPermission(ScreenId.Inspections, AppAbility.Delete))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         var res = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (res != System.Windows.MessageBoxResult.Yes) return;
 

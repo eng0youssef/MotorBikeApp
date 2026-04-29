@@ -903,6 +903,13 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [RelayCommand]
     public async Task SaveAsync()
     {
+        var requiredAbility = _isNewInvoice ? AppAbility.Add : AppAbility.Edit;
+        if (!AppSession.HasPermission(ScreenId.ImportInvoice, requiredAbility))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         if (FormItem.SuppId == 0)
         {
             StatusMessage = "يرجى اختيار المورد.";
@@ -1234,6 +1241,13 @@ public partial class ImportInvoiceViewModel : ObservableObject
     public async Task DeleteAsync()
     {
         if (SelectedInvoice == null) return;
+
+        if (!AppSession.HasPermission(ScreenId.ImportInvoice, AppAbility.Delete))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         var res = MessageBox.Show("هل أنت متأكد من حذف هذه الفاتورة وكافة تفاصيلها؟", "تأكيد الحذف", MessageBoxButton.YesNo, MessageBoxImage.Warning);
         if (res != MessageBoxResult.Yes) return;
 

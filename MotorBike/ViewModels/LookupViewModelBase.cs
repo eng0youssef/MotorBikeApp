@@ -165,6 +165,16 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     {
         if (FormItem is null) return;
 
+        if (System.Enum.TryParse<MotorBike.Models.ScreenId>(this.GetType().Name.Replace("ViewModel", ""), out var screenId))
+        {
+            var requiredAbility = _isInsertMode ? MotorBike.Models.AppAbility.Add : MotorBike.Models.AppAbility.Edit;
+            if (!AppSession.HasPermission(screenId, requiredAbility))
+            {
+                System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+                return;
+            }
+        }
+
         try
         {
             if (_isInsertMode)
@@ -220,6 +230,16 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     public virtual async Task DeleteAsync()
     {
         if (SelectedItem is null) return;
+
+        if (System.Enum.TryParse<MotorBike.Models.ScreenId>(this.GetType().Name.Replace("ViewModel", ""), out var screenId))
+        {
+            if (!AppSession.HasPermission(screenId, MotorBike.Models.AppAbility.Delete))
+            {
+                System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+                return;
+            }
+        }
+
         var res = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (res != System.Windows.MessageBoxResult.Yes) return;
 

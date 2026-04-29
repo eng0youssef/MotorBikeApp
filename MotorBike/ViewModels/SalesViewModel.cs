@@ -630,6 +630,13 @@ public partial class SalesViewModel : ObservableObject
     {
         if (FormItem is null) return;
 
+        var requiredAbility = _isInsertMode ? AppAbility.Add : AppAbility.Edit;
+        if (!AppSession.HasPermission(ScreenId.Sales, requiredAbility))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         if (FormItem.CusId <= 0 || !Customers.Any(c => c.CusId == FormItem.CusId))
         {
             StatusMessage = "⚠️ يجب اختيار العميل من القائمة لإتمام حفظ الفاتورة.";
@@ -834,6 +841,13 @@ public partial class SalesViewModel : ObservableObject
     public async Task DeleteAsync()
     {
         if (SelectedInvoice is null) return;
+
+        if (!AppSession.HasPermission(ScreenId.Sales, AppAbility.Delete))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         var result = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (result != System.Windows.MessageBoxResult.Yes) return;
         try

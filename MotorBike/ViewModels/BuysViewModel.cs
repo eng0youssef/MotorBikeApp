@@ -594,6 +594,13 @@ public partial class BuysViewModel : ObservableObject
     {
         if (FormItem is null) return;
 
+        var requiredAbility = _isInsertMode ? AppAbility.Add : AppAbility.Edit;
+        if (!AppSession.HasPermission(ScreenId.Buys, requiredAbility))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         if (FormItem.SuppId <= 0 || !Suppliers.Any(s => s.SuppId == FormItem.SuppId))
         {
             StatusMessage = "⚠️ يجب اختيار المورد من القائمة لإتمام حفظ الفاتورة.";
@@ -752,6 +759,13 @@ public partial class BuysViewModel : ObservableObject
     public async Task DeleteAsync()
     {
         if (SelectedInvoice is null) return;
+
+        if (!AppSession.HasPermission(ScreenId.Buys, AppAbility.Delete))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للحذف.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         var result = System.Windows.MessageBox.Show("هل أنت متأكد من الحذف نهائياً؟", "تأكيد الحذف", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
         if (result != System.Windows.MessageBoxResult.Yes) return;
         try

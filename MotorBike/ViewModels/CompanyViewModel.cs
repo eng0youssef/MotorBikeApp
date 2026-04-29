@@ -50,6 +50,12 @@ public partial class CompanyViewModel : ObservableObject
     [RelayCommand]
     public async Task SaveAsync()
     {
+        if (!AppSession.HasPermission(ScreenId.Company, AppAbility.Edit))
+        {
+            System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية لإجراء هذه العملية.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+            return;
+        }
+
         try
         {
             var existing = await _repository.GetByIdAsync(Company.Id);

@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dapper;
 using MotorBike.DataAccess;
+using MotorBike.Models;
 
 namespace MotorBike.ViewModels;
 
@@ -55,6 +56,15 @@ public partial class LoginViewModel : ObservableObject
             {
                 AppSession.CurrentUserId = (int)user.UserId;
                 AppSession.CurrentUserName = (string)user.UserName;
+
+                // Load Permissions
+                var userSubs = await connection.QueryAsync<UserSub>("SELECT * FROM User_Sub WHERE UserID = @userId", new { userId = AppSession.CurrentUserId });
+                AppSession.UserPermissions.Clear();
+                foreach (var sub in userSubs)
+                {
+                    AppSession.UserPermissions[sub.FrmId] = sub.Ability ?? "";
+                }
+
                 OnLoginSuccess?.Invoke();
             }
             else

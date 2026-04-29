@@ -15,6 +15,15 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void NavigateTo(string page)
     {
+        if (System.Enum.TryParse<MotorBike.Models.ScreenId>(page, out var screen))
+        {
+            if (!AppSession.HasPermission(screen, MotorBike.Models.AppAbility.View))
+            {
+                System.Windows.MessageBox.Show("عفواً، ليس لديك صلاحية للدخول إلى هذه الشاشة.", "صلاحيات غير كافية", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Stop);
+                return;
+            }
+        }
+
         var services = App.Services;
 
         (CurrentViewModel, CurrentPageTitle) = page switch
