@@ -35,7 +35,6 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
     [ObservableProperty] private string _carModelName = string.Empty;
     [ObservableProperty] private string _carBrandName = string.Empty;
     [ObservableProperty] private string _carColorName = string.Empty;
-    [ObservableProperty] private bool _isBrandEnabled = true;
 
     partial void OnCarModelNameChanged(string value)
     {
@@ -44,11 +43,33 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
         {
             var brand = Brands.FirstOrDefault(b => b.BrandId == model.BrandId);
             if (brand != null) CarBrandName = brand.BrandName;
-            IsBrandEnabled = false;
+        }
+    }
+
+    [ObservableProperty]
+    private ObservableCollection<CarModel> _filteredCarModels = [];
+
+    partial void OnCarBrandNameChanged(string value)
+    {
+        UpdateFilteredModels();
+    }
+
+    private void UpdateFilteredModels()
+    {
+        if (string.IsNullOrWhiteSpace(CarBrandName))
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(Models);
+            return;
+        }
+
+        var brand = Brands.FirstOrDefault(b => string.Equals(b.BrandName, CarBrandName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (brand != null)
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(Models.Where(m => m.BrandId == brand.BrandId));
         }
         else
         {
-            IsBrandEnabled = true;
+            FilteredCarModels = new ObservableCollection<CarModel>(Models);
         }
     }
 
@@ -91,6 +112,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
 
             var models = await _modelRepository.GetAllAsync();
             Models = new ObservableCollection<CarModel>(models);
+            FilteredCarModels = new ObservableCollection<CarModel>(models);
 
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors);
@@ -171,7 +193,6 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
         CarBrandName = string.Empty;
         CarModelName = string.Empty;
         CarColorName = string.Empty;
-        IsBrandEnabled = true;
     }
 
     [RelayCommand]
@@ -220,12 +241,10 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
             {
                 var brand = Brands.FirstOrDefault(b => b.BrandId == model.BrandId);
                 CarBrandName = brand?.BrandName ?? string.Empty;
-                IsBrandEnabled = false;
             }
             else
             {
                 CarBrandName = string.Empty;
-                IsBrandEnabled = true;
             }
 
             if (value.InspId > 0)
@@ -294,29 +313,29 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                     FormItem.ColorId = newColorId;
                 }
 
+                var selectedBrandName = CarBrandName?.Trim() ?? "بدون";
+                var brandObj = Brands.FirstOrDefault(b => string.Equals(b.BrandName, selectedBrandName, StringComparison.OrdinalIgnoreCase));
+                int currentBrandId;
+                if (brandObj != null)
+                {
+                    currentBrandId = brandObj.BrandId;
+                }
+                else
+                {
+                    currentBrandId = await _carBrandRepository.GetNextIdAsync();
+                    var newBrand = new CarBrand { BrandId = currentBrandId, BrandName = selectedBrandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                    await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand, tx);
+                    Brands.Add(newBrand);
+                }
+
                 var selectedModelName = CarModelName?.Trim() ?? "بدون";
-                var modelObj = Models.FirstOrDefault(m => string.Equals(m.ModelName, selectedModelName, StringComparison.OrdinalIgnoreCase));
+                var modelObj = Models.FirstOrDefault(m => string.Equals(m.ModelName, selectedModelName, StringComparison.OrdinalIgnoreCase) && m.BrandId == currentBrandId);
                 if (modelObj != null)
                 {
                     FormItem.ModelId = modelObj.ModelId;
                 }
                 else
                 {
-                    var selectedBrandName = CarBrandName?.Trim() ?? "بدون";
-                    var brandObj = Brands.FirstOrDefault(b => string.Equals(b.BrandName, selectedBrandName, StringComparison.OrdinalIgnoreCase));
-                    int currentBrandId;
-                    if (brandObj != null)
-                    {
-                        currentBrandId = brandObj.BrandId;
-                    }
-                    else
-                    {
-                        currentBrandId = await _carBrandRepository.GetNextIdAsync();
-                        var newBrand = new CarBrand { BrandId = currentBrandId, BrandName = selectedBrandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
-                        await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand, tx);
-                        Brands.Add(newBrand);
-                    }
-
                     int newModelId = await _modelRepository.GetNextIdAsync();
                     var newModel = new CarModel { ModelId = newModelId, ModelName = selectedModelName, BrandId = currentBrandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
                     await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel, tx);

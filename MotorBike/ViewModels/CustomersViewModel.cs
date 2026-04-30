@@ -25,6 +25,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     [ObservableProperty] private ObservableCollection<CarModel> _carModels = [];
     [ObservableProperty] private ObservableCollection<Color> _colors = [];
     [ObservableProperty] private ObservableCollection<Car> _customerCars = [];
+    [ObservableProperty] private ObservableCollection<CarModel> _filteredCarModels = [];
 
     // Inline car fields for adding a new motorcycle
     [ObservableProperty] private string _newCarBrandName = string.Empty;
@@ -49,6 +50,30 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         else
         {
             IsNewCarBrandEnabled = true;
+        }
+    }
+
+    partial void OnNewCarBrandNameChanged(string value)
+    {
+        UpdateFilteredModels();
+    }
+
+    private void UpdateFilteredModels()
+    {
+        if (string.IsNullOrWhiteSpace(NewCarBrandName))
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels);
+            return;
+        }
+
+        var brand = CarBrands.FirstOrDefault(b => string.Equals(b.BrandName, NewCarBrandName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (brand != null)
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels.Where(m => m.BrandId == brand.BrandId));
+        }
+        else
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels);
         }
     }
     [ObservableProperty] private string? _newCarChassisNo;
@@ -88,6 +113,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
 
             var models = await _carModelRepository.GetAllAsync();
             CarModels = new ObservableCollection<CarModel>(models.Where(m => m.Active));
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels);
 
             var colors = await _colorRepository.GetAllAsync();
             Colors = new ObservableCollection<Color>(colors.Where(c => c.Active));
@@ -324,6 +350,9 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     public async Task RemoveCarFromCustomerAsync(Car? car)
     {
         if (car == null || FormItem == null) return;
+
+        var result = System.Windows.MessageBox.Show("هل أنت متأكد من إزالة الموتوسيكل من هذا العميل؟", "تأكيد الإزالة", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning);
+        if (result != System.Windows.MessageBoxResult.Yes) return;
 
         try
         {

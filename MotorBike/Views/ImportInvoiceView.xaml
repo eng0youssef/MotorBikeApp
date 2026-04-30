@@ -4,6 +4,7 @@
         <conv:HideZeroConverter x:Key="HideZeroConv" />
         <conv:IdToNameConverter x:Key="IdToNameConverter" />
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
         <Style x:Key="FormCard" TargetType="Border">
             <Setter Property="Background" Value="#272C3F" />
             <Setter Property="CornerRadius" Value="16" />
@@ -397,27 +398,33 @@
                                             <TextBlock Margin="0,0,0,12" FontSize="12" FontWeight="SemiBold" Foreground="#9BA4B5" Text="تسجيل موتوسيكل جديد للشحنة:" />
                                             <Grid Margin="0,0,0,12">
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="2*" /> 
+                                                    <ColumnDefinition Width="1.5*" /> 
+                                                    <ColumnDefinition Width="1.5*" /> 
                                                     <ColumnDefinition Width="*" /> 
                                                     <ColumnDefinition Width="*" /> 
                                                     <ColumnDefinition Width="*" />
                                                 </Grid.ColumnDefinitions>
                                                 <Grid Grid.Column="0" Margin="0,0,8,0">
-                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الموديل *" />
-                                                    <ComboBox Padding="8,6" DisplayMemberPath="ModelName" FontSize="13" IsEditable="True"
-                                                              ItemsSource="{Binding CarModels}"
-                                                              SelectedValue="{Binding NewCarModelId}"
-                                                              SelectedValuePath="ModelId" />
+                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الماركة" />
+                                                    <ComboBox Padding="8,4" DisplayMemberPath="BrandName" FontSize="13" IsEditable="True" IsTextSearchEnabled="True"
+                                                              ItemsSource="{Binding CarBrands}"
+                                                              Text="{Binding NewCarBrandName, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
                                                 <Grid Grid.Column="1" Margin="0,0,8,0">
+                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الموديل *" />
+                                                    <ComboBox Padding="8,4" DisplayMemberPath="ModelName" FontSize="13" IsEditable="True" IsTextSearchEnabled="True"
+                                                              ItemsSource="{Binding FilteredCarModels}"
+                                                              Text="{Binding NewCarModelName, UpdateSourceTrigger=PropertyChanged}" />
+                                                </Grid>
+                                                <Grid Grid.Column="2" Margin="0,0,8,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="رقم الشاسيه *" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarChassisNo, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
-                                                <Grid Grid.Column="2" Margin="0,0,8,0">
+                                                <Grid Grid.Column="3" Margin="0,0,8,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="رقم الموتور" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMotorNo, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
-                                                <Grid Grid.Column="3" Margin="0,0,0,0">
+                                                <Grid Grid.Column="4" Margin="0,0,0,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="رقم اللوحة" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarPlateNo, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
@@ -438,10 +445,9 @@
                                                 </Grid>
                                                 <Grid Grid.Column="1" Margin="0,0,8,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="اللون *" />
-                                                    <ComboBox Padding="8,6" DisplayMemberPath="ColorName" FontSize="13" IsEditable="True"
+                                                    <ComboBox Padding="8,4" DisplayMemberPath="ColorName" FontSize="13" IsEditable="True" IsTextSearchEnabled="True"
                                                               ItemsSource="{Binding Colors}"
-                                                              SelectedValue="{Binding NewCarColorId}"
-                                                              SelectedValuePath="ColorId" />
+                                                              Text="{Binding NewCarColorName, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
                                                 <Grid Grid.Column="2" Margin="0,0,8,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الكيلومتر" />
@@ -455,16 +461,34 @@
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="سعر الاستيراد" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarTotal, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
-                                                <Button Grid.Column="5" Padding="16,8"
-                                                        Command="{Binding AddNewCarCommand}"
-                                                        Content="➕ إضافة للشحنة"
-                                                        Style="{StaticResource PrimaryButton}" />
+                                                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                                                    <!--  Normal Add button -->
+                                                    <Button Padding="16,8" Margin="0,0,6,0"
+                                                            Command="{Binding AddNewCarCommand}"
+                                                            Content="➕ إضافة للشحنة"
+                                                            Style="{StaticResource PrimaryButton}"
+                                                            Visibility="{Binding IsEditingFormCar, Converter={StaticResource InverseBoolToVis}}" />
+                                                    <!--  Edit-mode: Save + Cancel -->
+                                                    <StackPanel Orientation="Horizontal"
+                                                                Visibility="{Binding IsEditingFormCar, Converter={StaticResource BoolToVis}}">
+                                                        <Button Padding="12,8" Margin="0,0,6,0"
+                                                                Command="{Binding UpdateSelectedCarCommand}"
+                                                                Content="💾 حفظ التعديل"
+                                                                Style="{StaticResource PrimaryButton}" />
+                                                        <Button Padding="12,8"
+                                                                Command="{Binding CancelCarEditCommand}"
+                                                                Content="✕ إلغاء"
+                                                                Background="#3D4560" Foreground="White"
+                                                                BorderThickness="0" />
+                                                    </StackPanel>
+                                                </StackPanel>
                                             </Grid>
                                         </StackPanel>
                                     </Border>
                                     <DataGrid Grid.Row="1" MinHeight="150" AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" CanUserAddRows="False"
                                               CellEditEnding="DataGrid_CellEditEnding" FontSize="13" Foreground="#C8CEE0" GridLinesVisibility="Horizontal" HeadersVisibility="Column" HorizontalGridLinesBrush="#323848" IsReadOnly="False"
                                               ItemsSource="{Binding FormCars}"
+                                              SelectedItem="{Binding SelectedFormCar, Mode=TwoWay}"
                                               SelectionMode="Single">
                                         <DataGrid.ColumnHeaderStyle>
                                             <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
@@ -476,20 +500,8 @@
                                             <Style BasedOn="{StaticResource DarkCell}" TargetType="DataGridCell" />
                                         </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridTemplateColumn Width="*" Header="الموتوسيكل" IsReadOnly="True">
-                                                <DataGridTemplateColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Padding="4,0" VerticalAlignment="Center">
-                                                            <TextBlock.Text>
-                                                                <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="CarId,ChassisNo">
-                                                                    <Binding Path="CarId" />
-                                                                    <Binding Path="DataContext.CarsList" RelativeSource="{RelativeSource AncestorType=UserControl}" />
-                                                                </MultiBinding>
-                                                            </TextBlock.Text>
-                                                        </TextBlock>
-                                                    </DataTemplate>
-                                                </DataGridTemplateColumn.CellTemplate>
-                                            </DataGridTemplateColumn>
+                                            <DataGridTextColumn Width="*" Header="الموتوسيكل" IsReadOnly="True"
+                                                                Binding="{Binding CarDetails}" />
                                             <DataGridTextColumn Width="80" Binding="{Binding Mileage}" Header="المسافة" IsReadOnly="True" />
                                             <DataGridTextColumn Width="100" Binding="{Binding Total, StringFormat=\{0:N2\}, UpdateSourceTrigger=LostFocus}" FontWeight="SemiBold" Header="السعر (بالعملة)" />
                                             <DataGridTextColumn Width="90"

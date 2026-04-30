@@ -166,20 +166,23 @@
                                           Style="{DynamicResource {x:Type ComboBox}}" />
 
                                 <!--  Row 4: Brand, Model, Color  -->
-                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الماركة" />
-                                <TextBox Grid.Row="4" Grid.Column="1" IsEnabled="{Binding IsBrandEnabled}" Style="{StaticResource FormTextBox}" Text="{Binding CarBrandName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الماركة" />
+                                <ComboBox Grid.Row="4" Grid.Column="1" FontSize="14" Padding="8,6"
+                                          IsEditable="True" IsTextSearchEnabled="True"
+                                          ItemsSource="{Binding Brands}" DisplayMemberPath="BrandName"
+                                          Text="{Binding CarBrandName, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الموديل" />
-                                <TextBox Grid.Row="4" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding CarModelName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الموديل" />
+                                <ComboBox Grid.Row="4" Grid.Column="4" FontSize="14" Padding="8,6"
+                                          IsEditable="True" IsTextSearchEnabled="True"
+                                          ItemsSource="{Binding FilteredCarModels}" DisplayMemberPath="ModelName"
+                                          Text="{Binding CarModelName, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="اللون" />
-                                <TextBox Grid.Row="4" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding CarColorName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="اللون" />
+                                <ComboBox Grid.Row="4" Grid.Column="7" FontSize="14" Padding="8,6"
+                                          IsEditable="True" IsTextSearchEnabled="True"
+                                          ItemsSource="{Binding Colors}" DisplayMemberPath="ColorName"
+                                          Text="{Binding CarColorName, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <!--  Row 5: Spacing  -->
                                 <Border Grid.Row="5" Height="20" />

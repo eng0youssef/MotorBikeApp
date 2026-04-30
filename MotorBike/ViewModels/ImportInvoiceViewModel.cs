@@ -147,8 +147,50 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Cash> _filteredPaymentCashList = [];
 
     // New car entry fields
-    [ObservableProperty] private int _newCarModelId;
-    [ObservableProperty] private int _newCarColorId;
+    [ObservableProperty] private string _newCarBrandName = string.Empty;
+    [ObservableProperty] private string _newCarModelName = string.Empty;
+    [ObservableProperty] private string _newCarColorName = string.Empty;
+
+    [ObservableProperty] private ObservableCollection<CarBrand> _carBrands = [];
+    [ObservableProperty] private ObservableCollection<CarModel> _filteredCarModels = [];
+
+    partial void OnNewCarBrandNameChanged(string value)
+    {
+        UpdateFilteredModels();
+    }
+
+    private void UpdateFilteredModels()
+    {
+        if (string.IsNullOrWhiteSpace(NewCarBrandName))
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels);
+            return;
+        }
+
+        var brand = CarBrands.FirstOrDefault(b => string.Equals(b.BrandName, NewCarBrandName.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (brand != null)
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels.Where(m => m.BrandId == brand.BrandId));
+        }
+        else
+        {
+            FilteredCarModels = new ObservableCollection<CarModel>(CarModels);
+        }
+    }
+
+    partial void OnNewCarModelNameChanged(string value)
+    {
+        var model = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, value?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            if (brand != null)
+            {
+                NewCarBrandName = brand.BrandName;
+            }
+        }
+    }
+
     [ObservableProperty] private short _newCarYearNo = (short)DateTime.Now.Year;
     [ObservableProperty] private string _newCarChassisNo = string.Empty;
     [ObservableProperty] private string _newCarMotorNo = string.Empty;
@@ -156,6 +198,101 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private int _newCarMileage = 0;
     [ObservableProperty] private string _newCarNotes = string.Empty;
     [ObservableProperty] private double _newCarTotal;
+
+    // Selected car for editing
+    [ObservableProperty] private ImportInvCar _selectedFormCar;
+    [ObservableProperty] private bool _isEditingFormCar = false;
+
+    partial void OnSelectedFormCarChanged(ImportInvCar value)
+    {
+        if (value == null) { IsEditingFormCar = false; return; }
+        var realCar = value.Car ?? CarsList.FirstOrDefault(c => c.CarId == value.CarId);
+        if (realCar == null) { IsEditingFormCar = false; return; }
+
+        IsEditingFormCar = true;
+        NewCarMileage = realCar.Mileage;
+        NewCarChassisNo = realCar.ChassisNo;
+        NewCarMotorNo = realCar.MotorNo;
+        NewCarPlateNo = realCar.PlateNo;
+        NewCarNotes = realCar.Notes;
+        NewCarYearNo = realCar.YearNo;
+        NewCarTotal = value.Total ?? 0;
+
+        var model = CarModels.FirstOrDefault(m => m.ModelId == realCar.ModelId);
+        NewCarModelName = model?.ModelName ?? string.Empty;
+        if (model != null)
+        {
+            var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+            NewCarBrandName = brand?.BrandName ?? string.Empty;
+        }
+        else
+        {
+            NewCarBrandName = string.Empty;
+        }
+        var color = Colors.FirstOrDefault(c => c.ColorId == realCar.ColorId);
+        NewCarColorName = color?.ColorName ?? string.Empty;
+    }
+
+    [RelayCommand]
+    public void CancelCarEdit()
+    {
+        IsEditingFormCar = false;
+        SelectedFormCar = null;
+        NewCarBrandName = string.Empty;
+        NewCarModelName = string.Empty;
+        NewCarColorName = string.Empty;
+        NewCarChassisNo = string.Empty;
+        NewCarMotorNo = string.Empty;
+        NewCarPlateNo = string.Empty;
+        NewCarNotes = string.Empty;
+        NewCarYearNo = (short)DateTime.Now.Year;
+        NewCarMileage = 0;
+        NewCarTotal = 0;
+    }
+
+    [RelayCommand]
+    public void UpdateSelectedCar()
+    {
+        if (SelectedFormCar == null) return;
+
+        // Must capture before RemoveAt — DataGrid TwoWay binding will null SelectedFormCar when item is removed
+        var carToRefresh = SelectedFormCar;
+        var realCar = carToRefresh.Car ?? CarsList.FirstOrDefault(c => c.CarId == carToRefresh.CarId);
+        if (realCar == null) return;
+
+        // Update chassis, motor, plate, notes, mileage, year
+        realCar.ChassisNo = NewCarChassisNo ?? string.Empty;
+        realCar.MotorNo   = NewCarMotorNo   ?? string.Empty;
+        realCar.PlateNo   = NewCarPlateNo   ?? string.Empty;
+        realCar.Notes     = NewCarNotes     ?? string.Empty;
+        realCar.Mileage = NewCarMileage;
+        realCar.YearNo = NewCarYearNo;
+
+        // Resolve model
+        var modelName = NewCarModelName?.Trim() ?? string.Empty;
+        var brandName = NewCarBrandName?.Trim() ?? string.Empty;
+        var model = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, modelName, StringComparison.OrdinalIgnoreCase) &&
+            CarBrands.Any(b => b.BrandId == m.BrandId && string.Equals(b.BrandName, brandName, StringComparison.OrdinalIgnoreCase)));
+        if (model != null) realCar.ModelId = model.ModelId;
+
+        // Resolve color
+        var colorName = NewCarColorName?.Trim() ?? string.Empty;
+        var color = Colors.FirstOrDefault(c => string.Equals(c.ColorName, colorName, StringComparison.OrdinalIgnoreCase));
+        if (color != null) realCar.ColorId = color.ColorId;
+
+        // Update importCar fields using safe local reference
+        carToRefresh.Total      = NewCarTotal;
+        carToRefresh.Mileage    = NewCarMileage;
+        carToRefresh.CarDetails = $"{NewCarBrandName} - {NewCarModelName} - {NewCarColorName} - {NewCarYearNo} - {NewCarChassisNo}";
+
+        // Refresh DataGrid row — use carToRefresh because RemoveAt will null SelectedFormCar via binding
+        var idx = FormCars.IndexOf(carToRefresh);
+        if (idx >= 0) { FormCars.RemoveAt(idx); FormCars.Insert(idx, carToRefresh); }
+
+        CalculateTotals(PercentageMode.None);
+        CancelCarEdit();
+        StatusMessage = "تم تحديث بيانات الموتوسيكل ✓";
+    }
 
     // ── Smart Supplier Search ──────────────────────────────────────────────
     [ObservableProperty] private string _supplierSearchText = string.Empty;
@@ -340,7 +477,12 @@ public partial class ImportInvoiceViewModel : ObservableObject
             var items = await _itemsLookupRepo.GetAllAsync(); ItemsList = new(items.Where(x => x.Active));
             var cars = await _carsLookupRepo.GetAllAsync(); CarsList = new(cars);
             var models = await _carModelRepo.GetAllAsync(); CarModels = new(models.Where(x => x.Active));
+            FilteredCarModels = new(CarModels);
             var colors = await _colorRepo.GetAllAsync(); Colors = new(colors.Where(x => x.Active));
+
+            using var db = _dbFactory.CreateConnection();
+            var brands = await db.QueryAsync<CarBrand>("SELECT * FROM CarBrands WHERE Active = 1");
+            CarBrands = new(brands);
 
             var invs = await _invoiceRepo.GetAllAsync();
             Invoices = new(invs.OrderByDescending(x => x.InvDate));
@@ -441,8 +583,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
         CurrentSubCar = new ImportInvCar();
         if (CarsList.Any()) CurrentSubCar.CarId = CarsList.First().CarId;
 
-        if (CarModels.Any()) NewCarModelId = CarModels.First().ModelId;
-        if (Colors.Any()) NewCarColorId = Colors.First().ColorId;
+        NewCarBrandName = string.Empty;
+        NewCarModelName = string.Empty;
+        NewCarColorName = string.Empty;
         NewCarChassisNo = string.Empty;
         NewCarMotorNo = string.Empty;
         NewCarPlateNo = string.Empty;
@@ -505,7 +648,27 @@ public partial class ImportInvoiceViewModel : ObservableObject
             FormItems = new(items.Where(x => x.InvId == invId));
 
             var cars = await _carRepo.GetAllAsync();
-            FormCars = new(cars.Where(x => x.InvId == invId));
+            var invoiceCars = cars.Where(x => x.InvId == invId).ToList();
+            foreach (var car in invoiceCars)
+            {
+                var realCar = CarsList.FirstOrDefault(c => c.CarId == car.CarId);
+                if (realCar != null)
+                {
+                    var model = CarModels.FirstOrDefault(m => m.ModelId == realCar.ModelId);
+                    string brandName = "";
+                    string modelName = model?.ModelName ?? "";
+                    if (model != null)
+                    {
+                        var brand = CarBrands.FirstOrDefault(b => b.BrandId == model.BrandId);
+                        brandName = brand?.BrandName ?? "";
+                    }
+                    var color = Colors.FirstOrDefault(c => c.ColorId == realCar.ColorId);
+                    string colorName = color?.ColorName ?? "";
+                    
+                    car.CarDetails = $"{brandName} - {modelName} - {colorName} - {realCar.YearNo} - {realCar.ChassisNo}";
+                }
+            }
+            FormCars = new(invoiceCars);
 
             var exps = await _expRepo.GetAllAsync();
             FormExps = new(exps.Where(x => x.InvId == invId));
@@ -593,50 +756,113 @@ public partial class ImportInvoiceViewModel : ObservableObject
     }
 
     [RelayCommand]
-    public void AddNewCar()
+    public async Task AddNewCarAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewCarChassisNo) || NewCarModelId == 0 || NewCarColorId == 0)
+        if (string.IsNullOrWhiteSpace(NewCarChassisNo) || string.IsNullOrWhiteSpace(NewCarModelName) || string.IsNullOrWhiteSpace(NewCarColorName))
         {
             StatusMessage = "يرجى إدخال الموديل، اللون، ورقم الشاسيه للاستمرار.";
             return;
         }
 
-        int tempId = CarsList.Any(c => c.CarId < 0) ? CarsList.Min(c => c.CarId) - 1 : -1;
-
-        var newCar = new Car
+        try
         {
-            CarId = tempId,
-            ModelId = NewCarModelId,
-            YearNo = NewCarYearNo,
-            ChassisNo = NewCarChassisNo,
-            MotorNo = NewCarMotorNo ?? string.Empty,
-            PlateNo = NewCarPlateNo ?? string.Empty,
-            Mileage = NewCarMileage,
-            ColorId = NewCarColorId,
-            Notes = NewCarNotes,
-            IsStock = true
-        };
-        CarsList.Add(newCar);
+            using var db = _dbFactory.CreateConnection();
+            db.Open();
 
-        var importCar = new ImportInvCar
+            // Resolve or Create Color
+            var colorName = NewCarColorName.Trim();
+            var colorObj = Colors.FirstOrDefault(c => string.Equals(c.ColorName, colorName, StringComparison.OrdinalIgnoreCase));
+            int colorId;
+            if (colorObj != null)
+            {
+                colorId = colorObj.ColorId;
+            }
+            else
+            {
+                colorId = await _colorRepo.GetNextIdAsync();
+                var newColor = new Color { ColorId = colorId, ColorName = colorName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                await db.ExecuteAsync("INSERT INTO Colors (Color_ID, ColorName, Active, AddDate, AddPC, AddUser) VALUES (@ColorId, @ColorName, @Active, @AddDate, @AddPc, @AddUser)", newColor);
+                Colors.Add(newColor);
+            }
+
+            // Resolve or Create Brand
+            var brandName = string.IsNullOrWhiteSpace(NewCarBrandName) ? "بدون" : NewCarBrandName.Trim();
+            var brandObj = CarBrands.FirstOrDefault(b => string.Equals(b.BrandName, brandName, StringComparison.OrdinalIgnoreCase));
+            int brandId;
+            if (brandObj != null)
+            {
+                brandId = brandObj.BrandId;
+            }
+            else
+            {
+                brandId = await db.QuerySingleAsync<int>("SELECT ISNULL(MAX(Brand_ID), 0) + 1 FROM CarBrands");
+                var newBrand = new CarBrand { BrandId = brandId, BrandName = brandName, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                await db.ExecuteAsync("INSERT INTO CarBrands (Brand_ID, BrandName, Active, AddDate, AddPC, AddUser) VALUES (@BrandId, @BrandName, @Active, @AddDate, @AddPc, @AddUser)", newBrand);
+                CarBrands.Add(newBrand);
+            }
+
+            // Resolve or Create Model
+            var modelName = NewCarModelName.Trim();
+            var modelObj = CarModels.FirstOrDefault(m => string.Equals(m.ModelName, modelName, StringComparison.OrdinalIgnoreCase) && m.BrandId == brandId);
+            int modelId;
+            if (modelObj != null)
+            {
+                modelId = modelObj.ModelId;
+            }
+            else
+            {
+                modelId = await _carModelRepo.GetNextIdAsync();
+                var newModel = new CarModel { ModelId = modelId, ModelName = modelName, BrandId = brandId, Active = true, AddDate = DateTime.Now, AddPc = Environment.MachineName, AddUser = AppSession.CurrentUserId ?? 1 };
+                await db.ExecuteAsync("INSERT INTO CarModels (Model_ID, ModelName, BrandID, Active, AddDate, AddPC, AddUser) VALUES (@ModelId, @ModelName, @BrandId, @Active, @AddDate, @AddPc, @AddUser)", newModel);
+                CarModels.Add(newModel);
+                FilteredCarModels.Add(newModel);
+            }
+
+            int tempId = CarsList.Any(c => c.CarId < 0) ? CarsList.Min(c => c.CarId) - 1 : -1;
+
+            var newCar = new Car
+            {
+                CarId = tempId,
+                ModelId = modelId,
+                YearNo = NewCarYearNo,
+                ChassisNo = NewCarChassisNo,
+                MotorNo = NewCarMotorNo ?? string.Empty,
+                PlateNo = NewCarPlateNo ?? string.Empty,
+                Mileage = NewCarMileage,
+                ColorId = colorId,
+                Notes = NewCarNotes,
+                IsStock = true
+            };
+            CarsList.Add(newCar);
+
+            var importCar = new ImportInvCar
+            {
+                CarId = newCar.CarId,
+                Total = NewCarTotal,
+                Mileage = NewCarMileage,
+                Car = newCar,
+                CarDetails = $"{brandName} - {modelName} - {colorName} - {NewCarYearNo} - {NewCarChassisNo}"
+            };
+            FormCars.Add(importCar);
+
+            StatusMessage = $"تم إضافة الموتوسيكل للشحنة (شاسيه: {NewCarChassisNo}). سيتم تسجيله نهائياً عند حفظ الفاتورة.";
+            
+            NewCarBrandName = string.Empty;
+            NewCarModelName = string.Empty;
+            NewCarColorName = string.Empty;
+            NewCarChassisNo = string.Empty;
+            NewCarMotorNo = string.Empty;
+            NewCarPlateNo = string.Empty;
+            NewCarNotes = string.Empty;
+            NewCarMileage = 0;
+            NewCarTotal = 0;
+
+            CalculateTotals(PercentageMode.NewOnly);
+        }
+        catch (Exception ex)
         {
-            CarId = newCar.CarId,
-            Total = NewCarTotal,
-            Mileage = NewCarMileage,
-            Car = newCar
-        };
-        FormCars.Add(importCar);
-
-        StatusMessage = $"تم إضافة الموتوسيكل للشحنة (شاسيه: {NewCarChassisNo}). سيتم تسجيله نهائياً عند حفظ الفاتورة.";
-        
-        NewCarChassisNo = string.Empty;
-        NewCarMotorNo = string.Empty;
-        NewCarPlateNo = string.Empty;
-        NewCarNotes = string.Empty;
-        NewCarMileage = 0;
-        NewCarTotal = 0;
-
-        CalculateTotals(PercentageMode.NewOnly);
+            StatusMessage = $"خطأ في إضافة الموتوسيكل: {ex.Message}";
+        }
     }
 
     // ── Adding Sub-Expenses ──────────────────────────────────────────────

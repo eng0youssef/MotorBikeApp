@@ -33,6 +33,8 @@ public partial class ImportInvCar : ObservableObject
     [NotMapped]
     public double ExpShareLocal { get => _expShareLocal; set => SetProperty(ref _expShareLocal, value); }
 
+    [NotMapped]
+    public string CarDetails { get; set; }
 
     public virtual ImportInvoice Inv { get; set; } = null!;
 
