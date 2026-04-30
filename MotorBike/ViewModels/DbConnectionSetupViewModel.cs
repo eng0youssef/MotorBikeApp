@@ -86,6 +86,19 @@ public partial class DbConnectionSetupViewModel : ObservableObject
     private bool _canSaveRemote;
 
     // ════════════════════════════════════════════════════════════
+    // Properties – Create Server User
+    // ════════════════════════════════════════════════════════════
+
+    [ObservableProperty]
+    private bool _createServerUser;
+
+    [ObservableProperty]
+    private string _newServerUserName = "MotorBikeUser";
+
+    [ObservableProperty]
+    private string _newServerPassword = "";
+
+    // ════════════════════════════════════════════════════════════
     // Callback – يُستدعى بعد الحفظ الناجح لإعادة تشغيل الـ Login
     // ════════════════════════════════════════════════════════════
     public Action? OnSavedAndReady { get; set; }
@@ -262,14 +275,131 @@ public partial class DbConnectionSetupViewModel : ObservableObject
     // ════════════════════════════════════════════════════════════
 
     [RelayCommand]
-    private void UseThisAsServer()
+    private async Task UseThisAsServerAsync()
     {
-        // يضبط الـ connection string ليوجه لهذا الجهاز نفسه
-        ConnectionString = DefaultConnectionString;
-        ShowNetworkStatus(
-            $"✅  يمكن للأجهزة الأخرى الاتصال باستخدام IP الجهاز الحالي: {LocalIpAddress}\n" +
-            $"مثال: Server={LocalIpAddress}\\SQLEXPRESS;Database=MotorBike_DB;Trusted_Connection=True;TrustServerCertificate=True;",
-            true);
+        if (CreateServerUser)
+        {
+            if (string.IsNullOrWhiteSpace(NewServerUserName) || string.IsNullOrWhiteSpace(NewServerPassword))
+            {
+                ShowNetworkStatus("يرجى إدخال اسم المستخدم وكلمة المرور للسيرفر.", false);
+                return;
+            }
+
+            // نحتاج connection string يعمل فعلاً – نستخدم ما أدخله المستخدم
+            var baseCs = string.IsNullOrWhiteSpace(ConnectionString)
+                ? DefaultConnectionString
+                : ConnectionString;
+
+            // اشتق connection string لـ master (عمليات Server-level)
+            SqlConnectionStringBuilder masterBuilder;
+            try { masterBuilder = new SqlConnectionStringBuilder(baseCs) { InitialCatalog = "master" }; }
+            catch { masterBuilder = new SqlConnectionStringBuilder(DefaultConnectionString) { InitialCatalog = "master" }; }
+
+            IsTesting = true;
+            ShowNetworkStatus("⏳  جاري إعداد المستخدم على قاعدة البيانات...", true);
+
+            try
+            {
+                // ══ Connection 1: master – لإنشاء الـ Login ══
+                await using var masterConn = new SqlConnection(masterBuilder.ConnectionString);
+                await masterConn.OpenAsync();
+
+                // 1. تفعيل مصادقة SQL Server (Mixed Mode)
+                await using (var cmd = new SqlCommand(
+                    "EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', " +
+                    "N'Software\\Microsoft\\MSSQLServer\\MSSQLServer', " +
+                    "N'LoginMode', REG_DWORD, 2", masterConn))
+                { await cmd.ExecuteNonQueryAsync(); }
+
+                // 2. إنشاء أو تعديل الـ Login
+                // ملاحظة: CREATE/ALTER LOGIN لا تدعم SQL parameters للباسورد – نستخدم escape يدوي
+                bool loginExists;
+                await using (var cmd = new SqlCommand(
+                    "SELECT 1 FROM sys.server_principals WHERE name = @u", masterConn))
+                {
+                    cmd.Parameters.AddWithValue("@u", NewServerUserName);
+                    loginExists = await cmd.ExecuteScalarAsync() != null;
+                }
+
+                // Escape أي single quotes في الباسورد
+                var safePwd = NewServerPassword.Replace("'", "''");
+                if (loginExists)
+                {
+                    await using var cmd = new SqlCommand(
+                        $"ALTER LOGIN [{NewServerUserName}] WITH PASSWORD = N'{safePwd}', CHECK_POLICY = OFF",
+                        masterConn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    await using var cmd = new SqlCommand(
+                        $"CREATE LOGIN [{NewServerUserName}] WITH PASSWORD = N'{safePwd}', CHECK_POLICY = OFF",
+                        masterConn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // ══ Connection 2: MotorBike_DB – لإنشاء الـ User وإعطاء الصلاحيات ══
+                var dbConnStr = new SqlConnectionStringBuilder(masterBuilder.ConnectionString)
+                    { InitialCatalog = "MotorBike_DB" }.ConnectionString;
+                await using var dbConn = new SqlConnection(dbConnStr);
+                await dbConn.OpenAsync();
+
+                // 3. إنشاء الـ User داخل قاعدة البيانات
+                bool userExists;
+                await using (var cmd = new SqlCommand(
+                    "SELECT 1 FROM sys.database_principals WHERE name = @u", dbConn))
+                {
+                    cmd.Parameters.AddWithValue("@u", NewServerUserName);
+                    userExists = await cmd.ExecuteScalarAsync() != null;
+                }
+
+                if (!userExists)
+                {
+                    await using var cmd = new SqlCommand(
+                        $"CREATE USER [{NewServerUserName}] FOR LOGIN [{NewServerUserName}]", dbConn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // 4. منح صلاحية db_owner
+                try
+                {
+                    await using var cmd = new SqlCommand(
+                        $"ALTER ROLE db_owner ADD MEMBER [{NewServerUserName}]", dbConn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                catch
+                {
+                    // Fallback للإصدارات الأقدم من SQL Server
+                    await using var cmd = new SqlCommand(
+                        $"EXEC sp_addrolemember 'db_owner', '{NewServerUserName}'", dbConn);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                ShowNetworkStatus(
+                    $"✅  تم إعداد المستخدم بنجاح!\n" +
+                    $"يمكن للأجهزة الأخرى الاتصال باستخدام:\n" +
+                    $"IP: {LocalIpAddress}\n" +
+                    $"اسم المستخدم: {NewServerUserName}\n" +
+                    "ملاحظة: لكي تعمل كلمة المرور لأول مرة، قد تحتاج لإعادة تشغيل خدمة SQL Server.",
+                    true);
+            }
+            catch (Exception ex)
+            {
+                ShowNetworkStatus($"❌  فشل إنشاء المستخدم: {ex.Message}", false);
+            }
+            finally
+            {
+                IsTesting = false;
+            }
+        }
+        else
+        {
+            ConnectionString = DefaultConnectionString;
+            ShowNetworkStatus(
+                $"✅  يمكن للأجهزة الأخرى الاتصال باستخدام IP الجهاز الحالي: {LocalIpAddress}\n" +
+                $"مثال: Server={LocalIpAddress}\\SQLEXPRESS;Database=MotorBike_DB;Trusted_Connection=True;TrustServerCertificate=True;",
+                true);
+        }
     }
 
     [RelayCommand]

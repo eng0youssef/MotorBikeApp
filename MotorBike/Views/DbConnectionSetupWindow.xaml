@@ -426,10 +426,45 @@
                                 يتصل هذا الجهاز مباشرة بنسخة SQL Server المحلية. يمكن للأجهزة الأخرى على نفس الشبكة الاتصال بعنوان IP أعلاه.
                             </TextBlock>
 
-                            <Button Content="✅  استخدام هذا الجهاز كسيرفر (SQL Local)"
-                                    Style="{StaticResource PrimaryBtn}"
-                                    HorizontalAlignment="Right"
-                                    Command="{Binding UseThisAsServerCommand}"/>
+                            <!-- Create Server User Option -->
+                            <CheckBox Content="إنشاء حساب مستخدم جديد للأجهزة الفرعية (مستحسن)"
+                                      IsChecked="{Binding CreateServerUser}"
+                                      Foreground="#9CA3C2" FontSize="13" Margin="0,0,0,12"/>
+
+                            <Grid Margin="0,0,0,16" Visibility="{Binding CreateServerUser, Converter={StaticResource BoolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="اسم المستخدم (User Name)" Style="{StaticResource FieldLbl}"/>
+                                    <TextBox Text="{Binding NewServerUserName, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource SetupTextBox}" Height="40" Margin="0"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="كلمة المرور (Password)" Style="{StaticResource FieldLbl}"/>
+                                    <TextBox Text="{Binding NewServerPassword, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource SetupTextBox}" Height="40" Margin="0"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Button HorizontalAlignment="Right"
+                                    Command="{Binding UseThisAsServerCommand}">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+                                        <Setter Property="Content" Value="✅  استخدام هذا الجهاز كسيرفر (SQL Local)"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTesting}" Value="True">
+                                                <Setter Property="Content" Value="⏳  جاري الإعداد..."/>
+                                                <Setter Property="IsEnabled" Value="False"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </StackPanel>
                     </Border>
 
