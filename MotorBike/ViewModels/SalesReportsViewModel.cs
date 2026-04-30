@@ -567,7 +567,7 @@ public partial class SalesReportsViewModel : ObservableObject
                     SELECT CONVERT(VARCHAR, SC.SalesDate, 103)          AS [التاريخ],
                            SC.Sales_ID                                  AS [رقم الفاتورة],
                            CU.CusName                                   AS [العميل],
-                           CB.BrandName + ' - ' + CM.ModelName          AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName          AS [الطراز],
                            COL.ColorName                                AS [اللون],
                            C.YearNo                                     AS [السنة],
                            C.ChassisNo                                  AS [رقم الشاسيه],

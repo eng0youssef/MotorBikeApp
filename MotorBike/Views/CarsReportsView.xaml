@@ -63,10 +63,10 @@
                                     Width="150" Padding="6" FontSize="14"/>
                     </StackPanel>
 
-                    <!-- اختيار الموديل -->
+                    <!-- اختيار الطراز -->
                     <StackPanel Margin="0,0,20,15"
                                 Visibility="{Binding IsCarModelVisible, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="الموديل (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <TextBlock Text="الطراز (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal">
                             <ComboBox ItemsSource="{Binding CarModels}"
                                       SelectedItem="{Binding SelectedCarModel}"

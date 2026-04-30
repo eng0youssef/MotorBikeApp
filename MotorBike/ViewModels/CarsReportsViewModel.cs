@@ -20,7 +20,7 @@ public partial class CarsReportsViewModel : ObservableObject
         "الموتوسيكلات المباعة",
         "الموتوسيكلات المشتراة",
         "ربحية الموتوسيكلات",
-        "أعلى الموديلات مبيعاً",
+        "أعلى الطرازات مبيعاً",
         "كشف حركة موتوسيكل"
     ];
 
@@ -48,7 +48,7 @@ public partial class CarsReportsViewModel : ObservableObject
     public bool IsCarModelVisible  => SelectedReportType is "الموتوسيكلات المباعة"
                                                          or "الموتوسيكلات المشتراة"
                                                          or "ربحية الموتوسيكلات"
-                                                         or "أعلى الموديلات مبيعاً";
+                                                         or "أعلى الطرازات مبيعاً";
     public bool IsCarVisible       => SelectedReportType == "كشف حركة موتوسيكل";
 
     partial void OnSelectedReportTypeChanged(string value)
@@ -111,7 +111,7 @@ public partial class CarsReportsViewModel : ObservableObject
             {
                 sql = @"
                     SELECT CB.BrandName                                   AS [الماركة],
-                           CM.ModelName                                   AS [الموديل],
+                           CM.ModelName                                   AS [الطراز],
                            C.YearNo                                       AS [السنة],
                            CL.ColorName                                   AS [اللون],
                            C.ChassisNo                                    AS [رقم الشاسيه],
@@ -143,7 +143,7 @@ public partial class CarsReportsViewModel : ObservableObject
                     SELECT CONVERT(VARCHAR, S.SalesDate, 103)             AS [التاريخ],
                            S.Sales_ID                                      AS [رقم الفاتورة],
                            CU.CusName                                      AS [العميل],
-                           CB.BrandName + ' - ' + CM.ModelName             AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
                            C.PlateNo                                       AS [رقم اللوحة],
@@ -174,7 +174,7 @@ public partial class CarsReportsViewModel : ObservableObject
                            B.Buy_ID                                        AS [رقم الفاتورة],
                            B.OwnerName                                     AS [اسم البائع],
                            B.OwnerTel                                      AS [التليفون],
-                           CB.BrandName + ' - ' + CM.ModelName             AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
                            C.PlateNo                                       AS [رقم اللوحة],
@@ -198,7 +198,7 @@ public partial class CarsReportsViewModel : ObservableObject
                 }
                 sql = @"
                     SELECT CONVERT(VARCHAR, S.SalesDate, 103)             AS [تاريخ البيع],
-                           CB.BrandName + ' - ' + CM.ModelName             AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
                            CU.CusName                                      AS [العميل],
@@ -218,8 +218,8 @@ public partial class CarsReportsViewModel : ObservableObject
                     " + modelFilter + @"
                     ORDER BY [الربح] DESC";
             }
-            // ── 5. أعلى الموديلات مبيعاً ─────────────────────────────────
-            else if (SelectedReportType == "أعلى الموديلات مبيعاً")
+            // ── 5. أعلى الطرازات مبيعاً ─────────────────────────────────
+            else if (SelectedReportType == "أعلى الطرازات مبيعاً")
             {
                 string modelFilter = "";
                 if (SelectedCarModel != null)
@@ -229,7 +229,7 @@ public partial class CarsReportsViewModel : ObservableObject
                 }
 
                 sql = @"
-                    SELECT CB.BrandName + ' - ' + CM.ModelName             AS [الموديل],
+                    SELECT CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            COUNT(S.Sales_ID)                               AS [عدد المبيعات],
                            SUM(S.Total)                                    AS [إجمالي البيع],
                            SUM(C.PurchasePrice)                           AS [إجمالي الشراء],
@@ -391,7 +391,7 @@ public partial class CarsReportsViewModel : ObservableObject
                 { "إجمالي تكلفة الشراء",        tCost.ToString("N2") }
             };
         }
-        else if (SelectedReportType == "أعلى الموديلات مبيعاً")
+        else if (SelectedReportType == "أعلى الطرازات مبيعاً")
         {
             var cnt  = await db.ExecuteScalarAsync<int>   ("SELECT COUNT(*) FROM Sales_Car WHERE SalesDate>=@FromDate AND SalesDate<=@ToDate", p);
             var tRev = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(Total),0) FROM Sales_Car WHERE SalesDate>=@FromDate AND SalesDate<=@ToDate", p);
@@ -423,7 +423,7 @@ public partial class CarsReportsViewModel : ObservableObject
             d.Add("من تاريخ",  from.ToString("dd/MM/yyyy"));
             d.Add("إلى تاريخ", to.ToString("dd/MM/yyyy"));
         }
-        if (SelectedCarModel != null) d.Add("الموديل", SelectedCarModel.ModelName);
+        if (SelectedCarModel != null) d.Add("الطراز", SelectedCarModel.ModelName);
         if (SelectedCar      != null) d.Add("الشاسيه", SelectedCar.ChassisNo);
         return d;
     }

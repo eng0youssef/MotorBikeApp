@@ -194,7 +194,7 @@ public partial class ProfitsReportsViewModel : ObservableObject
             {
                 sql = @"
                     SELECT CONVERT(VARCHAR, SC.SalesDate, 103)              AS [تاريخ البيع],
-                           CB.BrandName + ' - ' + CM.ModelName              AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName              AS [الطراز],
                            C.YearNo                                         AS [السنة],
                            C.ChassisNo                                      AS [رقم الشاسيه],
                            CU.CusName                                       AS [العميل],

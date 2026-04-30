@@ -37,7 +37,7 @@ public partial class MainViewModel : ObservableObject
             "Items"          => (services.GetRequiredService<ItemsViewModel>(),          "الأصناف"),
             "Stores"         => (services.GetRequiredService<StoresViewModel>(),         "المخازن"),
             "CarBrands"      => (services.GetRequiredService<CarBrandsViewModel>(),      "ماركات الموتوسيكلات"),
-            "CarModels"      => (services.GetRequiredService<CarModelsViewModel>(),      "موديلات الماركة"),
+            "CarModels"      => (services.GetRequiredService<CarModelsViewModel>(),      "طرازات الماركة"),
             "Colors"         => (services.GetRequiredService<ColorsViewModel>(),         "الألوان"),
             "Cash"           => (services.GetRequiredService<CashViewModel>(),           "الخزائن"),
             "Omla"           => (services.GetRequiredService<OmlaViewModel>(),           "العملات"),

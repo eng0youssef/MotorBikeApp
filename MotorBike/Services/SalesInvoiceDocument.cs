@@ -227,7 +227,7 @@ public class SalesInvoiceDocument : IDocument
                     {
                         r.RelativeItem().Column(c => { c.Item().Text("السنة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarYear).FontSize(9).SemiBold(); });
                         r.RelativeItem().Column(c => { c.Item().Text("اللون").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarColor).FontSize(9).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("الموديل").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarModel).FontSize(9).SemiBold(); });
+                        r.RelativeItem().Column(c => { c.Item().Text("الطراز").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarModel).FontSize(9).SemiBold(); });
                         r.RelativeItem().Column(c => { c.Item().Text("الماركة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarBrand).FontSize(9).SemiBold(); });
 
                     });

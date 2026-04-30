@@ -17,6 +17,8 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
     [ObservableProperty]
     private ObservableCollection<ItemCategory> _categories = [];
 
+    partial void OnCategoriesChanged(ObservableCollection<ItemCategory> value) => RefreshFilteredItems();
+
     [ObservableProperty]
     private ObservableCollection<Unit> _units = [];
 
@@ -308,6 +310,46 @@ public partial class ItemsViewModel : LookupViewModelBase<Item>
         {
             CurrentItemOpenStocks.Remove(os);
         }
+    }
+
+    /// <summary>
+    /// بحث مخصص: يبحث في كود الصنف أو اسم الصنف أو اسم المجموعة أو الباركود.
+    /// </summary>
+    protected override void RefreshFilteredItems()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredItems = new System.Collections.ObjectModel.ObservableCollection<Item>(Items);
+            return;
+        }
+
+        var lower = SearchText.Trim().ToLower();
+
+        var filtered = Items.Where(item =>
+        {
+            // البحث بـ كود الصنف
+            if (item.ItemId.ToString().Contains(lower))
+                return true;
+
+            // البحث بـ اسم الصنف
+            if (item.ItemName?.ToLower().Contains(lower) == true)
+                return true;
+
+            // البحث بـ اسم المجموعة
+            var cat = Categories.FirstOrDefault(c => c.CatId == item.CatId);
+            if (cat?.CatName?.ToLower().Contains(lower) == true)
+                return true;
+
+            // البحث بـ الباركود
+            if (item.Bar1?.ToLower().Contains(lower) == true)
+                return true;
+            if (item.Bar2?.ToLower().Contains(lower) == true)
+                return true;
+
+            return false;
+        });
+
+        FilteredItems = new System.Collections.ObjectModel.ObservableCollection<Item>(filtered);
     }
 
     protected override object GetEntityId(Item entity) => entity.ItemId;

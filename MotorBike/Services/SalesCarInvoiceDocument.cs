@@ -159,7 +159,7 @@ public class SalesCarInvoiceDocument : IDocument
                 });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "الكيلومترات", "اللون", "السنة", "الموديل" })
+                    foreach (var title in new[] { "الكيلومترات", "اللون", "السنة", "الطراز" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
                 RenderCell(table, _model.Mileage.ToString("N0"), true);

@@ -137,7 +137,7 @@ public class InspectionDocument : IDocument
                 });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "اللون", "السنة", "الموديل","الماركة" })
+                    foreach (var title in new[] { "اللون", "السنة", "الطراز","الماركة" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
                 RenderCell(table, _model.ColorName, false);

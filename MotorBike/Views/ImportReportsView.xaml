@@ -265,7 +265,7 @@
                                        </Style>
                                    </DataGrid.CellStyle>
                                    <DataGrid.Columns>
-                                       <DataGridTextColumn Header="الصنف / الموديل" Binding="{Binding ItemName}"              Width="350"/>
+                                       <DataGridTextColumn Header="الصنف / الطراز" Binding="{Binding ItemName}"              Width="350"/>
                                        <DataGridTextColumn Header="الكمية"             Binding="{Binding Qty, StringFormat=N2}"  Width="80"/>
                                        <DataGridTextColumn Header="سعر الوحدة"         Binding="{Binding Price, StringFormat=N2}" Width="100"/>
                                        <DataGridTextColumn Header="إجمالي"             Binding="{Binding Total, StringFormat=N2}" Width="120"/>

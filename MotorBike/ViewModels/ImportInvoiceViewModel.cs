@@ -760,7 +760,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(NewCarChassisNo) || string.IsNullOrWhiteSpace(NewCarModelName) || string.IsNullOrWhiteSpace(NewCarColorName))
         {
-            StatusMessage = "يرجى إدخال الموديل، اللون، ورقم الشاسيه للاستمرار.";
+            StatusMessage = "يرجى إدخال الطراز، اللون، ورقم الشاسيه للاستمرار.";
             return;
         }
 

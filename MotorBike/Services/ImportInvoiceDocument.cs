@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MotorBike.Models;
@@ -444,12 +444,12 @@ public class ImportInvoiceDocument : IDocument
                     def.RelativeColumn(1f);     // السعر (محلي)
                     def.RelativeColumn(1f);     // السعر (عملة)
                     def.RelativeColumn(1f);     // اللون
-                    def.RelativeColumn(2f);     // الموديل
+                    def.RelativeColumn(2f);     // الطراز
                     def.RelativeColumn(2.5f);   // رقم الشاسيه
                     def.RelativeColumn(0.5f);   // م
                 });
 
-                var headers = new[] { "الإجمالي النهائي", "مصاريف محملة", "النسبة %", "السعر (محلي)", "السعر (عملة)", "اللون", "الموديل", "رقم الشاسيه", "م" };
+                var headers = new[] { "الإجمالي النهائي", "مصاريف محملة", "النسبة %", "السعر (محلي)", "السعر (عملة)", "اللون", "الطراز", "رقم الشاسيه", "م" };
                 foreach (var h in headers) HeaderCell(table, h);
 
                 int idx = 1;

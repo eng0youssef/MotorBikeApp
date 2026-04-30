@@ -14,15 +14,62 @@ public partial class OpenStockViewModel : ObservableObject
     private readonly IRepository<Store> _storeRepo;
     private readonly IRepository<Item> _itemRepo;
     private readonly IRepository<Unit> _unitRepo;
+    private readonly IRepository<ItemCategory> _categoryRepo;
     private readonly CompositeKeyRepository _compositeRepo;
 
     [ObservableProperty] private ObservableCollection<OpenStock> _items = [];
+    [ObservableProperty] private ObservableCollection<OpenStock> _filteredItems = [];
     [ObservableProperty] private ObservableCollection<Store> _stores = [];
     [ObservableProperty] private ObservableCollection<Item> _itemList = [];
     [ObservableProperty] private ObservableCollection<Unit> _units = [];
+    [ObservableProperty] private ObservableCollection<ItemCategory> _categories = [];
+
+    // ── Search ────────────────────────────────────────────────────────
+    [ObservableProperty] private string _searchText = string.Empty;
+
+    partial void OnSearchTextChanged(string value) => RefreshFilteredItems();
+    partial void OnItemsChanged(ObservableCollection<OpenStock> value) => RefreshFilteredItems();
+
+    [RelayCommand]
+    private void ClearSearch() => SearchText = string.Empty;
+
+    private void RefreshFilteredItems()
+    {
+        if (string.IsNullOrWhiteSpace(SearchText))
+        {
+            FilteredItems = new ObservableCollection<OpenStock>(Items);
+            return;
+        }
+
+        var lower = SearchText.Trim().ToLower();
+
+        var filtered = Items.Where(os =>
+        {
+            var item = ItemList.FirstOrDefault(i => i.ItemId == os.ItemId);
+
+            // البحث بـ اسم الصنف
+            if (item?.ItemName?.ToLower().Contains(lower) == true)
+                return true;
+
+            // البحث بـ اسم المجموعة
+            var cat = Categories.FirstOrDefault(c => c.CatId == item?.CatId);
+            if (cat?.CatName?.ToLower().Contains(lower) == true)
+                return true;
+
+            return false;
+        });
+
+        FilteredItems = new ObservableCollection<OpenStock>(filtered);
+    }
 
     [ObservableProperty] private OpenStock _formItem = new();
-    [ObservableProperty] private OpenStock? _selectedItem;
+    
+    [ObservableProperty] 
+    [NotifyPropertyChangedFor(nameof(IsNewRecord))]
+    private OpenStock? _selectedItem;
+
+    public bool IsNewRecord => SelectedItem == null;
+
     [ObservableProperty] private bool _isEditing;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
@@ -38,6 +85,53 @@ public partial class OpenStockViewModel : ObservableObject
     // الوحدة المختارة في الفورم — لضبط عامل الوحدة تلقائياً
     [ObservableProperty] private Unit? _selectedFormUnit;
 
+    // ── AutoComplete للصنف ─────────────────────────────────────────────
+    [ObservableProperty] private string _itemSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Item> _itemSearchResults = [];
+    [ObservableProperty] private bool _isItemPopupOpen;
+
+    partial void OnItemSearchTextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            ItemSearchResults = [];
+            IsItemPopupOpen = false;
+            return;
+        }
+
+        var lower = value.Trim().ToLower();
+        var results = ItemList.Where(i =>
+            i.ItemName?.ToLower().Contains(lower) == true ||
+            Categories.FirstOrDefault(c => c.CatId == i.CatId)?.CatName?.ToLower().Contains(lower) == true
+        ).Take(30).ToList();
+
+        ItemSearchResults = new ObservableCollection<Item>(results);
+        IsItemPopupOpen = results.Count > 0;
+    }
+
+    [RelayCommand]
+    private void SelectItem(Item item)
+    {
+        if (item == null) return;
+        ItemSearchText = item.ItemName;
+        IsItemPopupOpen = false;
+        SelectedFormItem = item;
+
+        // لو الصنف اللي اختاروه موجود ليه رصيد افتتاحى، نحدده تلقائياً عشان لو داسوا "تعديل" يفتح بياناته
+        var existingOs = Items.FirstOrDefault(x => x.ItemId == item.ItemId);
+        if (existingOs != null)
+        {
+            SelectedItem = existingOs;
+        }
+    }
+
+    [RelayCommand]
+    public void ShowAllItems()
+    {
+        ItemSearchResults = new ObservableCollection<Item>(ItemList);
+        IsItemPopupOpen = ItemSearchResults.Count > 0;
+    }
+
     // flag لمنع الكتابة على السعر/UnitQty عند تحميل سجل للتعديل
     private bool _skipAutoFill;
 
@@ -45,11 +139,13 @@ public partial class OpenStockViewModel : ObservableObject
         IRepository<Store> storeRepo,
         IRepository<Item> itemRepo,
         IRepository<Unit> unitRepo,
+        IRepository<ItemCategory> categoryRepo,
         CompositeKeyRepository compositeRepo)
     {
         _storeRepo = storeRepo;
         _itemRepo = itemRepo;
         _unitRepo = unitRepo;
+        _categoryRepo = categoryRepo;
         _compositeRepo = compositeRepo;
         SetDefaultValues();
     }
@@ -60,6 +156,7 @@ public partial class OpenStockViewModel : ObservableObject
         {
             var data = await _compositeRepo.GetAllOpenStockAsync();
             Items = new ObservableCollection<OpenStock>(data.OrderByDescending(x => x.OpenDate));
+            // FilteredItems يتحدث تلقائياً عبر OnItemsChanged
         }
         catch (Exception ex)
         {
@@ -80,6 +177,12 @@ public partial class OpenStockViewModel : ObservableObject
 
             var units = await _unitRepo.GetAllAsync();
             Units = new ObservableCollection<Unit>(units);
+
+            var cats = await _categoryRepo.GetAllAsync();
+            Categories = new ObservableCollection<ItemCategory>(cats);
+
+            // أعد بناء الفلتر بعد تحميل الأصناف والمجموعات
+            RefreshFilteredItems();
         }
         catch (Exception ex)
         {
@@ -92,6 +195,9 @@ public partial class OpenStockViewModel : ObservableObject
         SelectedFormItem = null;
         SelectedFormUnit = null;
         FormUnits = [];
+        ItemSearchText = string.Empty;
+        IsItemPopupOpen = false;
+        ItemSearchResults = [];
         FormItem = new OpenStock
         {
             OpenDate = DateTime.Now,
@@ -106,6 +212,7 @@ public partial class OpenStockViewModel : ObservableObject
     [RelayCommand]
     private void AddNew()
     {
+        SelectedItem = null; // يحل مشكلة بقاء IsNewRecord بـ false
         SetDefaultValues();
         IsEditing = true;
         StatusMessage = "جاري إضافة رصيد جديد...";
@@ -138,6 +245,9 @@ public partial class OpenStockViewModel : ObservableObject
         // ضبط الصنف المختار في الفورم — نمنع الكتابة التلقائية لأن السعر والوحدة محفوظان من السجل
         _skipAutoFill = true;
         SelectedFormItem = ItemList.FirstOrDefault(i => i.ItemId == SelectedItem.ItemId);
+        // تحديث نص البحث ليعكس اسم الصنف المحدد
+        ItemSearchText = SelectedFormItem?.ItemName ?? string.Empty;
+        IsItemPopupOpen = false;
         // بعد فلترة الوحدات، نختار الوحدة الصحيحة
         SelectedFormUnit = FormUnits.FirstOrDefault(u => u.UnitId == SelectedItem.UnitId);
         _skipAutoFill = false;
@@ -170,7 +280,7 @@ public partial class OpenStockViewModel : ObservableObject
             return;
         }
 
-        // تحقق من عدم تكرار الصنف في نفس المخزن (فقط عند الإضافة)
+        // تحقق من عدم تكرار الصنف في نفس المخزن
         bool isNew = SelectedItem == null;
         if (isNew)
         {
@@ -180,8 +290,21 @@ public partial class OpenStockViewModel : ObservableObject
 
             if (alreadyExists)
             {
-                ErrorMessage = "الصنف الذي قمت باختياره موجود بالفعل في الرصيد الافتتاحي";
+                ErrorMessage = "الصنف الذي قمت باختياره موجود بالفعل في الرصيد الافتتاحي لهذا المخزن";
                 return;
+            }
+        }
+        else
+        {
+            bool keyChanged = SelectedItem!.StoreId != FormItem.StoreId || SelectedItem!.ItemId != FormItem.ItemId;
+            if (keyChanged)
+            {
+                bool alreadyExists = Items.Any(x => x.StoreId == FormItem.StoreId && x.ItemId == FormItem.ItemId);
+                if (alreadyExists)
+                {
+                    ErrorMessage = "الصنف موجود بالفعل في المخزن الجديد، لا يمكن تكرار الرصيد الافتتاحي.";
+                    return;
+                }
             }
         }
 
@@ -198,7 +321,24 @@ public partial class OpenStockViewModel : ObservableObject
             }
             else
             {
-                await _compositeRepo.UpdateOpenStockAsync(FormItem);
+                bool keyChanged = SelectedItem!.StoreId != FormItem.StoreId || SelectedItem!.ItemId != FormItem.ItemId;
+                if (keyChanged)
+                {
+                    // مسح السجل القديم وإضافة السجل الجديد لتعكس تحديث (المخزن/الصنف)
+                    await _compositeRepo.DeleteOpenStockAsync(SelectedItem.StoreId, SelectedItem.ItemId);
+                    await _compositeRepo.InsertOpenStockAsync(FormItem);
+                    
+                    // إذا كان الصنف قد تغير، يجب إعادة حساب القديم أيضاً
+                    if (SelectedItem.ItemId != FormItem.ItemId)
+                    {
+                        await _compositeRepo.RecalcStockForItemAsync(SelectedItem.ItemId);
+                        await _compositeRepo.RecalcAvgCostForItemAsync(SelectedItem.ItemId, DateTime.MinValue);
+                    }
+                }
+                else
+                {
+                    await _compositeRepo.UpdateOpenStockAsync(FormItem);
+                }
                 StatusMessage = "تم تحديث الرصيد بنجاح.";
             }
 
@@ -266,6 +406,7 @@ public partial class OpenStockViewModel : ObservableObject
     private void CancelEdit()
     {
         IsEditing = false;
+        SelectedItem = null;
         SetDefaultValues();
         StatusMessage = "تم إلغاء العملية.";
     }

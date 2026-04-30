@@ -173,7 +173,7 @@ public partial class UserPermissionsViewModel : ObservableObject
             ScreenId.Stores => "المخازن",
             ScreenId.OpenStock => "أرصدة أول المدة",
             ScreenId.CarBrands => "ماركات الموتوسيكلات",
-            ScreenId.CarModels => "موديلات الماركة",
+            ScreenId.CarModels => "طرازات الماركة",
             ScreenId.Colors => "الألوان",
             ScreenId.Cash => "الخزائن",
             ScreenId.Omla => "العملات",

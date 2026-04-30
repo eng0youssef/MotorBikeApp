@@ -178,7 +178,7 @@
                                             Binding="{Binding CarId}"
                                             Width="70"/>
 
-                        <DataGridTemplateColumn Header="الموديل" Width="160">
+                        <DataGridTemplateColumn Header="الطراز" Width="160">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock VerticalAlignment="Center" Padding="6,0">

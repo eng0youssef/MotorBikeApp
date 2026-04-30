@@ -180,7 +180,7 @@ public partial class ImportReportsViewModel : ObservableObject
                 p.Add("InvId", SelectedInvoice.InvId);
 
                 sql = @"
-                    SELECT CB.BrandName + ' - ' + CM.ModelName              AS [الموديل],
+                    SELECT CB.BrandName + ' - ' + CM.ModelName              AS [الطراز],
                            C.YearNo                                         AS [السنة],
                            C.ChassisNo                                      AS [الشاسيه],
                            C.MotorNo                                        AS [الموتور],

@@ -513,7 +513,7 @@ public partial class PurchasesReportsViewModel : ObservableObject
                            BC.Buy_ID                                   AS [رقم الفاتورة],
                            BC.OwnerName                                AS [البائع],
                            ISNULL(BC.OwnerTel,'')                     AS [التليفون],
-                           CB.BrandName + ' - ' + CM.ModelName         AS [الموديل],
+                           CB.BrandName + ' - ' + CM.ModelName         AS [الطراز],
                            COL.ColorName                               AS [اللون],
                            C.YearNo                                    AS [السنة],
                            C.ChassisNo                                 AS [رقم الشاسيه],

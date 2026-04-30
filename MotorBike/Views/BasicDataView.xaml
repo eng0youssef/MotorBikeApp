@@ -209,7 +209,7 @@
                         <Border Background="#FFFBEB" Style="{StaticResource IconBorderStyle}">
                             <TextBlock Style="{StaticResource IconTextStyle}" Text="🏍️" />
                         </Border>
-                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="موديلات الماركة" />
+                        <TextBlock Style="{StaticResource TitleTextStyle}" Text="طرازات الماركة" />
                     </StackPanel>
                 </Button>
                 <Button Width="210" Height="170" Margin="0,0,20,20"

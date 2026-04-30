@@ -172,7 +172,7 @@
                                           ItemsSource="{Binding Brands}" DisplayMemberPath="BrandName"
                                           Text="{Binding CarBrandName, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الموديل" />
+                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الطراز" />
                                 <ComboBox Grid.Row="4" Grid.Column="4" FontSize="14" Padding="8,6"
                                           IsEditable="True" IsTextSearchEnabled="True"
                                           ItemsSource="{Binding FilteredCarModels}" DisplayMemberPath="ModelName"
@@ -729,7 +729,7 @@
                                 <DataGridTextColumn Width="100" Binding="{Binding InspDate, StringFormat=\{0:yyyy/MM/dd\}}" Header="التاريخ" />
                                 <DataGridTextColumn Width="150" Binding="{Binding Seller}" Header="البائع" />
                                 <DataGridTextColumn Width="150" Binding="{Binding Buyer}" Header="المشتري" />
-                                <DataGridTemplateColumn Width="120" Header="الموديل">
+                                <DataGridTemplateColumn Width="120" Header="الطراز">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Padding="4,0" VerticalAlignment="Center">

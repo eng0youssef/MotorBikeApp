@@ -6,6 +6,8 @@
     <UserControl.Resources>
         <conv:IdToNameConverter x:Key="IdToNameConverter"/>
         <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <conv:HideZeroConverter x:Key="HideZeroConverter"/>
+        <conv:ItemIdToCatNameConverter x:Key="ItemIdToCatNameConverter"/>
 
         <!--  Card style  -->
         <Style x:Key="FormCard" TargetType="Border">
@@ -60,6 +62,7 @@
     <Grid MinWidth="800" MinHeight="500" Background="#1E2233">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -83,13 +86,40 @@
             </StackPanel>
         </Grid>
 
+        <!-- Search Bar -->
+        <Border Grid.Row="1" Margin="24,0,24,8" Padding="12,8" Background="#272C3F" BorderBrush="#3D4560" BorderThickness="1" CornerRadius="10">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" Direction="270" Opacity="0.04" ShadowDepth="2" Color="#0F172A" />
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="16" Foreground="#E8A54B" Text="🔍" />
+                <TextBox Grid.Column="1" FontSize="14"
+                         Style="{StaticResource FormTextBox}"
+                         Tag="ابحث باسم الصنف أو المجموعة..."
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                <Button Grid.Column="2" Margin="8,0,0,0" Padding="8,4" VerticalAlignment="Center"
+                        Command="{Binding ClearSearchCommand}"
+                        Content="✖" FontSize="12"
+                        Style="{StaticResource SecondaryButton}"
+                        Visibility="{Binding SearchText, Converter={StaticResource StringToVisibilityConverter}}" />
+            </Grid>
+        </Border>
+
         <!-- DataGrid Card -->
-        <Border Grid.Row="1" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="12" Margin="24,0,24,16">
+        <Border Grid.Row="2" Background="#242940" BorderBrush="#3D4560" BorderThickness="1" ClipToBounds="True" CornerRadius="12" Margin="24,0,24,16">
             <Border.Effect><DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="4" Color="#000000" /></Border.Effect>
-            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+            <DataGrid ItemsSource="{Binding FilteredItems}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
                       AlternatingRowBackground="#222738" AutoGenerateColumns="False" Background="#242940" BorderThickness="0" CanUserAddRows="False"
                       ColumnHeaderHeight="44" FontSize="13" Foreground="#C8CEE0" GridLinesVisibility="Horizontal" HeadersVisibility="Column"
                       HorizontalGridLinesBrush="#323848" IsReadOnly="True" RowHeight="42" SelectionMode="Single">
+                <DataGrid.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding EditSelectedCommand}" />
+                </DataGrid.InputBindings>
                 <DataGrid.ColumnHeaderStyle>
                     <Style BasedOn="{StaticResource DarkColumnHeader}" TargetType="DataGridColumnHeader" />
                 </DataGrid.ColumnHeaderStyle>
@@ -113,6 +143,14 @@
                                 <Binding Path="ItemId"/><Binding Path="DataContext.ItemList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
                             </MultiBinding></TextBlock.Text></TextBlock>
                     </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+                    <DataGridTemplateColumn Header="المجموعة" Width="140"><DataGridTemplateColumn.CellTemplate><DataTemplate>
+                        <TextBlock VerticalAlignment="Center" Padding="4,0" Foreground="#E8A54B"><TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource ItemIdToCatNameConverter}">
+                                <Binding Path="ItemId"/>
+                                <Binding Path="DataContext.ItemList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                <Binding Path="DataContext.Categories" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                            </MultiBinding></TextBlock.Text></TextBlock>
+                    </DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
                     <DataGridTemplateColumn Header="الوحدة" Width="120"><DataGridTemplateColumn.CellTemplate><DataTemplate>
                         <TextBlock VerticalAlignment="Center" Padding="4,0"><TextBlock.Text>
                             <MultiBinding Converter="{StaticResource IdToNameConverter}" ConverterParameter="UnitId,UnitName">
@@ -127,7 +165,7 @@
         </Border>
 
         <!-- Form Card -->
-        <Border Grid.Row="2" Style="{StaticResource FormCard}">
+        <Border Grid.Row="3" Style="{StaticResource FormCard}">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="6" Color="#000000" />
             </Border.Effect>
@@ -147,7 +185,76 @@
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="المخزن" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <ComboBox Grid.Row="0" Grid.Column="1" ItemsSource="{Binding Stores}" DisplayMemberPath="StoreName" SelectedValuePath="StoreId" SelectedValue="{Binding FormItem.StoreId}" IsEditable="True"/>
                     <TextBlock Grid.Row="0" Grid.Column="3" Text="الصنف" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
-                    <ComboBox Grid.Row="0" Grid.Column="4" ItemsSource="{Binding ItemList}" DisplayMemberPath="ItemName" SelectedItem="{Binding SelectedFormItem, Mode=TwoWay}" IsEditable="True"/>
+                    <Grid Grid.Row="0" Grid.Column="4" IsEnabled="{Binding IsNewRecord}">
+                        <TextBox x:Name="ItemSearchBox"
+                                 Style="{StaticResource FormTextBox}"
+                                 Text="{Binding ItemSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Tag="ابحث باسم الصنف أو المجموعة... (مسطرة = كل الأصناف)"
+                                 GotFocus="ItemSearchBox_GotFocus"
+                                 LostFocus="ItemSearchBox_LostFocus"
+                                 PreviewKeyDown="ItemSearchBox_PreviewKeyDown"/>
+                        <Popup x:Name="ItemPopup"
+                               PlacementTarget="{Binding ElementName=ItemSearchBox}"
+                               Placement="Bottom"
+                               Width="{Binding ActualWidth, ElementName=ItemSearchBox}"
+                               IsOpen="{Binding IsItemPopupOpen, Mode=TwoWay}"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               PopupAnimation="Slide">
+                            <Border Background="#272C3F" BorderBrush="#E8A54B" BorderThickness="1" CornerRadius="0,0,8,8" MaxHeight="220">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.3" ShadowDepth="4" Color="#000000"/>
+                                </Border.Effect>
+                                <ListBox ItemsSource="{Binding ItemSearchResults}"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         VirtualizingPanel.IsVirtualizing="True">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Padding" Value="12,8"/>
+                                            <Setter Property="Foreground" Value="#C8CEE0"/>
+                                            <Setter Property="Background" Value="Transparent"/>
+                                            <Setter Property="Cursor" Value="Hand"/>
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                                Padding="{TemplateBinding Padding}"
+                                                                BorderBrush="#3D4560" BorderThickness="0,0,0,1">
+                                                            <ContentPresenter/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#3D4560"/>
+                                                                <Setter Property="Foreground" Value="#E8A54B"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <EventSetter Event="MouseLeftButtonUp" Handler="ItemResult_Click"/>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding ItemName}" FontWeight="SemiBold" FontSize="13"/>
+                                                <TextBlock FontSize="11" Foreground="#7B84A0" Margin="0,2,0,0">
+                                                    <TextBlock.Text>
+                                                        <MultiBinding Converter="{StaticResource ItemIdToCatNameConverter}">
+                                                            <Binding Path="ItemId"/>
+                                                            <Binding Path="DataContext.ItemList" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                            <Binding Path="DataContext.Categories" RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                        </MultiBinding>
+                                                    </TextBlock.Text>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </Popup>
+                    </Grid>
                     <TextBlock Grid.Row="0" Grid.Column="6" Text="التاريخ" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <DatePicker Grid.Row="0" Grid.Column="7" SelectedDate="{Binding FormItem.OpenDate}"/>
 

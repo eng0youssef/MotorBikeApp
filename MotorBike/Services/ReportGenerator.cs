@@ -408,12 +408,12 @@ public class ReportGenerator
                                     innerDef.ConstantColumn(80); // اللوحة
                                     innerDef.ConstantColumn(100); // الماتور
                                     innerDef.ConstantColumn(100); // الشاسيه
-                                    innerDef.RelativeColumn();   // الماركة والموديل
+                                    innerDef.RelativeColumn();   // الماركة والطراز
                                 });
 
                                 innerTable.Header(innerHeader =>
                                 {
-                                    string[] innerCols = { "السعر", "العداد", "اللوحة", "الماتور", "الشاسيه", "الماركة والموديل" };
+                                    string[] innerCols = { "السعر", "العداد", "اللوحة", "الماتور", "الشاسيه", "الماركة والطراز" };
                                     foreach (var c in innerCols)
                                         innerHeader.Cell().Border(1).BorderColor(Colors.Grey.Medium).Background("#DCFCE7").Padding(3).AlignCenter().Text(c).FontSize(10).FontColor("#166534").SemiBold();
                                 });
@@ -668,11 +668,11 @@ public class ReportGenerator
                                     innerCols.RelativeColumn(1); // 1 إجمالي
                                     innerCols.RelativeColumn(1); // 2 سعر الوحدة
                                     innerCols.RelativeColumn(1); // 3 الكمية
-                                    innerCols.RelativeColumn(3); // 4 الصنف / الموديل
+                                    innerCols.RelativeColumn(3); // 4 الصنف / الطراز
                                 });
 
                                 uint innerRow = 1;
-                                string[] innerHeaders = { "إجمالي", "سعر الوحدة", "الكمية", "الصنف / الموديل" };
+                                string[] innerHeaders = { "إجمالي", "سعر الوحدة", "الكمية", "الصنف / الطراز" };
                                 for (uint i = 0; i < innerHeaders.Length; i++)
                                 {
                                     innerTable.Cell().Row(innerRow).Column(i + 1).Background("#FEF3C7").Border(1).BorderColor(Colors.Orange.Lighten2).Padding(4).AlignCenter().Text(innerHeaders[i]).SemiBold().FontSize(10).FontColor("#92400E");

@@ -411,7 +411,7 @@
                                                               Text="{Binding NewCarBrandName, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
                                                 <Grid Grid.Column="1" Margin="0,0,8,0">
-                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الموديل *" />
+                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الطراز *" />
                                                     <ComboBox Padding="8,4" DisplayMemberPath="ModelName" FontSize="13" IsEditable="True" IsTextSearchEnabled="True"
                                                               ItemsSource="{Binding FilteredCarModels}"
                                                               Text="{Binding NewCarModelName, UpdateSourceTrigger=PropertyChanged}" />

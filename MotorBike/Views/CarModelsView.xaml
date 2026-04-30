@@ -51,7 +51,7 @@
                 </DataGrid.CellStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="الكود" Binding="{Binding ModelId}" Width="100"/>
-                    <DataGridTextColumn Header="اسم الموديل" Binding="{Binding ModelName}" Width="*"/>
+                    <DataGridTextColumn Header="اسم الطراز" Binding="{Binding ModelName}" Width="*"/>
                     <DataGridTemplateColumn Header="الماركة" Width="150">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -93,7 +93,7 @@
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="الكود" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FormItem.ModelId}" Style="{StaticResource FormTextBox}" IsReadOnly="True"/>
-                    <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم الموديل" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="اسم الطراز" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FormItem.ModelName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>
                     <TextBlock Grid.Row="0" Grid.Column="6" Text="الماركة" Style="{StaticResource FormLabel}" VerticalAlignment="Center"/>
                     <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding BrandNameText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormTextBox}"/>

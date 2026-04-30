@@ -128,7 +128,7 @@
 
                     <!-- موديل الموتوسيكل -->
                     <StackPanel Margin="0,0,20,15" Visibility="{Binding IsCarModelVisible, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="الموديل (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
+                        <TextBlock Text="الطراز (اختياري)" Foreground="#64748B" FontSize="13" Margin="0,0,0,4"/>
                         <StackPanel Orientation="Horizontal">
                             <ComboBox ItemsSource="{Binding CarModels}" 
                                       SelectedItem="{Binding SelectedCarModel}" 
@@ -369,7 +369,7 @@
                                             </Style>
                                         </DataGrid.CellStyle>
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="الماركة والموديل" Binding="{Binding ItemName}"   Width="*"/>
+                                            <DataGridTextColumn Header="الماركة والطراز" Binding="{Binding ItemName}"   Width="*"/>
                                             <DataGridTextColumn Header="رقم الشاسيه"      Binding="{Binding ChassisNo}" Width="120"/>
                                             <DataGridTextColumn Header="رقم الماتور"      Binding="{Binding MotorNo}"   Width="120"/>
                                             <DataGridTextColumn Header="اللوحة / اللون"   Binding="{Binding PlateNo}"   Width="80"/>
@@ -543,7 +543,7 @@
                                         </Style>
                                     </DataGrid.CellStyle>
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="الماركة والموديل" Binding="{Binding ItemName}"   Width="*"/>
+                                        <DataGridTextColumn Header="الماركة والطراز" Binding="{Binding ItemName}"   Width="*"/>
                                         <DataGridTextColumn Header="رقم الشاسيه"      Binding="{Binding ChassisNo}" Width="120"/>
                                         <DataGridTextColumn Header="رقم الماتور"      Binding="{Binding MotorNo}"   Width="120"/>
                                         <DataGridTextColumn Header="اللوحة / اللون"   Binding="{Binding PlateNo}"   Width="80"/>

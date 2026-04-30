@@ -36,7 +36,7 @@ public abstract partial class LookupViewModelBase<T> : ObservableObject where T 
     private ObservableCollection<T> _filteredItems = [];
 
     /// <summary>Filters Items based on SearchText across all string properties.</summary>
-    private void RefreshFilteredItems()
+    protected virtual void RefreshFilteredItems()
     {
         if (string.IsNullOrWhiteSpace(SearchText))
         {
