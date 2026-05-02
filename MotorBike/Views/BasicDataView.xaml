@@ -58,6 +58,54 @@
                 <TextBlock FontSize="16" Foreground="LightGray" Text="إدارة كافة البيانات الأساسية للنظام من مكان واحد." />
             </StackPanel>
 
+            <!-- حسابي الشخصي -->
+            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontSize="20" Foreground="White" Text="🔐" />
+                <TextBlock Margin="0" Foreground="White" Style="{StaticResource CategoryHeaderStyle}" Text="تغيير كلمة المرور" />
+            </StackPanel>
+            
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,30">
+                <Border Background="#1A1E2C" BorderBrush="#323848" BorderThickness="1" Width="300" Margin="0,0,10,0" CornerRadius="4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <PasswordBox x:Name="TxtPasswordBox" Grid.Column="0"
+                                     Background="Transparent" Foreground="#ECEEF5" FontSize="16"
+                                     BorderThickness="0" 
+                                     Padding="10" VerticalContentAlignment="Center"
+                                     PasswordChanged="TxtPasswordBox_PasswordChanged"/>
+                                     
+                        <TextBox x:Name="TxtTextBox" Grid.Column="0"
+                                 Background="Transparent" Foreground="#ECEEF5" FontSize="16"
+                                 BorderThickness="0" 
+                                 Padding="10" VerticalContentAlignment="Center"
+                                 Visibility="Collapsed"
+                                 Text="{Binding CurrentPassword, UpdateSourceTrigger=PropertyChanged}"
+                                 TextChanged="TxtTextBox_TextChanged"/>
+                                 
+                        <Button x:Name="BtnTogglePassword" Grid.Column="1"
+                                Background="Transparent" BorderThickness="0" 
+                                VerticalAlignment="Center" Padding="10,0,10,0"
+                                Cursor="Hand" Click="BtnTogglePassword_Click">
+                            <TextBlock x:Name="TxtEyeIcon" Text="👁️" FontFamily="Segoe UI Emoji" FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#6B7490"/>
+                        </Button>
+                    </Grid>
+                </Border>
+                
+                <Button Content="حفظ كلمة المرور" Command="{Binding ChangePasswordCommand}" CommandParameter="{Binding ElementName=TxtTextBox, Path=Text}"
+                        Background="#E8A54B" Foreground="#1A1E2C" 
+                        Padding="20,10" BorderThickness="0" FontWeight="Bold" FontSize="14" Cursor="Hand">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </StackPanel>
+
             <!--  بيانات عامة  -->
             <StackPanel Margin="0,10,0,10" Orientation="Horizontal">
                 <TextBlock Margin="0,0,8,0" VerticalAlignment="Center" FontSize="20" Foreground="White" Text="📄" />
