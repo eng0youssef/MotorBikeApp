@@ -456,10 +456,10 @@ public partial class SalesCarViewModel : ObservableObject
                 // Calculate tax values before saving
                 CalculateTotalsInternal();
 
-                // Mark car as sold / inactive
+                // Mark car as sold / inactive and update mileage
                 await db.ExecuteAsync(
-                    "UPDATE Cars SET IsStock = 0, StatusID = 2, OwnerID = @CusId WHERE Car_ID = @CarId",
-                    new { CarId = FormItem.CarId, CusId = FormItem.CusId }, tx);
+                    "UPDATE Cars SET IsStock = 0, StatusID = 2, OwnerID = @CusId, Mileage = @Mileage WHERE Car_ID = @CarId",
+                    new { CarId = FormItem.CarId, CusId = FormItem.CusId, Mileage = FormItem.Mileage }, tx);
 
                 if (_isInsertMode)
                 {

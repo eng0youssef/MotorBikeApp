@@ -1017,6 +1017,12 @@ public partial class BuyCarViewModel : ObservableObject
         CarPlateNo = car.PlateNo;
         CarNotes = car.Notes;
         CarCC = car.CC;
+        
+        if (FormItem != null)
+        {
+            FormItem.Mileage = car.Mileage;
+            OnPropertyChanged(nameof(FormItem));
+        }
     }
 
     partial void OnIsFromCustomerChanged(bool value)
