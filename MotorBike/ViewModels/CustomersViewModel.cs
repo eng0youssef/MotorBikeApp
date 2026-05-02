@@ -80,6 +80,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
     [ObservableProperty] private string? _newCarMotorNo;
     [ObservableProperty] private string? _newCarPlateNo;
     [ObservableProperty] private string? _newCarNotes;
+    [ObservableProperty] private int? _newCarCC;
     
     [ObservableProperty] private int _editingCarId = 0;
     [ObservableProperty] private bool _isCarsPopupOpen;
@@ -261,6 +262,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                             PlateNo = @PlateNo,
                             Mileage = @Mileage,
                             ColorID = @ColorId,
+                            CC = @CC,
                             Notes = @Notes,
                             EditDate = @EditDate,
                             EditPC = @EditPc,
@@ -276,6 +278,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                             PlateNo = NewCarPlateNo ?? "",
                             Mileage = NewCarMileage,
                             ColorId = currentColorId,
+                            CC = NewCarCC,
                             Notes = NewCarNotes,
                             EditDate = DateTime.Now,
                             EditPc = Environment.MachineName,
@@ -289,11 +292,11 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                     await db.ExecuteAsync(@"
                         INSERT INTO Cars
                             (Car_ID, ModelID, YearNo, ChassisNo, MotorNo, PlateNo,
-                             Mileage, ColorID, IsStock, Notes, OwnerID, StatusID,
+                             Mileage, ColorID, CC, IsStock, Notes, OwnerID, StatusID,
                              AddDate, AddPC, AddUser)
                         VALUES
                             (@CarId, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo,
-                             @Mileage, @ColorId, 0, @Notes, @OwnerId, 3,
+                             @Mileage, @ColorId, @CC, 0, @Notes, @OwnerId, 3,
                              @AddDate, @AddPc, @AddUser)",
                         new
                         {
@@ -305,6 +308,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
                             PlateNo = NewCarPlateNo ?? "",
                             Mileage = NewCarMileage,
                             ColorId = currentColorId,
+                            CC = NewCarCC,
                             Notes = NewCarNotes,
                             OwnerId = FormItem.CusId,
                             AddDate = DateTime.Now,
@@ -413,6 +417,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         NewCarMotorNo = car.MotorNo;
         NewCarPlateNo = car.PlateNo;
         NewCarMileage = car.Mileage;
+        NewCarCC = car.CC;
         NewCarNotes = car.Notes;
     }
 
@@ -424,6 +429,7 @@ public partial class CustomersViewModel : LookupViewModelBase<Customer>
         NewCarMotorNo = null;
         NewCarPlateNo = null;
         NewCarNotes = null;
+        NewCarCC = null;
         NewCarMileage = 0;
         NewCarYearNo = (short)DateTime.Now.Year;
         NewCarModelName = string.Empty;

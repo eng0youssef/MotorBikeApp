@@ -320,7 +320,18 @@
                             <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
                                        Text="كيلومتر" />
-                            <TextBox Grid.Row="2" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" />
+                            <Grid Grid.Row="2" Grid.Column="4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Mileage, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="1" Margin="10,0,10,0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="CC" />
+                                <TextBox Grid.Column="2" Background="#F8FAFC" FontWeight="Bold" IsReadOnly="True"
+                                         Style="{StaticResource FormTextBox}"
+                                         Text="{Binding SelectedCarCC, Mode=OneWay, StringFormat={}{0} سم3, TargetNullValue=''}" />
+                            </Grid>
 
                             <TextBlock Grid.Row="2" Grid.Column="6" VerticalAlignment="Center" FontWeight="Bold"
                                        Style="{StaticResource FormLabel}"

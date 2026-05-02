@@ -116,6 +116,7 @@ public partial class CarsReportsViewModel : ObservableObject
                            CL.ColorName                                   AS [اللون],
                            C.ChassisNo                                    AS [رقم الشاسيه],
                            C.MotorNo                                      AS [رقم الموتور],
+                           C.CC                                           AS [CC],
                            C.PlateNo                                      AS [رقم اللوحة],
                            C.Mileage                                      AS [الكيلومتر],
                            CASE C.StatusId WHEN 1 THEN 'مخزن'
@@ -146,6 +147,7 @@ public partial class CarsReportsViewModel : ObservableObject
                            CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
+                           C.CC                                            AS [CC],
                            C.PlateNo                                       AS [رقم اللوحة],
                            S.Total                                         AS [سعر البيع],
                            C.PurchasePrice                                 AS [سعر الشراء],
@@ -177,6 +179,7 @@ public partial class CarsReportsViewModel : ObservableObject
                            CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
+                           C.CC                                            AS [CC],
                            C.PlateNo                                       AS [رقم اللوحة],
                            B.Total                                         AS [سعر الشراء]
                     FROM Buy_Car B
@@ -201,6 +204,7 @@ public partial class CarsReportsViewModel : ObservableObject
                            CB.BrandName + ' - ' + CM.ModelName             AS [الطراز],
                            C.YearNo                                        AS [السنة],
                            C.ChassisNo                                     AS [رقم الشاسيه],
+                           C.CC                                            AS [CC],
                            CU.CusName                                      AS [العميل],
                            C.PurchasePrice                                 AS [سعر الشراء],
                            S.Total                                         AS [سعر البيع],

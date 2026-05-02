@@ -25,6 +25,9 @@ public partial class Car
 
     public string? Notes { get; set; }
 
+    /// <summary>السعة الاسطوانية بالسم المكعب (CC)</summary>
+    public int? CC { get; set; }
+
     public bool IsStock { get; set; }
 
     /// <summary>مالك الموتوسيكل — FK → Customers.Cus_ID (NULL = ملك الوكالة/مخزن)</summary>

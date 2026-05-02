@@ -26,6 +26,7 @@ public class SalesCarInvoiceModel
     public string ColorName { get; set; } = string.Empty;
     public int YearNo { get; set; }
     public int Mileage { get; set; }
+    public int CC { get; set; }
 
     // Totals
     public double Total { get; set; }
@@ -172,14 +173,15 @@ public class SalesCarInvoiceDocument : IDocument
             {
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn();
+                    columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn();
                 });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "رقم اللوحة", "رقم الموتور", "رقم الشاسيه" })
+                    foreach (var title in new[] { "رقم اللوحة", "CC", "رقم الموتور", "رقم الشاسيه" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
                 RenderCell(table, _model.PlateNo, true);
+                RenderCell(table, _model.CC > 0 ? _model.CC.ToString() + " سم3" : "-", true);
                 RenderCell(table, _model.MotorNo, true);
                 RenderCell(table, _model.ChassisNo, true);
             });

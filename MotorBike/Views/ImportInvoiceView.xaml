@@ -435,7 +435,8 @@
                                                     <ColumnDefinition Width="*" /> 
                                                     <ColumnDefinition Width="*" /> 
                                                     <ColumnDefinition Width="*" /> 
-                                                    <ColumnDefinition Width="2*" /> 
+                                                    <ColumnDefinition Width="*" /> 
+                                                    <ColumnDefinition Width="1.5*" /> 
                                                     <ColumnDefinition Width="1.5*" /> 
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
@@ -454,14 +455,18 @@
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMileage, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
                                                 <Grid Grid.Column="3" Margin="0,0,8,0">
+                                                    <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="CC" />
+                                                    <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarCC, UpdateSourceTrigger=PropertyChanged}" ToolTip="السعة الاسطوانية بالسم المكعب" />
+                                                </Grid>
+                                                <Grid Grid.Column="4" Margin="0,0,8,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="ملاحظات" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarNotes, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
-                                                <Grid Grid.Column="4" Margin="0,0,16,0">
+                                                <Grid Grid.Column="5" Margin="0,0,16,0">
                                                     <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="سعر الاستيراد" />
                                                     <TextBox FontSize="13" Style="{StaticResource FormTextBox}" Text="{Binding NewCarTotal, UpdateSourceTrigger=PropertyChanged}" />
                                                 </Grid>
-                                                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                                                <StackPanel Grid.Column="6" Orientation="Horizontal">
                                                     <!--  Normal Add button -->
                                                     <Button Padding="16,8" Margin="0,0,6,0"
                                                             Command="{Binding AddNewCarCommand}"

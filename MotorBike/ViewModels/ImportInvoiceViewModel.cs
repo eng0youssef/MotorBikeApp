@@ -198,6 +198,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private int _newCarMileage = 0;
     [ObservableProperty] private string _newCarNotes = string.Empty;
     [ObservableProperty] private double _newCarTotal;
+    [ObservableProperty] private int? _newCarCC;
 
     // Selected car for editing
     [ObservableProperty] private ImportInvCar _selectedFormCar;
@@ -217,6 +218,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         NewCarNotes = realCar.Notes;
         NewCarYearNo = realCar.YearNo;
         NewCarTotal = value.Total ?? 0;
+        NewCarCC = realCar.CC;
 
         var model = CarModels.FirstOrDefault(m => m.ModelId == realCar.ModelId);
         NewCarModelName = model?.ModelName ?? string.Empty;
@@ -267,6 +269,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         realCar.Notes     = NewCarNotes     ?? string.Empty;
         realCar.Mileage = NewCarMileage;
         realCar.YearNo = NewCarYearNo;
+        realCar.CC = NewCarCC;
 
         // Resolve model
         var modelName = NewCarModelName?.Trim() ?? string.Empty;
@@ -593,6 +596,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         NewCarYearNo = (short)DateTime.Now.Year;
         NewCarMileage = 0;
         NewCarTotal = 0;
+        NewCarCC = null;
 
         CurrentSubExp = new ImportExp { PayDate = DateTime.Now, OmlaRate = 1 };
         if (Omlas.Any()) CurrentSubExp.OmlaId = Omlas.First().OmlaId;
@@ -829,6 +833,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 MotorNo = NewCarMotorNo ?? string.Empty,
                 PlateNo = NewCarPlateNo ?? string.Empty,
                 Mileage = NewCarMileage,
+                CC = NewCarCC,
                 ColorId = colorId,
                 Notes = NewCarNotes,
                 IsStock = true
@@ -856,6 +861,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
             NewCarNotes = string.Empty;
             NewCarMileage = 0;
             NewCarTotal = 0;
+            NewCarCC = null;
 
             CalculateTotals(PercentageMode.NewOnly);
         }

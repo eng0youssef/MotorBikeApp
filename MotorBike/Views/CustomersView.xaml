@@ -193,6 +193,7 @@
                             <DataGridTextColumn Width="120" Binding="{Binding ChassisNo}" Header="الشاسيه" />
                             <DataGridTextColumn Width="120" Binding="{Binding MotorNo}" Header="الموتور" />
                             <DataGridTextColumn Width="90" Binding="{Binding PlateNo}" Header="اللوحة" />
+                            <DataGridTextColumn Width="70" Binding="{Binding CC, StringFormat={}{0} سم3}" Header="CC" />
                             <DataGridTemplateColumn Width="80" Header="اللون">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -271,7 +272,7 @@
                                           Text="{Binding NewCarColorName, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
 
-                            <!--  Row 2: Chassis, Motor, Plate, Mileage  -->
+                            <!--  Row 2: Chassis, Motor, Plate, Mileage, CC  -->
                             <Grid Grid.Row="2">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -285,6 +286,9 @@
                                     <ColumnDefinition Width="12" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="1.5*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="1*" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Foreground="#9BA4B5" Text="الشاسيه" />
                                 <TextBox Grid.Column="1" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarChassisNo, UpdateSourceTrigger=PropertyChanged}" />
@@ -292,8 +296,10 @@
                                 <TextBox Grid.Column="4" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMotorNo, UpdateSourceTrigger=PropertyChanged}" />
                                 <TextBlock Grid.Column="6" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Foreground="#9BA4B5" Text="اللوحة" />
                                 <TextBox Grid.Column="7" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarPlateNo, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock Grid.Column="9" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Foreground="#9BA4B5" Text="العداد (كم)" />
+                                <TextBlock Grid.Column="9" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Foreground="#9BA4B5" Text="العداد" />
                                 <TextBox Grid.Column="10" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarMileage, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Column="12" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="12" Foreground="#9BA4B5" Text="CC" />
+                                <TextBox Grid.Column="13" FontSize="12" Style="{StaticResource FormTextBox}" Text="{Binding NewCarCC, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>
 
                             <!--  Row 4: Action Buttons  -->

@@ -92,6 +92,7 @@ public partial class BuyCarViewModel : ObservableObject
     [ObservableProperty] private string? _carPlateNo;
     [ObservableProperty] private string? _carNotes;
     [ObservableProperty] private bool _carActive = true;
+    [ObservableProperty] private int? _carCC;
 
     // ── Source selection ──────────────────────────────────────────────────
     [ObservableProperty] private bool _isFromCustomer;
@@ -420,7 +421,7 @@ public partial class BuyCarViewModel : ObservableObject
         CarColorName = string.Empty;
 
         CarYearNo = (short)DateTime.Now.Year;
-        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null; CarNotes = null;
+        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null; CarNotes = null; CarCC = null;
         CarActive = true;
 
         IsFromCustomer = false; IsExistingCar = false;
@@ -470,7 +471,7 @@ public partial class BuyCarViewModel : ObservableObject
         FormPayments.Clear();
         TotalPayed = 0;
         CurrentPayment = new BuyCarPayment();
-        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null;
+        CarChassisNo = null; CarMotorNo = null; CarPlateNo = null; CarCC = null;
 
         IsFromCustomer = false; IsExistingCar = false;
         SelectedSupplierId = 0; SelectedSourceCustomerId = 0; SelectedExistingCarId = 0;
@@ -637,6 +638,7 @@ public partial class BuyCarViewModel : ObservableObject
                                 SourceCustomerId = IsFromCustomer ? (SelectedSourceCustomerId > 0 ? SelectedSourceCustomerId : (int?)null) : (int?)null,
                                 PurchasePrice = FormItem.Net,
                                 Mileage = FormItem.Mileage ?? 0,
+                                CC = CarCC,
                                 EditDate = DateTime.Now,
                                 EditPc = Environment.MachineName,
                                 EditUser = AppSession.CurrentUserId ?? 1
@@ -648,13 +650,13 @@ public partial class BuyCarViewModel : ObservableObject
                         await db.ExecuteAsync(@"
                             INSERT INTO Cars
                                 (Car_ID, ModelID, YearNo, ChassisNo, MotorNo, PlateNo,
-                                 Mileage, ColorID, IsStock, Notes,
+                                 Mileage, CC, ColorID, IsStock, Notes,
                                  OwnerID, StatusID, IsLocalSupplier, SupplierID,
                                  IsFromCustomer, SourceCustomerID, PurchasePrice,
                                  AddDate, AddPC, AddUser)
                             VALUES
                                 (@CarId, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo,
-                                 @Mileage, @ColorId, 1, @Notes,
+                                 @Mileage, @CC, @ColorId, 1, @Notes,
                                  NULL, 1, @IsLocalSupplier, @SupplierId,
                                  @IsFromCustomer, @SourceCustomerId, @PurchasePrice,
                                  @AddDate, @AddPc, @AddUser)",
@@ -667,6 +669,7 @@ public partial class BuyCarViewModel : ObservableObject
                                 MotorNo = CarMotorNo,
                                 PlateNo = CarPlateNo,
                                 Mileage = FormItem.Mileage ?? 0,
+                                CC = CarCC,
                                 ColorId = _carColorId,
                                 Notes = CarNotes,
                                 IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
@@ -688,7 +691,8 @@ public partial class BuyCarViewModel : ObservableObject
                         SET ModelID   = @ModelId,  YearNo    = @YearNo,
                             ChassisNo = @ChassisNo, MotorNo   = @MotorNo,
                             PlateNo   = @PlateNo,   Mileage   = @Mileage,
-                            ColorID   = @ColorId,   IsStock   = 1,
+                            CC        = @CC,        ColorID   = @ColorId,
+                            IsStock   = 1,
                             Notes     = @Notes,     StatusID  = 1, OwnerID = NULL,
                             IsLocalSupplier  = @IsLocalSupplier, SupplierID = @SupplierId,
                             IsFromCustomer   = @IsFromCustomer, SourceCustomerID = @SourceCustomerId,
@@ -704,6 +708,7 @@ public partial class BuyCarViewModel : ObservableObject
                             MotorNo = CarMotorNo,
                             PlateNo = CarPlateNo,
                             Mileage = FormItem.Mileage,
+                            CC = CarCC,
                             ColorId = _carColorId,
                             Notes = CarNotes,
                             IsLocalSupplier = IsFromCustomer ? (bool?)null : true,
@@ -1011,6 +1016,7 @@ public partial class BuyCarViewModel : ObservableObject
         CarMotorNo = car.MotorNo;
         CarPlateNo = car.PlateNo;
         CarNotes = car.Notes;
+        CarCC = car.CC;
     }
 
     partial void OnIsFromCustomerChanged(bool value)
@@ -1193,6 +1199,7 @@ public partial class BuyCarViewModel : ObservableObject
                 ColorName = CarColorName ?? "",
                 YearNo = CarYearNo,
                 Mileage = FormItem.Mileage ?? 0,
+                CC = CarCC ?? 0,
                 Total = FormItem.Total,
                 IsTax = FormItem.IsTax,
                 VatTax = FormItem.VatTax,

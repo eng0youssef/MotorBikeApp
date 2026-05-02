@@ -211,6 +211,10 @@
                                             Binding="{Binding PlateNo}"
                                             Width="100"/>
 
+                        <DataGridTextColumn Header="CC"
+                                            Binding="{Binding CC, StringFormat={}{0} سم3, TargetNullValue=''}"
+                                            Width="80"/>
+
                         <DataGridTemplateColumn Header="اللون" Width="90">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

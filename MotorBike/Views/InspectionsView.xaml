@@ -123,6 +123,8 @@
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="20" />
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="20" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <!--  Row 0: ID, Date, Total  -->
@@ -223,6 +225,14 @@
                                 <TextBox Grid.Row="8" Grid.Column="7"
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
+
+                                <!--  Row 10: CC  -->
+                                <TextBlock Grid.Row="10" Grid.Column="0" VerticalAlignment="Center"
+                                           Style="{StaticResource FormLabel}"
+                                           Text="السعة (CC)" />
+                                <TextBox Grid.Row="10" Grid.Column="1" Style="{StaticResource FormTextBox}"
+                                         Text="{Binding FormItem.CC, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="السعة الاسطوانية بالسم المكعب" />
                             </Grid>
                       
 
@@ -746,6 +756,7 @@
                                 <DataGridTextColumn Width="150" Binding="{Binding ChassisNo}" Header="الشاسيه" />
                                 <DataGridTextColumn Width="120" Binding="{Binding MotorNo}" Header="الموتور" />
                                 <DataGridTextColumn Width="120" Binding="{Binding PlateNo}" Header="اللوحة" />
+                                <DataGridTextColumn Width="80" Binding="{Binding CC, StringFormat={}{0} سم3, TargetNullValue=''}" Header="CC" />
                                 <DataGridTextColumn Width="100" Binding="{Binding Total}" Header="السعر" />
                             </DataGrid.Columns>
                         </DataGrid>

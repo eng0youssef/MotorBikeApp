@@ -32,6 +32,7 @@ public class InspectionPrintModel
     public string ColorName { get; set; } = string.Empty;
     public int YearNo { get; set; }
     public int Mileage { get; set; }
+    public int CC { get; set; }
 
     public string CashName { get; set; } = string.Empty;
     public double Total { get; set; }
@@ -147,13 +148,17 @@ public class InspectionDocument : IDocument
             });
             colContainer.Item().PaddingTop(5).Table(table =>
             {
-                table.ColumnsDefinition(columns => { columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); });
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn(); columns.RelativeColumn();
+                });
                 table.Header(header =>
                 {
-                    foreach (var title in new[] { "الكيلومترات", "رقم اللوحة", "رقم الموتور", "رقم الشاسيه" })
+                    foreach (var title in new[] { "الكيلومترات", "CC", "رقم اللوحة", "رقم الموتور", "رقم الشاسيه" })
                         header.Cell().Background("#F1F5F9").Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter().Text(title).SemiBold();
                 });
                 RenderCell(table, _model.Mileage.ToString("N0"), true);
+                RenderCell(table, _model.CC > 0 ? _model.CC.ToString() + " سم3" : "-", true);
                 RenderCell(table, _model.PlateNo, true);
                 RenderCell(table, _model.MotorNo, true);
                 RenderCell(table, _model.ChassisNo, true);

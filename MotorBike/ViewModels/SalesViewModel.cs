@@ -1416,7 +1416,7 @@ public partial class SalesViewModel : ObservableObject
             }
 
             var carDetails = await db.QueryFirstOrDefaultAsync<dynamic>(@"
-                SELECT b.BrandName, m.ModelName, c.ColorName, car.YearNo, car.ChassisNo, car.MotorNo, car.PlateNo 
+                SELECT b.BrandName, m.ModelName, c.ColorName, car.YearNo, car.ChassisNo, car.MotorNo, car.PlateNo, car.CC 
                 FROM Cars car
                 LEFT JOIN CarModels m ON car.ModelId = m.Model_ID
                 LEFT JOIN CarBrands b ON m.BrandID = b.Brand_ID
@@ -1449,7 +1449,8 @@ public partial class SalesViewModel : ObservableObject
                 CarYear = carDetails?.YearNo?.ToString() ?? "",
                 CarChassisNo = carDetails?.ChassisNo ?? "",
                 CarMotorNo = carDetails?.MotorNo ?? "",
-                CarPlateNo = carDetails?.PlateNo ?? ""
+                CarPlateNo = carDetails?.PlateNo ?? "",
+                CarCC = (int)(carDetails?.CC ?? 0)
             };
 
             foreach (var sub in FormSubItems)

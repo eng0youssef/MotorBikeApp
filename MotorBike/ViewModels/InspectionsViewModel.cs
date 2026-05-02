@@ -346,8 +346,8 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                 if (isInsert)
                 {
                     await db.ExecuteAsync(@"
-                        INSERT INTO Inspection (Insp_ID, InspDate, Seller, Buyer, ModelId, YearNo, ChassisNo, MotorNo, PlateNo, Mileage, ColorId, Notes, Total, CashId, AddUser, AddDate, AddPc)
-                        VALUES (@InspId, @InspDate, @Seller, @Buyer, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo, @Mileage, @ColorId, @Notes, @Total, @CashId, @AddUser, @AddDate, @AddPc)",
+                        INSERT INTO Inspection (Insp_ID, InspDate, Seller, Buyer, ModelId, YearNo, ChassisNo, MotorNo, PlateNo, Mileage, CC, ColorId, Notes, Total, CashId, AddUser, AddDate, AddPc)
+                        VALUES (@InspId, @InspDate, @Seller, @Buyer, @ModelId, @YearNo, @ChassisNo, @MotorNo, @PlateNo, @Mileage, @CC, @ColorId, @Notes, @Total, @CashId, @AddUser, @AddDate, @AddPc)",
                         FormItem, tx);
                 }
                 else
@@ -355,7 +355,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                     await db.ExecuteAsync(@"
                         UPDATE Inspection SET 
                         InspDate=@InspDate, Seller=@Seller, Buyer=@Buyer, ModelId=@ModelId, YearNo=@YearNo, 
-                        ChassisNo=@ChassisNo, MotorNo=@MotorNo, PlateNo=@PlateNo, Mileage=@Mileage, 
+                        ChassisNo=@ChassisNo, MotorNo=@MotorNo, PlateNo=@PlateNo, Mileage=@Mileage, CC=@CC,
                         ColorId=@ColorId, Notes=@Notes, Total=@Total, CashId=@CashId, 
                         EditUser=@EditUser, EditDate=@EditDate, EditPc=@EditPc
                         WHERE Insp_ID = @InspId",
@@ -488,6 +488,7 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
                 ColorName = Colors.FirstOrDefault(c => c.ColorId == FormItem.ColorId)?.ColorName ?? "",
                 YearNo = FormItem.YearNo,
                 Mileage = FormItem.Mileage,
+                CC = FormItem.CC ?? 0,
                 CashName = Cashes.FirstOrDefault(c => c.CashId == FormItem.CashId)?.CashName ?? "",
                 Total = FormItem.Total
             };

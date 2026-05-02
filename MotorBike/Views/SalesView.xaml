@@ -262,6 +262,11 @@
 
                                             <Run Text="رقم اللوحة: " />
                                             <Run Foreground="#94A3B8" Text="{Binding PlateNo, Mode=OneWay}" />
+
+                                            <Run Foreground="#64748B" Text=" — " />
+
+                                            <Run Text="CC: " />
+                                            <Run Foreground="#94A3B8" Text="{Binding CC, Mode=OneWay, StringFormat={}{0} سم3, TargetNullValue=''}" />
                                         </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>

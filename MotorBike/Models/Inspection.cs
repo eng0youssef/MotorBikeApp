@@ -26,6 +26,9 @@ public partial class Inspection
 
     public int Mileage { get; set; }
 
+    /// <summary>السعة الاسطوانية بالسم المكعب (CC)</summary>
+    public int? CC { get; set; }
+
     public int ColorId { get; set; }
 
     public string? Notes { get; set; }

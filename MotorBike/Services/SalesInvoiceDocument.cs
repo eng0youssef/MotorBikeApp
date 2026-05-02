@@ -60,6 +60,7 @@ public class SalesInvoiceModel
     public string CarChassisNo { get; set; } = string.Empty;
     public string CarMotorNo { get; set; } = string.Empty;
     public string CarPlateNo { get; set; } = string.Empty;
+    public int CarCC { get; set; }
 }
 
 public class SalesInvoiceDocument : IDocument
@@ -233,6 +234,7 @@ public class SalesInvoiceDocument : IDocument
                     });
                     carCol.Item().PaddingTop(3).Row(r =>
                     {
+                        r.RelativeItem(1).Column(c => { c.Item().Text("CC").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarCC > 0 ? _model.CarCC.ToString() + " سم3" : "-").FontSize(9).SemiBold().DirectionFromLeftToRight(); });
                         r.RelativeItem(1).Column(c => { c.Item().Text("اللوحة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarPlateNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
                         r.RelativeItem(1.5f).Column(c => { c.Item().Text("الموتور").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarMotorNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
                         r.RelativeItem(1.5f).Column(c => { c.Item().Text("الشاسيه").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarChassisNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });

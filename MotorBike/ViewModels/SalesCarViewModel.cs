@@ -69,6 +69,7 @@ public partial class SalesCarViewModel : ObservableObject
     [ObservableProperty] private ObservableCollection<Car> _filteredCarsList = [];
     [ObservableProperty] private bool _isCarPopupOpen;
     private bool _isSelectingCar;
+    [ObservableProperty] private int? _selectedCarCC;
 
     // ── Proxy Properties for Tax Calculation ───────────────────────────
     public double FormTotal
@@ -741,7 +742,8 @@ public partial class SalesCarViewModel : ObservableObject
     {
         if (car is null) return;
         FormItem.CarId = car.CarId;
-        FormItem.Mileage = car.Mileage;  
+        FormItem.Mileage = car.Mileage;
+        SelectedCarCC = car.CC;
         
         _isSelectingCar = true;
         CarSearchText = car.ChassisNo ?? string.Empty;
@@ -854,7 +856,7 @@ public partial class SalesCarViewModel : ObservableObject
 
             // Load car details for printing
             string carModel = "", carBrand = "", chassisNo = "", motorNo = "", plateNo = "", colorName = "";
-            int yearNo = 0, mileage = (int)FormItem.Mileage;
+            int yearNo = 0, mileage = (int)FormItem.Mileage, carCC = 0;
             if (FormItem.CarId > 0)
             {
                 var car = await db.QuerySingleOrDefaultAsync<Car>(
@@ -866,6 +868,7 @@ public partial class SalesCarViewModel : ObservableObject
                     plateNo = car.PlateNo ?? "";
                     yearNo = car.YearNo;
                     mileage = car.Mileage;
+                    carCC = car.CC ?? 0;
                     var mdl = await db.QuerySingleOrDefaultAsync<CarModel>(
                         "SELECT * FROM CarModels WHERE Model_ID = @ModelId", new { ModelId = car.ModelId });
                     if (mdl != null)
@@ -897,6 +900,7 @@ public partial class SalesCarViewModel : ObservableObject
                 ColorName = colorName,
                 YearNo = yearNo,
                 Mileage = mileage,
+                CC = carCC,
                 Total = FormItem.Total,
                 IsTax = FormItem.IsTax,
                 VatTax = FormItem.VatTax,
