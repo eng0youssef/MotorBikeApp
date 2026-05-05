@@ -8,8 +8,11 @@
     <Grid MinWidth="800" MinHeight="300" Background="#1E2233">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <!-- شريط البحث -->
+            <RowDefinition Height="1.2*" />
+            <!-- الجدول (DataGrid) هياخد مساحة تتناسب مع الشاشة -->
+            <RowDefinition Height="1.8*" />
+            <!-- الجزء السفلي (التابات) هياخد المساحة الباقية -->
         </Grid.RowDefinitions>
 
         <!--  Search Bar  -->
@@ -102,8 +105,14 @@
             <Border.Effect>
                 <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.08" ShadowDepth="6" Color="#000000" />
             </Border.Effect>
-            <StackPanel VerticalAlignment="Stretch">
-                <TabControl Margin="0,0,0,12" Background="Transparent" BorderThickness="0" SelectedIndex="0">
+            <!-- استخدام Grid هنا هو سر حل المشكلة بدلاً من StackPanel -->
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TabControl Grid.Row="0" Margin="0,0,0,12" Background="Transparent" BorderThickness="0" SelectedIndex="0">
                     <TabControl.Resources>
                         <Style TargetType="TabItem">
                             <Setter Property="Template">
@@ -142,7 +151,8 @@
 
                     <!--  Tab 1: Basic Data  -->
                     <TabItem Header="📋 البيانات الأساسية" >
-                        <ScrollViewer MaxHeight="350" MinHeight="370" Margin="0,16,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                        <!-- تم إزالة MinHeight و MaxHeight ليأخذ المساحة المتاحة فقط -->
+                        <ScrollViewer Margin="0,16,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
                             <Grid Margin="0,0,0,24" IsEnabled="{Binding IsEditing}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -172,24 +182,13 @@
                                 </Grid.RowDefinitions>
 
                                 <!--  Row 0: ID, Name, CatId  -->
-                                <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الكود" />
-                                <TextBox Grid.Row="0" Grid.Column="1" IsReadOnly="True"
-                                         Style="{StaticResource FormTextBox}"
-                                         Text="{Binding FormItem.ItemId, Converter={StaticResource HideZeroConv}}" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الكود" />
+                                <TextBox Grid.Row="0" Grid.Column="1" IsReadOnly="True" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.ItemId, Converter={StaticResource HideZeroConv}}" />
 
-                                <TextBlock Grid.Row="0" Grid.Column="3" VerticalAlignment="Center" Foreground="#E8A54B"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="اسم الصنف *" />
-                                <TextBox Grid.Row="0" Grid.Column="4"
-                                         Style="{StaticResource FormTextBox}"
-                                         Tag="إلزامي ..."
-                                         Text="{Binding FormItem.ItemName, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="0" Grid.Column="3" VerticalAlignment="Center" Foreground="#E8A54B" Style="{StaticResource FormLabel}" Text="اسم الصنف *" />
+                                <TextBox Grid.Row="0" Grid.Column="4" Style="{StaticResource FormTextBox}" Tag="إلزامي ..." Text="{Binding FormItem.ItemName, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="0" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="المجموعة" />
+                                <TextBlock Grid.Row="0" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="المجموعة" />
                                 <ComboBox Grid.Row="0" Grid.Column="7" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="CatName"
                                           ItemsSource="{Binding Categories}"
                                           SelectedValue="{Binding FormItem.CatId, UpdateSourceTrigger=PropertyChanged}"
@@ -201,84 +200,54 @@
                                           Style="{StaticResource ToggleSwitchStyle}" />
 
                                 <!--  Row 2: Price0, DiscPer0, Price1  -->
-                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="سعر الشراء" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="سعر الشراء" />
                                 <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Price0, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="خصم الشراء (%)" />
+                                <TextBlock Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="خصم الشراء (%)" />
                                 <TextBox Grid.Row="2" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.DiscPer0, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="متوسط التكلفة" />
-                                <TextBox Grid.Row="2" Grid.Column="7" IsReadOnly="True"
-                                         Style="{StaticResource FormTextBox}"
-                                         Text="{Binding FormItem.AvrgCost, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
+                                <TextBlock Grid.Row="2" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="متوسط التكلفة" />
+                                <TextBox Grid.Row="2" Grid.Column="7" IsReadOnly="True" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.AvrgCost, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="9" VerticalAlignment="Center" Foreground="#E8A54B"
-                                           Style="{StaticResource FormLabel}" 
-                                           Text="سعر الاستيراد" /> 
-                                <TextBox Grid.Row="2" Grid.Column="10" BorderBrush="#E8A54B"
-                                         Style="{StaticResource FormTextBox}"
-                                         Text="{Binding FormItem.ImpPrice, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
+                                <TextBlock Grid.Row="2" Grid.Column="9" VerticalAlignment="Center" Foreground="#E8A54B" Style="{StaticResource FormLabel}" Text="سعر الاستيراد" />
+                                <TextBox Grid.Row="2" Grid.Column="10" BorderBrush="#E8A54B" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.ImpPrice, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
                                 <!--  Row 4: Price1, DiscPer1, MinPrice  -->
-                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="سعر البيع" />
+                                <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="سعر البيع" />
                                 <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Price1, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="خصم البيع (%)" />
+                                <TextBlock Grid.Row="4" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="خصم البيع (%)" />
                                 <TextBox Grid.Row="4" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.DiscPer1, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
-                                <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="أقل سعر بيع" />
+                                <TextBlock Grid.Row="4" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="أقل سعر بيع" />
                                 <TextBox Grid.Row="4" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.MinPrice, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
                                 <!--  Row 6: Units  -->
-                                <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الوحدة الصغرى" />
+                                <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الوحدة الصغرى" />
                                 <ComboBox Grid.Row="6" Grid.Column="1" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="UnitName"
                                           ItemsSource="{Binding Units}"
                                           SelectedValue="{Binding FormItem.UnitId, UpdateSourceTrigger=PropertyChanged}"
                                           SelectedValuePath="UnitId"
                                           Style="{DynamicResource {x:Type ComboBox}}" />
 
-                                <TextBlock Grid.Row="6" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الوحدة الكبرى" />
+                                <TextBlock Grid.Row="6" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الوحدة الكبرى" />
                                 <ComboBox Grid.Row="6" Grid.Column="4" Padding="8,0" VerticalContentAlignment="Center" BorderBrush="#CBD5E1" BorderThickness="1" DisplayMemberPath="UnitName"
                                           ItemsSource="{Binding Units}"
                                           SelectedValue="{Binding FormItem.Unit2, UpdateSourceTrigger=PropertyChanged}"
                                           SelectedValuePath="UnitId"
                                           Style="{DynamicResource {x:Type ComboBox}}" />
 
-                                <TextBlock Grid.Row="6" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="عدد الصغرى بالكبرى" />
+                                <TextBlock Grid.Row="6" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="عدد الصغرى بالكبرى" />
                                 <TextBox Grid.Row="6" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Unit2Qty, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource HideZeroConverter}}" />
 
                                 <!--  Row 8: Barcodes  -->
-                                <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الباركود (1)" />
+                                <TextBlock Grid.Row="8" Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الباركود (1)" />
                                 <TextBox Grid.Row="8" Grid.Column="1" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Bar1, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="8" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الباركود (2)" />
+                                <TextBlock Grid.Row="8" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الباركود (2)" />
                                 <TextBox Grid.Row="8" Grid.Column="4" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Bar2, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Row="8" Grid.Column="6" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="ملاحظات" />
+                                <TextBlock Grid.Row="8" Grid.Column="6" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="ملاحظات" />
                                 <TextBox Grid.Row="8" Grid.Column="7" Style="{StaticResource FormTextBox}" Text="{Binding FormItem.Notes, UpdateSourceTrigger=PropertyChanged}" />
 
                                 <!--  Row 10: IsLimit, Limit, IsStock  -->
@@ -286,9 +255,7 @@
                                           IsChecked="{Binding FormItem.IsLimit}"
                                           Style="{StaticResource ToggleSwitchStyle}" />
 
-                                <TextBlock Grid.Row="10" Grid.Column="3" VerticalAlignment="Center"
-                                           Style="{StaticResource FormLabel}"
-                                           Text="الحد الأدنى" />
+                                <TextBlock Grid.Row="10" Grid.Column="3" VerticalAlignment="Center" Style="{StaticResource FormLabel}" Text="الحد الأدنى" />
                                 <TextBox Grid.Row="10" Grid.Column="4"
                                          IsEnabled="{Binding FormItem.IsLimit}"
                                          Style="{StaticResource FormTextBox}"
@@ -302,8 +269,9 @@
                     </TabItem>
 
                     <TabItem Header="📦 رصيد أول المدة">
-                        <ScrollViewer MinHeight="370" MaxHeight="350" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <Grid MinHeight="334" Margin="0,16,0,0">
+                        <!-- تم إزالة MinHeight و MaxHeight ليأخذ المساحة المتاحة فقط -->
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                            <Grid Margin="0,16,0,0">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" MinHeight="200" />
@@ -445,7 +413,7 @@
                     </TabItem>
                 </TabControl>
 
-                <DockPanel>
+                <DockPanel Grid.Row="1">
                     <WrapPanel DockPanel.Dock="Left" Orientation="Horizontal">
                         <Button Margin="0,0,8,8" Command="{Binding AddNewCommand}" Content="➕ جديد" Style="{StaticResource PrimaryButton}" />
                         <Button Margin="0,0,8,8" Command="{Binding EditSelectedCommand}" Content="✏️ تعديل" Style="{StaticResource SecondaryButton}" />
@@ -464,7 +432,7 @@
                     <TextBlock Margin="24,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold" Foreground="#5BAE7C"
                                Text="{Binding StatusMessage}" />
                 </DockPanel>
-            </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>
