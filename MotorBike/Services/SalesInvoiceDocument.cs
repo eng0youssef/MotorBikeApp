@@ -244,7 +244,7 @@ public class SalesInvoiceDocument : IDocument
                                 {
                                     c.Item().Text(label).FontSize(10).FontColor(Colors.Blue.Medium).AlignCenter();
                                     c.Item().PaddingTop(2).Text(string.IsNullOrWhiteSpace(value) ? "-" : value)
-                                      .FontSize(10).SemiBold().FontColor(Colors.Grey.Darken3).AlignCenter().DirectionFromLeftToRight();
+                                      .FontSize(10).Bold().FontColor(Colors.Grey.Darken3).AlignCenter().DirectionFromLeftToRight();
                                 }
                             });
                         }
@@ -317,9 +317,9 @@ public class SalesInvoiceDocument : IDocument
         var cell = table.Cell().Border(1).BorderColor(Colors.Grey.Medium).Padding(5).AlignCenter();
         bool containsArabic = val?.Any(c => c >= 0x0600 && c <= 0x06FF) ?? false;
         if (ltr || (!containsArabic && !string.IsNullOrWhiteSpace(val)))
-            cell.Text(val).FontSize(10).DirectionFromLeftToRight();
+            cell.Text(val).FontSize(10).Bold().DirectionFromLeftToRight();
         else
-            cell.Text(val).FontSize(10);
+            cell.Text(val).FontSize(10).Bold();
     }
 
     private void ComposeTotals(IContainer container)
@@ -350,11 +350,11 @@ public class SalesInvoiceDocument : IDocument
                         leftCol.Item().PaddingBottom(5).Column(c =>
                         {
                             c.Item().AlignCenter()
-                                .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                                .Text(label).Bold().FontSize(10).FontColor("#334155");
                             c.Item().PaddingTop(2)
                                 .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
                                 .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                .Text(value).FontSize(11).FontColor("#1E293B")
+                                .Text(value).FontSize(11).Bold().FontColor("#1E293B")
                                 .DirectionFromLeftToRight();
                         });
                     }
@@ -374,11 +374,11 @@ public class SalesInvoiceDocument : IDocument
                             rightRow.RelativeItem().PaddingHorizontal(3).Column(c =>
                             {
                                 c.Item().AlignCenter()
-                                    .Text(label).SemiBold().FontSize(10).FontColor("#334155");
+                                    .Text(label).Bold().FontSize(10).FontColor("#334155");
                                 c.Item().PaddingTop(3)
                                     .Border(0.5f).BorderColor(Colors.Black).CornerRadius(12)
                                     .PaddingVertical(3).PaddingHorizontal(6).AlignCenter()
-                                    .Text(value).FontSize(11).FontColor("#1E293B")
+                                    .Text(value).FontSize(11).Bold().FontColor("#1E293B")
                                     .DirectionFromLeftToRight();
                             });
                         }
