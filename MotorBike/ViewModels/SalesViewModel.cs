@@ -643,9 +643,11 @@ public partial class SalesViewModel : ObservableObject
             return;
         }
 
-        if (FormSubItems == null || !FormSubItems.Any())
+        bool hasSubItems = FormSubItems != null && FormSubItems.Any();
+        bool hasMaintenance = FormMaintenanceItems != null && FormMaintenanceItems.Any();
+        if (!hasSubItems && !hasMaintenance)
         {
-            StatusMessage = "⚠️ لا يمكن حفظ فاتورة بيع بدون إضافة أصناف.";
+            StatusMessage = "⚠️ لا يمكن حفظ فاتورة بيع بدون إضافة أصناف أو بنود صيانة.";
             return;
         }
 
@@ -1397,9 +1399,11 @@ public partial class SalesViewModel : ObservableObject
             System.Windows.MessageBox.Show("يجب حفظ الفاتورة أو اختيار فاتورة أولاً لطباعتها.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
         }
-        if (FormSubItems == null || !FormSubItems.Any())
+        bool hasSubItems = FormSubItems != null && FormSubItems.Any();
+        bool hasMaintenance = FormMaintenanceItems != null && FormMaintenanceItems.Any();
+        if (!hasSubItems && !hasMaintenance)
         {
-            System.Windows.MessageBox.Show("الفاتورة لا تحتوي على أصناف.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show("الفاتورة لا تحتوي على أصناف أو بنود صيانة.", "تنبيه", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             return;
         }
         try
