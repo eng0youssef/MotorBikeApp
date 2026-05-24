@@ -61,6 +61,7 @@ public class SalesInvoiceModel
     public string CarMotorNo { get; set; } = string.Empty;
     public string CarPlateNo { get; set; } = string.Empty;
     public int CarCC { get; set; }
+    public int Mileage { get; set; }
 }
 
 public class SalesInvoiceDocument : IDocument
@@ -224,20 +225,41 @@ public class SalesInvoiceDocument : IDocument
                 colContainer.Item().PaddingBottom(5).Border(1).CornerRadius(10).BorderColor(Colors.Grey.Lighten1).Padding(5).Column(carCol =>
                 {
                     carCol.Item().PaddingBottom(5).Text("بيانات الموتوسيكل").SemiBold().FontSize(12).FontColor(Colors.Blue.Darken2).AlignCenter();
-                    carCol.Item().Row(r =>
+                    carCol.Item().Table(table =>
                     {
-                        r.RelativeItem().Column(c => { c.Item().Text("السنة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarYear).FontSize(9).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("اللون").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarColor).FontSize(9).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("الطراز").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarModel).FontSize(9).SemiBold(); });
-                        r.RelativeItem().Column(c => { c.Item().Text("الماركة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarBrand).FontSize(9).SemiBold(); });
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
 
-                    });
-                    carCol.Item().PaddingTop(3).Row(r =>
-                    {
-                        r.RelativeItem(1).Column(c => { c.Item().Text("CC").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarCC > 0 ? _model.CarCC.ToString() + " سم3" : "-").FontSize(9).SemiBold().DirectionFromLeftToRight(); });
-                        r.RelativeItem(1).Column(c => { c.Item().Text("اللوحة").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarPlateNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
-                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الموتور").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarMotorNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
-                        r.RelativeItem(1.5f).Column(c => { c.Item().Text("الشاسيه").FontSize(10).FontColor(Colors.Blue.Medium); c.Item().Text(_model.CarChassisNo).FontSize(9).SemiBold().DirectionFromLeftToRight(); });
+                        void RenderCarField(string label, string value)
+                        {
+                            table.Cell().Border(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Column(c =>
+                            {
+                                if (!string.IsNullOrEmpty(label))
+                                {
+                                    c.Item().Text(label).FontSize(10).FontColor(Colors.Blue.Medium).AlignCenter();
+                                    c.Item().PaddingTop(2).Text(string.IsNullOrWhiteSpace(value) ? "-" : value)
+                                      .FontSize(10).SemiBold().FontColor(Colors.Grey.Darken3).AlignCenter().DirectionFromLeftToRight();
+                                }
+                            });
+                        }
+
+                        RenderCarField("الماركة", _model.CarBrand);
+                        RenderCarField("الطراز", _model.CarModel);
+                        RenderCarField("اللون", _model.CarColor);
+                        RenderCarField("السنة", _model.CarYear);
+                        RenderCarField("CC", _model.CarCC > 0 ? _model.CarCC.ToString() + " سم3" : "-");
+
+                        RenderCarField("الشاسيه", _model.CarChassisNo);
+                        RenderCarField("الموتور", _model.CarMotorNo);
+                        RenderCarField("اللوحة", _model.CarPlateNo);
+                        RenderCarField("العداد", _model.Mileage > 0 ? _model.Mileage.ToString() + " كم" : "-");
+                        RenderCarField("", "");
                     });                
                 });
             }

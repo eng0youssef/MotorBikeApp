@@ -1119,7 +1119,9 @@ public partial class SalesViewModel : ObservableObject
 
     private void CalculatePayedTotal()
     {
-        TotalPayed = FormPayments.Sum(p => p.PayMoney);
+        // بنود الصيانة الكاش يُعدّ سعر بيعها مدفوعًا فورًا من الخزينة
+        double maintCashPaid = FormMaintenanceItems?.Where(m => m.IsCash).Sum(m => m.Price) ?? 0;
+        TotalPayed = FormPayments.Sum(p => p.PayMoney) + maintCashPaid;
         UpdateRemaining();
     }
 
@@ -1353,6 +1355,9 @@ public partial class SalesViewModel : ObservableObject
         if (e.OldItems != null)
             foreach (SalesMaintenance m in e.OldItems)
                 m.PropertyChanged -= OnMaintenancePropertyChanged;
+
+        // إعادة حساب المدفوعات عند إضافة/حذف بند صيانة
+        CalculatePayedTotal();
     }
 
     private void OnMaintenancePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1360,6 +1365,11 @@ public partial class SalesViewModel : ObservableObject
         if (e.PropertyName == nameof(SalesMaintenance.Price) || e.PropertyName == nameof(SalesMaintenance.Cost))
         {
             CalculateTotals();
+        }
+        // إعادة حساب المدفوعات إذا تغيّرت الكاش أو سعر البيع
+        if (e.PropertyName == nameof(SalesMaintenance.IsCash) || e.PropertyName == nameof(SalesMaintenance.Price))
+        {
+            CalculatePayedTotal();
         }
     }
 
@@ -1420,7 +1430,7 @@ public partial class SalesViewModel : ObservableObject
             }
 
             var carDetails = await db.QueryFirstOrDefaultAsync<dynamic>(@"
-                SELECT b.BrandName, m.ModelName, c.ColorName, car.YearNo, car.ChassisNo, car.MotorNo, car.PlateNo, car.CC 
+                SELECT b.BrandName, m.ModelName, c.ColorName, car.YearNo, car.ChassisNo, car.MotorNo, car.PlateNo, car.CC, car.Mileage 
                 FROM Cars car
                 LEFT JOIN CarModels m ON car.ModelId = m.Model_ID
                 LEFT JOIN CarBrands b ON m.BrandID = b.Brand_ID
@@ -1454,7 +1464,8 @@ public partial class SalesViewModel : ObservableObject
                 CarChassisNo = carDetails?.ChassisNo ?? "",
                 CarMotorNo = carDetails?.MotorNo ?? "",
                 CarPlateNo = carDetails?.PlateNo ?? "",
-                CarCC = (int)(carDetails?.CC ?? 0)
+                CarCC = (int)(carDetails?.CC ?? 0),
+                Mileage = (int)(carDetails?.Mileage ?? 0)
             };
 
             foreach (var sub in FormSubItems)
