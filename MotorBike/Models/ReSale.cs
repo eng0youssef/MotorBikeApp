@@ -64,5 +64,11 @@ public partial class ReSale
     public virtual ICollection<ReSalesPayment> ReSalesPayments { get; set; } = new List<ReSalesPayment>();
 
     public virtual Customer Cus { get; set; } = null!;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }
 

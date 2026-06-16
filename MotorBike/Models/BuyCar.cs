@@ -53,4 +53,10 @@ public partial class BuyCar
     public string? EditPc { get; set; }
 
     public virtual ICollection<BuyCarPayment> BuyCarPayments { get; set; } = new List<BuyCarPayment>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }

@@ -223,7 +223,32 @@ public partial class ReSalesViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في تحميل البيانات المرتبطة: {ex.Message}"; }
     }
 
-    private async Task LoadInvoicesAsync() { Invoices = new ObservableCollection<ReSale>(await _reSaleRepository.GetAllAsync()); FilterInvoices(); }
+    private async Task LoadInvoicesAsync()
+    {
+        var dataList = (await _reSaleRepository.GetAllAsync()).ToList();
+
+        using var db = _dbFactory.CreateConnection();
+        var payments = await db.QueryAsync<ReSalesPayment>("SELECT SalesID, PayMoney FROM ReSales_Payments");
+        var paymentsGroups = payments.GroupBy(p => p.SalesId).ToDictionary(g => g.Key, g => g.Sum(p => p.PayMoney));
+
+        foreach (var s in dataList)
+        {
+            if (s.IsCash)
+            {
+                s.PaidAmount = s.Net;
+                s.RemainingAmount = 0;
+            }
+            else
+            {
+                paymentsGroups.TryGetValue(s.SalesId, out double paid);
+                s.PaidAmount = paid;
+                s.RemainingAmount = s.Net - paid;
+            }
+        }
+
+        Invoices = new ObservableCollection<ReSale>(dataList);
+        FilterInvoices();
+    }
 
     partial void OnSearchTextChanged(string value) => FilterInvoices();
     private void FilterInvoices()

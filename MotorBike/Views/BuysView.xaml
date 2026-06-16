@@ -812,6 +812,8 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Width="150" Binding="{Binding Net, StringFormat=\{0:N2\}}" Foreground="#5BAE7C" Header="الإجمالي" />
+                                <DataGridTextColumn Width="120" Binding="{Binding PaidAmount, StringFormat=\{0:N2\}}" Header="المدفوع" Foreground="#10B981" FontWeight="SemiBold" />
+                                <DataGridTextColumn Width="120" Binding="{Binding RemainingAmount, StringFormat=\{0:N2\}}" Header="الباقي" Foreground="#EF4444" FontWeight="SemiBold" />
                                 <DataGridTextColumn Width="*" Binding="{Binding Notes}" Header="الملاحظات" />
                             </DataGrid.Columns>
                         </DataGrid>

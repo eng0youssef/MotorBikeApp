@@ -62,5 +62,11 @@ public partial class ReBuy
     public virtual ICollection<ReBuyPayment> ReBuyPayments { get; set; } = new List<ReBuyPayment>();
 
     public virtual Supplier Supp { get; set; } = null!;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }
 

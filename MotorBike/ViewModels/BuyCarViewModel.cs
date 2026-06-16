@@ -265,8 +265,28 @@ public partial class BuyCarViewModel : ObservableObject
 
     private async Task LoadInvoicesAsync()
     {
-        var data = await _buyCarRepository.GetAllAsync();
-        Invoices = new ObservableCollection<BuyCar>(data);
+        var dataList = (await _buyCarRepository.GetAllAsync()).ToList();
+
+        using var db = _dbFactory.CreateConnection();
+        var payments = await db.QueryAsync<BuyCarPayment>("SELECT BuyID, PayMoney FROM Buy_Car_Payments");
+        var paymentsGroups = payments.GroupBy(p => p.BuyId).ToDictionary(g => g.Key, g => g.Sum(p => p.PayMoney));
+
+        foreach (var s in dataList)
+        {
+            if (s.IsCash)
+            {
+                s.PaidAmount = s.Net;
+                s.RemainingAmount = 0;
+            }
+            else
+            {
+                paymentsGroups.TryGetValue(s.BuyId, out double paid);
+                s.PaidAmount = paid;
+                s.RemainingAmount = s.Net - paid;
+            }
+        }
+
+        Invoices = new ObservableCollection<BuyCar>(dataList);
         FilterInvoices();
     }
 

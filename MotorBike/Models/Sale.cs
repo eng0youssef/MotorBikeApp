@@ -61,4 +61,10 @@ public partial class Sale
     public virtual ICollection<SalesSub> SalesSubs { get; set; } = new List<SalesSub>();
 
     public virtual ICollection<SalesPayment> SalesPayments { get; set; } = new List<SalesPayment>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }

@@ -395,7 +395,8 @@ public partial class InspectionsViewModel : LookupViewModelBase<Inspection>
             await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId);
 
             // Reload data
-            await LoadDataAsync();
+            var data = await _repository.GetAllAsync();
+            Items = new ObservableCollection<Inspection>(data);
             
             // Re-select the saved item
             var savedItem = Items.FirstOrDefault(i => i.InspId == FormItem.InspId);

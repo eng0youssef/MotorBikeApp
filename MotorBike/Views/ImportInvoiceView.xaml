@@ -825,10 +825,19 @@
                                 </Button>
                                 <Button Margin="0,0,12,0" Padding="16,10"
                                         Command="{Binding PrintInvoiceCommand}"
-                                        Content="🖨️ طـبـاعـة"
-                                        Style="{StaticResource SecondaryButton}">
-                                    <Button.Background>#0284C7</Button.Background>
-                                    <Button.Foreground>White</Button.Foreground>
+                                        Content="🖨️ طـبـاعـة">
+                                    <Button.Style>
+                                        <Style BasedOn="{StaticResource SecondaryButton}" TargetType="Button">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Setter Property="Background" Value="#0284C7" />
+                                            <Setter Property="Foreground" Value="White" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedInvoice}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
                                 </Button>
                                 <Button Margin="0,0,12,0" Padding="16,10" Command="{Binding SaveCommand}" Content="💾 حـفـظ">
                                     <Button.Style>

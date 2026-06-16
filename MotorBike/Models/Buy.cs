@@ -63,5 +63,11 @@ public partial class Buy
     public virtual ICollection<BuyPayment> BuyPayments { get; set; } = new List<BuyPayment>();
 
     public virtual Supplier Supp { get; set; } = null!;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }
 

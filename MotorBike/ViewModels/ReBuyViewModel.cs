@@ -221,7 +221,32 @@ public partial class ReBuyViewModel : ObservableObject
         catch (Exception ex) { StatusMessage = $"خطأ في تحميل البيانات المرتبطة: {ex.Message}"; }
     }
 
-    private async Task LoadInvoicesAsync() { Invoices = new ObservableCollection<ReBuy>(await _reBuyRepository.GetAllAsync()); FilterInvoices(); }
+    private async Task LoadInvoicesAsync()
+    {
+        var dataList = (await _reBuyRepository.GetAllAsync()).ToList();
+
+        using var db = _dbFactory.CreateConnection();
+        var payments = await db.QueryAsync<ReBuyPayment>("SELECT BuyID, PayMoney FROM ReBuy_Payments");
+        var paymentsGroups = payments.GroupBy(p => p.BuyId).ToDictionary(g => g.Key, g => g.Sum(p => p.PayMoney));
+
+        foreach (var s in dataList)
+        {
+            if (s.IsCash)
+            {
+                s.PaidAmount = s.Net;
+                s.RemainingAmount = 0;
+            }
+            else
+            {
+                paymentsGroups.TryGetValue(s.BuyId, out double paid);
+                s.PaidAmount = paid;
+                s.RemainingAmount = s.Net - paid;
+            }
+        }
+
+        Invoices = new ObservableCollection<ReBuy>(dataList);
+        FilterInvoices();
+    }
 
     partial void OnSearchTextChanged(string value) => FilterInvoices();
     private void FilterInvoices()

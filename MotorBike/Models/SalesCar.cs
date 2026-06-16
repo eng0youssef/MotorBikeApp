@@ -49,4 +49,10 @@ public partial class SalesCar
     public virtual Customer Cus { get; set; } = null!;
 
     public virtual ICollection<SalesCarPayment> SalesCarPayments { get; set; } = new List<SalesCarPayment>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double PaidAmount { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public double RemainingAmount { get; set; }
 }
