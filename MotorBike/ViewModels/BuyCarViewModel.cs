@@ -115,6 +115,33 @@ public partial class BuyCarViewModel : ObservableObject
     // Existing car selection
     [ObservableProperty] private ObservableCollection<Car> _sourceCars = [];
     [ObservableProperty] private int _selectedExistingCarId;
+    [ObservableProperty] private string _carSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Car> _filteredSourceCarsList = [];
+    [ObservableProperty] private bool _isCarSearchPopupOpen;
+
+    partial void OnCarSearchTextChanged(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            FilteredSourceCarsList = new ObservableCollection<Car>(SourceCars);
+        }
+        else
+        {
+            FilteredSourceCarsList = new ObservableCollection<Car>(SourceCars.Where(c => 
+                (c.ChassisNo != null && c.ChassisNo.Contains(value)) || 
+                (c.PlateNo != null && c.PlateNo.Contains(value))));
+        }
+        IsCarSearchPopupOpen = FilteredSourceCarsList.Count > 0;
+    }
+
+    [RelayCommand]
+    private void SelectExistingCar(Car car)
+    {
+        if (car == null) return;
+        SelectedExistingCarId = car.CarId;
+        CarSearchText = $"شاسيه: {car.ChassisNo}";
+        IsCarSearchPopupOpen = false;
+    }
 
     // ── Payments ──────────────────────────────────────────────────────────
     [ObservableProperty] private ObservableCollection<BuyCarPayment> _formPayments = [];
@@ -447,6 +474,9 @@ public partial class BuyCarViewModel : ObservableObject
         IsFromCustomer = false; IsExistingCar = false;
         SelectedSupplierId = 0; SelectedSourceCustomerId = 0; SelectedExistingCarId = 0;
         SourceCars.Clear();
+        FilteredSourceCarsList.Clear();
+        CarSearchText = string.Empty;
+        IsCarSearchPopupOpen = false;
 
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty; IsSupplierSearchPopupOpen = false;
@@ -496,6 +526,9 @@ public partial class BuyCarViewModel : ObservableObject
         IsFromCustomer = false; IsExistingCar = false;
         SelectedSupplierId = 0; SelectedSourceCustomerId = 0; SelectedExistingCarId = 0;
         SourceCars.Clear();
+        FilteredSourceCarsList.Clear();
+        CarSearchText = string.Empty;
+        IsCarSearchPopupOpen = false;
 
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty; IsSupplierSearchPopupOpen = false;
@@ -1004,6 +1037,7 @@ public partial class BuyCarViewModel : ObservableObject
                 cars = [];
 
             SourceCars = new ObservableCollection<Car>(cars);
+            FilteredSourceCarsList = new ObservableCollection<Car>(SourceCars);
         }
         catch (Exception ex) { StatusMessage = $"خطأ في تحميل الموتوسيكلات: {ex.Message}"; }
     }

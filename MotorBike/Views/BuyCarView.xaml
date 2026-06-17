@@ -98,7 +98,7 @@
         <!--  FORM SECTION  -->
         <!--  ════════════════════════════════════════════════════════════════  -->
         <Grid Style="{StaticResource FormContainerStyle}">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" ScrollChanged="ScrollViewer_ScrollChanged" VerticalScrollBarVisibility="Auto">
                 <Border Style="{StaticResource FormCard}">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="24" Direction="270" Opacity="0.04" ShadowDepth="4" Color="#0F172A" />
@@ -491,21 +491,59 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center" FontSize="13" Foreground="#9BA4B5"
                                                Text="اختر الموتوسيكل:" />
-                                    <ComboBox Grid.Column="1" Padding="8,5" FontSize="13"
-                                              ItemsSource="{Binding SourceCars}"
-                                              SelectedValue="{Binding SelectedExistingCarId}"
-                                              SelectedValuePath="CarId">
-                                        <ComboBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock>
-                                                    <Run Text="{Binding ChassisNo, Mode=OneWay}" />
-                                                    <Run Foreground="#7B84A0" Text=" — " />
-                                                    <Run Foreground="#9BA4B5"
-                                                         Text="{Binding MotorNo, Mode=OneWay}" />
-                                                </TextBlock>
-                                            </DataTemplate>
-                                        </ComboBox.ItemTemplate>
-                                    </ComboBox>
+                                    <Grid Grid.Column="1">
+                                        <TextBox x:Name="CarSearchBox" Padding="8,5" FontSize="13" GotFocus="CarSearch_GotFocus"
+                                                 Style="{StaticResource FormTextBox}"
+                                                 Text="{Binding CarSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                 ToolTip="ابحث عن الموتوسيكل بالشاسيه أو اللوحة" />
+                                        <Popup x:Name="CarSearchPopup"
+                                               Width="{Binding ActualWidth, ElementName=CarSearchBox}"
+                                               AllowsTransparency="True"
+                                               IsOpen="{Binding IsCarSearchPopupOpen}"
+                                               Placement="Bottom"
+                                               PlacementTarget="{Binding ElementName=CarSearchBox}"
+                                               StaysOpen="False">
+                                            <Border MaxHeight="250" Background="#2F3549" BorderBrush="#4A5270" BorderThickness="1" CornerRadius="10">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="16" Direction="270" Opacity="0.2" ShadowDepth="4" Color="#000000" />
+                                                </Border.Effect>
+                                                <ListBox Background="Transparent" BorderThickness="0" ItemsSource="{Binding FilteredSourceCarsList}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                                    <ListBox.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Padding="10,8" Cursor="Hand">
+                                                                <StackPanel>
+                                                                    <TextBlock FontSize="13" Foreground="#C8CEE0">
+                                                                        <Run Text="{Binding ChassisNo, StringFormat='شاسيه: {0}', Mode=OneWay}" />
+                                                                    </TextBlock>
+                                                                    <TextBlock Margin="0,2,0,0" FontSize="11" Foreground="#9BA4B5">
+                                                                        <TextBlock.Text>
+                                                                            <MultiBinding StringFormat="{}لوحة: {0}  |  موتور: {1}">
+                                                                                <Binding Path="PlateNo" />
+                                                                                <Binding Path="MotorNo" />
+                                                                            </MultiBinding>
+                                                                        </TextBlock.Text>
+                                                                    </TextBlock>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ListBox.ItemTemplate>
+                                                    <ListBox.ItemContainerStyle>
+                                                        <Style TargetType="ListBoxItem">
+                                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                            <Setter Property="Padding" Value="0" />
+                                                            <Setter Property="Background" Value="Transparent" />
+                                                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="SearchCar_Click" />
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#323F58" />
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ListBox.ItemContainerStyle>
+                                                </ListBox>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
                                 </Grid>
                             </StackPanel>
                         </Border>
