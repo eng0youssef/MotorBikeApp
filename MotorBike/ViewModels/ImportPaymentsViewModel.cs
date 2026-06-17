@@ -25,6 +25,23 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
     [ObservableProperty] private ObservableCollection<Cash> _cashList = [];
     [ObservableProperty] private ObservableCollection<Omla> _omlas = [];
     [ObservableProperty] private ObservableCollection<ImportInvoice> _invoices = [];
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentCashBalance;
+
+    public int? SelectedCashId
+    {
+        get => FormItem?.CashId;
+        set
+        {
+            if (FormItem != null && FormItem.CashId != value)
+            {
+                FormItem.CashId = value ?? 0;
+                OnPropertyChanged(nameof(SelectedCashId));
+                CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
+
 
     // Fields for tracking old values
     private int? _oldSuppId;
@@ -40,10 +57,12 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
             FormItem.OmlaId = value.OmlaId;
             FormItem.OmlaRate = value.OmlaRate;
             FilterCashByOmla(value.OmlaId);
+            CurrentSupplierBalance = value.Bal ?? 0;
         }
         else
         {
             CashList = new ObservableCollection<Cash>(_allCash);
+            CurrentSupplierBalance = 0;
         }
     }
 
@@ -55,7 +74,11 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
         // Default to first available cash in filtered list if current CashId is not in it
         if (filtered.Any() && !filtered.Any(c => c.CashId == FormItem.CashId))
         {
-            FormItem.CashId = filtered.First().CashId;
+            SelectedCashId = filtered.First().CashId;
+        }
+        else if (FormItem != null)
+        {
+            CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == FormItem.CashId)?.Bal ?? 0;
         }
     }
 
@@ -103,6 +126,9 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
             // Update SelectedSupplier without triggering circular loop too much
             // Selecting via Suppliers collection to get the object with the same ID
             SelectedSupplier = Suppliers.FirstOrDefault(s => s.SuppId == value.SuppId);
+            
+            CurrentCashBalance = CashList.FirstOrDefault(c => c.CashId == value.CashId)?.Bal ?? 0;
+            OnPropertyChanged(nameof(SelectedCashId));
         }
     }
 
@@ -164,6 +190,9 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
         // إعادة حساب رصيد الخزينة الحالية
         if (FormItem.CashId > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(FormItem.CashId);
+
+        await LoadRelatedDataAsync();
+        OnFormItemChangedHook(FormItem);
     }
 
     protected override Task BeforeDeleteAsync()
@@ -185,6 +214,9 @@ public partial class ImportPaymentsViewModel : LookupViewModelBase<ImportPayment
 
         if (_oldCashId.HasValue && _oldCashId.Value > 0)
             await _compositeRepo.RecalcBalanceForCashAsync(_oldCashId.Value);
+
+        await LoadRelatedDataAsync();
+        OnFormItemChangedHook(FormItem);
     }
 
     [RelayCommand]

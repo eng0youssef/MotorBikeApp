@@ -519,7 +519,7 @@
                                 <TextBlock Margin="0,0,16,0" VerticalAlignment="Center" FontSize="16" FontWeight="Bold" Foreground="#5BAE7C" Text="💳 اختر الخزينة التي سيتم ايداع المبلغ (كاش) فيها:" />
                                 <ComboBox MinWidth="250" Padding="16,10" Background="#272C3F" BorderBrush="#1C5E46" BorderThickness="1" DisplayMemberPath="CashName" FontSize="15" FontWeight="SemiBold"
                                           ItemsSource="{Binding Cashes}"
-                                          SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}"
                                           SelectedValuePath="CashId" />
                                 <TextBlock Margin="16,0,0,0" VerticalAlignment="Center" FontSize="15" FontWeight="Bold" Foreground="#047857"
                                            Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
@@ -755,7 +755,7 @@
                             <Grid Grid.Column="2" Margin="0,0,10,0">
                                 <TextBlock Style="{StaticResource FloatingLabel}" Text="الخزينة" />
                                 <StackPanel>
-                                    <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged}" SelectedValuePath="CashId" />
+                                    <ComboBox DisplayMemberPath="CashName" ItemsSource="{Binding Cashes}" SelectedValue="{Binding SelectedCashId, UpdateSourceTrigger=PropertyChanged, FallbackValue=0}" SelectedValuePath="CashId" />
                                     <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#047857"
                                                Text="{Binding CurrentSafeBalance, StringFormat='رصيد الخزينة: {0:N2}'}" />
                                 </StackPanel>

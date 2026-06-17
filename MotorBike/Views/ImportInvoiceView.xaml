@@ -127,7 +127,8 @@
                                        Style="{StaticResource FormLabel}"
                                        Text="المورد" />
                             <!--  Supplier Smart Search  -->
-                            <Grid Grid.Row="0" Grid.Column="7">
+                            <StackPanel Grid.Row="0" Grid.Column="7" VerticalAlignment="Center">
+                                <Grid>
                                 <TextBox x:Name="SupplierSearchBox" Padding="8,6" GotFocus="SupplierSearch_GotFocus"
                                          Style="{StaticResource FormTextBox}"
                                          Text="{Binding SupplierSearchText, UpdateSourceTrigger=PropertyChanged}"
@@ -167,6 +168,8 @@
                                     </Border>
                                 </Popup>
                             </Grid>
+                            <TextBlock Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="#E8A54B" Text="{Binding CurrentSupplierBalance, StringFormat='رصيد المورد: {0:N2}'}" />
+                        </StackPanel>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
                                        Style="{StaticResource FormLabel}"
@@ -560,10 +563,13 @@
                                             </Grid>
                                             <Grid Grid.Column="1" Margin="0,0,8,0">
                                                 <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الخزنة المسدد منها" />
-                                                <ComboBox Padding="8,6" DisplayMemberPath="CashName" FontSize="13"
-                                                          ItemsSource="{Binding CashList}"
-                                                          SelectedValue="{Binding CurrentSubExp.CashId}"
-                                                          SelectedValuePath="CashId" />
+                                                <StackPanel>
+                                                    <ComboBox Padding="8,6" DisplayMemberPath="CashName" FontSize="13"
+                                                              ItemsSource="{Binding CashList}"
+                                                              SelectedValue="{Binding SelectedExpCashId, UpdateSourceTrigger=PropertyChanged}"
+                                                              SelectedValuePath="CashId" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="11" FontWeight="SemiBold" Foreground="#10B981" Text="{Binding CurrentExpCashBalance, StringFormat='الرصيد: {0:N2}'}" />
+                                                </StackPanel>
                                             </Grid>
                                             <Grid Grid.Column="2" Margin="0,0,8,0">
                                                 <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="المبلغ المدفوع" />
@@ -646,10 +652,13 @@
                                             </Grid>
                                             <Grid Grid.Column="1" Margin="0,0,8,0">
                                                 <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="الخزنة المسدد منها" />
-                                                <ComboBox Padding="8,6" DisplayMemberPath="CashName" FontSize="13"
-                                                          ItemsSource="{Binding FilteredPaymentCashList}"
-                                                          SelectedValue="{Binding CurrentSubPayment.CashId}"
-                                                          SelectedValuePath="CashId" />
+                                                <StackPanel>
+                                                    <ComboBox Padding="8,6" DisplayMemberPath="CashName" FontSize="13"
+                                                              ItemsSource="{Binding FilteredPaymentCashList}"
+                                                              SelectedValue="{Binding SelectedPaymentCashId, UpdateSourceTrigger=PropertyChanged}"
+                                                              SelectedValuePath="CashId" />
+                                                    <TextBlock Margin="0,4,0,0" FontSize="11" FontWeight="SemiBold" Foreground="#10B981" Text="{Binding CurrentPaymentCashBalance, StringFormat='الرصيد: {0:N2}'}" />
+                                                </StackPanel>
                                             </Grid>
                                             <Grid Grid.Column="2" Margin="0,0,8,0">
                                                 <TextBlock Margin="2,-16,0,0" FontSize="11" Foreground="#9BA4B5" Text="المبلغ المدفوع" />

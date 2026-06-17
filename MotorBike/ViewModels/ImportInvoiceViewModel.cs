@@ -78,6 +78,38 @@ public partial class ImportInvoiceViewModel : ObservableObject
     [ObservableProperty] private bool _isSearchPanelVisible;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
+    [ObservableProperty] private double _currentSupplierBalance;
+    [ObservableProperty] private double _currentExpCashBalance;
+    [ObservableProperty] private double _currentPaymentCashBalance;
+
+    public int? SelectedExpCashId
+    {
+        get => CurrentSubExp?.CashId;
+        set
+        {
+            if (CurrentSubExp != null && CurrentSubExp.CashId != value)
+            {
+                CurrentSubExp.CashId = value ?? 0;
+                OnPropertyChanged(nameof(SelectedExpCashId));
+                CurrentExpCashBalance = CashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
+
+    public int? SelectedPaymentCashId
+    {
+        get => CurrentSubPayment?.CashId;
+        set
+        {
+            if (CurrentSubPayment != null && CurrentSubPayment.CashId != value)
+            {
+                CurrentSubPayment.CashId = value ?? 0;
+                OnPropertyChanged(nameof(SelectedPaymentCashId));
+                CurrentPaymentCashBalance = FilteredPaymentCashList.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
+    }
+
     // Tracks if current form item is a new record or modifying an existing one
     private bool _isNewInvoice = true;
     private int? _oldSuppId; // لتتبع المورد القديم عند التعديل
@@ -361,6 +393,7 @@ public partial class ImportInvoiceViewModel : ObservableObject
         FormItem.SuppId = supplier.SuppId;
         SupplierSearchText = supplier.SuppName;
         IsSupplierSearchPopupOpen = false;
+        CurrentSupplierBalance = supplier.Bal ?? 0;
         _isSelectingSupplier = false;
 
         // ── تحديث العملة وسعر الصرف والخزائن ─────────────────────────────
@@ -605,7 +638,14 @@ public partial class ImportInvoiceViewModel : ObservableObject
 
         CurrentSubPayment = new ImportPayment { PayDate = DateTime.Now, OmlaRate = 1 };
         if (Omlas.Any()) CurrentSubPayment.OmlaId = Omlas.First().OmlaId;
-        if (CashList.Any()) CurrentSubPayment.CashId = CashList.First().CashId;
+        if (FilteredPaymentCashList.Any()) CurrentSubPayment.CashId = FilteredPaymentCashList.First().CashId;
+        else if (CashList.Any()) CurrentSubPayment.CashId = CashList.First().CashId;
+        
+        OnPropertyChanged(nameof(SelectedExpCashId));
+        CurrentExpCashBalance = CashList.FirstOrDefault(c => c.CashId == SelectedExpCashId)?.Bal ?? 0;
+        
+        OnPropertyChanged(nameof(SelectedPaymentCashId));
+        CurrentPaymentCashBalance = FilteredPaymentCashList.FirstOrDefault(c => c.CashId == SelectedPaymentCashId)?.Bal ?? 0;
     }
 
     [RelayCommand(CanExecute = nameof(CanEditOrDelete))]
@@ -639,7 +679,9 @@ public partial class ImportInvoiceViewModel : ObservableObject
                 FormItem = inv;
                 _oldSuppId = inv.SuppId;
                 _isSelectingSupplier = true;
-                SupplierSearchText = Suppliers.FirstOrDefault(s => s.SuppId == inv.SuppId)?.SuppName ?? string.Empty;
+                var s = Suppliers.FirstOrDefault(sup => sup.SuppId == inv.SuppId);
+                SupplierSearchText = s?.SuppName ?? string.Empty;
+                CurrentSupplierBalance = s?.Bal ?? 0;
                 IsSupplierSearchPopupOpen = false;
                 _isSelectingSupplier = false;
                 
@@ -1310,6 +1352,21 @@ public partial class ImportInvoiceViewModel : ObservableObject
             }
             foreach (var cashId in affectedCashIds)
                 await _compositeRepo.RecalcBalanceForCashAsync(cashId);
+
+            // تحديث أرصدة الواجهة بعد الحفظ
+            var liveSupplier = await _supplierRepo.GetByIdAsync(FormItem.SuppId);
+            if (liveSupplier != null) CurrentSupplierBalance = liveSupplier.Bal ?? 0;
+            
+            if (SelectedExpCashId.HasValue)
+            {
+                var liveCash = await _cashRepo.GetByIdAsync(SelectedExpCashId.Value);
+                if (liveCash != null) CurrentExpCashBalance = liveCash.Bal ?? 0;
+            }
+            if (SelectedPaymentCashId.HasValue)
+            {
+                var liveCash = await _cashRepo.GetByIdAsync(SelectedPaymentCashId.Value);
+                if (liveCash != null) CurrentPaymentCashBalance = liveCash.Bal ?? 0;
+            }
 
             StatusMessage = "تم حفظ فاتورة الاستيراد بنجاح ✓ ";
             var invs = await _invoiceRepo.GetAllAsync();

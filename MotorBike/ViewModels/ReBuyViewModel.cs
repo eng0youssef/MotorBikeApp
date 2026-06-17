@@ -62,15 +62,22 @@ public partial class ReBuyViewModel : ObservableObject
     [ObservableProperty] private bool _isCashPaymentMode;
     partial void OnIsCashPaymentModeChanged(bool value) => HandleCashModeChanged();
 
-    [ObservableProperty] private int _selectedCashId;
     [ObservableProperty] private double _currentSupplierBalance;
     [ObservableProperty] private double _currentSafeBalance;
 
-    partial void OnSelectedCashIdChanged(int value)
+    private int _selectedCashId;
+    public int SelectedCashId
     {
-        if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
-        if (CurrentPayment != null) CurrentPayment.CashId = value;
-        CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+        get => _selectedCashId;
+        set
+        {
+            if (SetProperty(ref _selectedCashId, value))
+            {
+                if (FormPayments != null && FormPayments.Any()) FormPayments[0].CashId = value;
+                if (CurrentPayment != null) CurrentPayment.CashId = value;
+                CurrentSafeBalance = Cashes.FirstOrDefault(c => c.CashId == value)?.Bal ?? 0;
+            }
+        }
     }
 
     [ObservableProperty] private bool _isInvoiceDiscountPer = true;
@@ -374,7 +381,7 @@ public partial class ReBuyViewModel : ObservableObject
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty;
         CurrentSupplierBalance = 0;
-        CurrentSafeBalance = 0;
+
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
         
@@ -416,7 +423,7 @@ public partial class ReBuyViewModel : ObservableObject
         _isSelectingSupplier = true;
         SupplierSearchText = string.Empty;
         CurrentSupplierBalance = 0;
-        CurrentSafeBalance = 0;
+
         SelectedCashId = 0;
         IsSupplierSearchPopupOpen = false;
         _isSelectingSupplier = false;
@@ -646,7 +653,7 @@ public partial class ReBuyViewModel : ObservableObject
             FormPayments.Clear();
             SelectedInvoice = null;
             CurrentSupplierBalance = 0;
-            CurrentSafeBalance = 0;
+
             SelectedCashId = 0;
             await LoadInvoicesAsync();
         }
