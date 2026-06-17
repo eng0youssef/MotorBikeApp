@@ -240,14 +240,14 @@ public partial class ImportReportsViewModel : ObservableObject
                     FROM (
                         -- فواتير الاستيراد (الشحنات)
                         SELECT InvDate AS SortDate, CAST(Inv_ID AS VARCHAR) AS RefNo, N'فاتورة استيراد' AS TransType, ISNULL(InvName, '') AS Details, 
-                               0 AS Debit, ISNULL(InvTotal * OmlaRate, 0) AS Credit 
+                               0 AS Debit, ISNULL(InvTotal, 0) AS Credit 
                         FROM Import_Invoice WHERE SuppID = @SuppId AND InvDate >= @FromDate AND InvDate <= @ToDate
                         
                         UNION ALL
                         
                         -- مدفوعات المورد
                         SELECT PayDate AS SortDate, CAST(Pay_ID AS VARCHAR) AS RefNo, N'دفعة لمورد' AS TransType, ISNULL(Notes, '') AS Details, 
-                               ISNULL(PayMoney * OmlaRate, 0) AS Debit, 0 AS Credit
+                               ISNULL(PayMoney, 0) AS Debit, 0 AS Credit
                         FROM Import_Payments WHERE SuppID = @SuppId AND PayDate >= @FromDate AND PayDate <= @ToDate
                     ) T
                     ORDER BY SortDate ASC";
@@ -643,8 +643,8 @@ public partial class ImportReportsViewModel : ObservableObject
         double suppIniCredit = Convert.ToDouble(suppInfo?.Credit ?? 0);
 
         // ما قبله
-        double prevInv = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(InvTotal * OmlaRate),0) FROM Import_Invoice WHERE SuppID=@SuppId AND InvDate<@FromDate", opParams);
-        double prevPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney * OmlaRate),0) FROM Import_Payments WHERE SuppID=@SuppId AND PayDate<@FromDate", opParams);
+        double prevInv = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(InvTotal),0) FROM Import_Invoice WHERE SuppID=@SuppId AND InvDate<@FromDate", opParams);
+        double prevPay = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(PayMoney),0) FROM Import_Payments WHERE SuppID=@SuppId AND PayDate<@FromDate", opParams);
 
         double prevDebit  = prevPay;
         double prevCredit = prevInv;
@@ -689,7 +689,7 @@ public partial class ImportReportsViewModel : ObservableObject
         var invoices = await db.QueryAsync<dynamic>(@"
             SELECT Inv_ID AS Id, InvDate AS TxDate, CAST(Inv_ID AS VARCHAR) AS RefNo,
                    N'فاتورة استيراد' AS TransType, ISNULL(InvName,'') AS Notes,
-                   (InvTotal * OmlaRate) AS Credit, OmlaRate
+                   InvTotal AS Credit, OmlaRate
             FROM Import_Invoice
             WHERE SuppID=@SuppId AND InvDate>=@FromDate AND InvDate<=@ToDate", txParams);
 
@@ -720,15 +720,15 @@ public partial class ImportReportsViewModel : ObservableObject
                 itemsList.Add(new InvoiceSubItem {
                     ItemName = item.ItemName,
                     Qty = Convert.ToDouble(item.Qty),
-                    Price = Convert.ToDouble(item.Price) * omlaRate, // local currency equivalent
-                    Total = Convert.ToDouble(item.Total) * omlaRate
+                    Price = Convert.ToDouble(item.Price), // foreign currency as-is
+                    Total = Convert.ToDouble(item.Total)
                 });
             }
             foreach(var car in subCars) {
                 itemsList.Add(new InvoiceSubItem {
                     ItemName = car.ItemName + (string.IsNullOrEmpty(car.ChassisNo) ? "" : $" (شاسيه: {car.ChassisNo})"),
                     Qty = 1,
-                    Total = Convert.ToDouble(car.Total) * omlaRate
+                    Total = Convert.ToDouble(car.Total)
                 });
             }
 
@@ -749,7 +749,7 @@ public partial class ImportReportsViewModel : ObservableObject
 
             // مدفوعات مرتبطة بالشحنة
             var invPays = await db.QueryAsync<dynamic>(
-                "SELECT CAST(Pay_ID AS VARCHAR) AS RefNo, PayDate, (PayMoney * OmlaRate) AS Debit, ISNULL(Notes,'') AS Notes FROM Import_Payments WHERE InvId=@InvId", new { InvId = invId });
+                "SELECT CAST(Pay_ID AS VARCHAR) AS RefNo, PayDate, PayMoney AS Debit, ISNULL(Notes,'') AS Notes FROM Import_Payments WHERE InvId=@InvId", new { InvId = invId });
             foreach (var p_item in invPays)
             {
                 double d = Convert.ToDouble(p_item.Debit);
@@ -769,7 +769,7 @@ public partial class ImportReportsViewModel : ObservableObject
         // 4. مدفوعات أخرى (غير مرتبطة بشحنة محددة)
         var otherPays = await db.QueryAsync<dynamic>(@"
             SELECT PayDate, CAST(Pay_ID AS VARCHAR) AS RefNo, N'دفعة لمورد' AS TransType, ISNULL(Notes,'') AS Notes,
-                   (PayMoney * OmlaRate) AS Debit
+                   PayMoney AS Debit
             FROM Import_Payments
             WHERE SuppID=@SuppId AND PayDate>=@FromDate AND PayDate<=@ToDate AND InvId IS NULL", txParams);
 
