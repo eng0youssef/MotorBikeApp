@@ -431,8 +431,26 @@ public partial class PurchasesReportsViewModel : ObservableObject
                                CASE WHEN PayType IN (1, 3) THEN PayMoney ELSE 0 END,
                                CASE WHEN PayType IN (0, 2) THEN PayMoney ELSE 0 END
                         FROM Supp_Payments WHERE SuppId = @SuppId AND PayDate >= @FromDate AND PayDate <= @ToDate
+
+                        UNION ALL
+
+                        -- خدمات صيانة من المورد
+                        SELECT S.SalesDate, CAST(SM.SalesId AS VARCHAR), N'خدمة صيانة', N'', SUM(SM.Cost), 0
+                        FROM Sales_Maintenance SM
+                        INNER JOIN Sales S ON SM.SalesId = S.Sales_ID
+                        WHERE SM.SuppId = @SuppId AND S.SalesDate >= @FromDate AND S.SalesDate <= @ToDate
+                        GROUP BY S.SalesDate, SM.SalesId
+
+                        UNION ALL
+
+                        -- مدفوعات خدمات الصيانة الكاش
+                        SELECT S.SalesDate, CAST(SM.SalesId AS VARCHAR), N'سداد خدمة صيانة', N'دفع نقدي', 0, SUM(SM.Cost)
+                        FROM Sales_Maintenance SM
+                        INNER JOIN Sales S ON SM.SalesId = S.Sales_ID
+                        WHERE SM.SuppId = @SuppId AND SM.IsCash = 1 AND S.SalesDate >= @FromDate AND S.SalesDate <= @ToDate
+                        GROUP BY S.SalesDate, SM.SalesId
                     ) T
-                    ORDER BY SortDate ASC";
+                    ORDER BY SortDate ASC, RefNo ASC, CASE WHEN TransType LIKE N'%سداد%' THEN 2 ELSE 1 END ASC";
             }
             // ── 5. كشف حساب تفصيلي للمورد ────────────────────────────────
             else if (SelectedReportType == "كشف حساب تفصيلي للمورد")
@@ -698,6 +716,30 @@ public partial class PurchasesReportsViewModel : ObservableObject
 
                         UNION ALL
 
+                        -- خدمات صيانة من المورد (مدين)
+                        SELECT SM.SuppId, SM.Cost AS Net
+                        FROM Sales_Maintenance SM
+                        INNER JOIN Sales S ON SM.SalesId = S.Sales_ID
+                        WHERE SM.SuppId IS NOT NULL
+                          AND S.SalesDate >= @FromDate AND S.SalesDate <= @ToDate
+
+                        UNION ALL
+
+                        -- مدفوعات خدمات الصيانة الكاش (دائن)
+                        SELECT SM.SuppId, -SM.Cost AS Net
+                        FROM Sales_Maintenance SM
+                        INNER JOIN Sales S ON SM.SalesId = S.Sales_ID
+                        WHERE SM.SuppId IS NOT NULL AND SM.IsCash = 1
+                          AND S.SalesDate >= @FromDate AND S.SalesDate <= @ToDate
+
+                        -- سداد مع مرتجع الشراء (مدين)
+                        SELECT RB.SuppId, RP.PayMoney
+                        FROM ReBuy_Payments RP
+                        INNER JOIN ReBuy RB ON RP.BuyID = RB.Buy_ID
+                        WHERE RP.PayDate >= @FromDate AND RP.PayDate <= @ToDate
+
+                        UNION ALL
+
                         -- مدفوعات ومتحصلات منفصلة للمورد
                         SELECT SuppId,
                                CASE WHEN PayType IN (0, 2) THEN -PayMoney ELSE PayMoney END
@@ -757,11 +799,14 @@ public partial class PurchasesReportsViewModel : ObservableObject
                 double prevBuyCarPay  = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney), 0) FROM Buy_Car_Payments BCP INNER JOIN Buy_Car BC ON BCP.BuyID = BC.Buy_ID INNER JOIN Cars C ON BC.CarID = C.Car_ID WHERE C.IsLocalSupplier = 1 AND C.SupplierId = @SuppId AND BCP.PayDate < @FromDate", opParams);
                 double prevReBuyPay   = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(RP.PayMoney), 0) FROM ReBuy_Payments RP JOIN ReBuy RB ON RP.BuyID = RB.Buy_ID WHERE RB.SuppId = @SuppId AND RP.PayDate < @FromDate", opParams);
 
+                double prevMaintCost  = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SM.Cost), 0) FROM Sales_Maintenance SM INNER JOIN Sales S ON SM.SalesId = S.Sales_ID WHERE SM.SuppId = @SuppId AND S.SalesDate < @FromDate", opParams);
+                double prevMaintPay   = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SM.Cost), 0) FROM Sales_Maintenance SM INNER JOIN Sales S ON SM.SalesId = S.Sales_ID WHERE SM.SuppId = @SuppId AND SM.IsCash = 1 AND S.SalesDate < @FromDate", opParams);
+
                 DateTime openDate    = (supplierInfo?.OpenDate != null) ? Convert.ToDateTime((object?)supplierInfo.OpenDate) : new DateTime(1900, 1, 1);
                 bool openDateBefore  = openDate < queryFromDate;
 
-                double prevDebit  = prevBuys + prevBuysCar + prevPayDebit + prevReBuyPay + (openDateBefore ? suppIniDebit : 0);
-                double prevCredit = prevReBuys + prevPayCredit + prevBuyPay + prevBuyCarPay + (openDateBefore ? suppIniCredit : 0);
+                double prevDebit  = prevBuys + prevBuysCar + prevPayDebit + prevReBuyPay + prevMaintCost + (openDateBefore ? suppIniDebit : 0);
+                double prevCredit = prevReBuys + prevPayCredit + prevBuyPay + prevBuyCarPay + prevMaintPay + (openDateBefore ? suppIniCredit : 0);
 
                 if (dt.Columns.Contains("SortDate")) dt.Columns["SortDate"]!.AllowDBNull = true;
 
@@ -1092,11 +1137,14 @@ public partial class PurchasesReportsViewModel : ObservableObject
         double prevCarPay    = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(BCP.PayMoney),0) FROM Buy_Car_Payments BCP INNER JOIN Buy_Car BC ON BCP.BuyID=BC.Buy_ID INNER JOIN Cars C ON BC.CarID=C.Car_ID WHERE C.IsLocalSupplier=1 AND C.SupplierId=@SuppId AND BCP.PayDate<@FromDate", opParams);
         double prevReBuyPay  = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(RP.PayMoney),0) FROM ReBuy_Payments RP JOIN ReBuy RB ON RP.BuyID=RB.Buy_ID WHERE RB.SuppId=@SuppId AND RP.PayDate<@FromDate", opParams);
 
+        double prevMaintCost  = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SM.Cost),0) FROM Sales_Maintenance SM INNER JOIN Sales S ON SM.SalesId=S.Sales_ID WHERE SM.SuppId=@SuppId AND S.SalesDate<@FromDate", opParams);
+        double prevMaintPay   = await db.ExecuteScalarAsync<double>("SELECT ISNULL(SUM(SM.Cost),0) FROM Sales_Maintenance SM INNER JOIN Sales S ON SM.SalesId=S.Sales_ID WHERE SM.SuppId=@SuppId AND SM.IsCash=1 AND S.SalesDate<@FromDate", opParams);
+
         DateTime openDate    = (supplierInfo?.OpenDate != null) ? Convert.ToDateTime((object?)supplierInfo.OpenDate) : new DateTime(1900, 1, 1);
         bool openDateBefore  = openDate < queryFromDate;
 
-        double prevDebit  = prevBuys + prevBuysCar + prevPayCD + prevReBuyPay + (openDateBefore ? suppIniDebit : 0);
-        double prevCredit = prevReBuys + prevPayCC + prevBuyPay + prevCarPay + (openDateBefore ? suppIniCredit : 0);
+        double prevDebit  = prevBuys + prevBuysCar + prevPayCD + prevReBuyPay + prevMaintCost + (openDateBefore ? suppIniDebit : 0);
+        double prevCredit = prevReBuys + prevPayCC + prevBuyPay + prevCarPay + prevMaintPay + (openDateBefore ? suppIniCredit : 0);
 
         double runBal = 0;
         var rows = new List<DetailedAccountRow>();
@@ -1320,6 +1368,53 @@ public partial class PurchasesReportsViewModel : ObservableObject
                 RunningDebit  = runBal > 0 ? runBal : 0,
                 RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
             });
+        }
+
+        // ── صيانة من المورد ──
+        var maintItems = await db.QueryAsync<dynamic>(@"
+            SELECT SM.Id, S.SalesDate AS TxDate, CAST(S.Sales_ID AS VARCHAR) AS RefNo,
+                   'خدمة صيانة' AS TransType, SM.ItemName,
+                   SM.Cost AS Debit, 0 AS Credit, SM.IsCash,
+                   ISNULL(U.UserName,'') AS Agent
+            FROM Sales_Maintenance SM
+            INNER JOIN Sales S ON SM.SalesId = S.Sales_ID
+            LEFT JOIN Users U ON S.AddUser = U.User_ID
+            WHERE SM.SuppId=@SuppId AND S.SalesDate>=@FromDate AND S.SalesDate<=@ToDate", txParams);
+
+        foreach (var m in maintItems)
+        {
+            double d = Convert.ToDouble(m.Debit);
+            runBal += d;
+            DateTime txDate = Convert.ToDateTime((object)m.TxDate);
+            rows.Add(new DetailedAccountRow {
+                RawDate = txDate,
+                Date = txDate.ToString("dd/MM/yyyy"),
+                RefNo = m.RefNo, Agent = m.Agent,
+                TransType = m.TransType, Notes = m.ItemName,
+                Debit = d, Credit = 0,
+                RunningDebit  = runBal > 0 ? runBal : 0,
+                RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
+                Items = new List<InvoiceSubItem> {
+                    new InvoiceSubItem {
+                        ItemName = m.ItemName, Unit = "-", Qty = 1, Price = d, DiscPer = 0, Total = d
+                    }
+                }
+            });
+
+            bool isCash = Convert.ToBoolean(m.IsCash);
+            if (isCash)
+            {
+                runBal -= d;
+                rows.Add(new DetailedAccountRow {
+                    RawDate = txDate,
+                    Date = txDate.ToString("dd/MM/yyyy"),
+                    RefNo = m.RefNo, Agent = m.Agent,
+                    TransType = "سداد خدمة صيانة", Notes = "دفع نقدي",
+                    Debit = 0, Credit = d,
+                    RunningDebit  = runBal > 0 ? runBal : 0,
+                    RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0
+                });
+            }
         }
 
         // ── ترتيب حسب التاريخ ثم رقم الحركة ──

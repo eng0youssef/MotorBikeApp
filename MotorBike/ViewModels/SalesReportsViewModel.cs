@@ -1253,6 +1253,22 @@ public partial class SalesReportsViewModel : ObservableObject
                 LEFT JOIN Units UN ON SS.UnitId=UN.Unit_ID
                 WHERE SS.SalesId=@SalesId", new { SalesId = sid });
 
+            var itemsList = subItems.Select(x => new InvoiceSubItem {
+                ItemName = x.ItemName, Unit = x.Unit ?? "",
+                Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
+                DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
+            }).ToList();
+
+            var maintItems = await db.QueryAsync<dynamic>("SELECT ItemName, Price FROM Sales_Maintenance WHERE SalesId=@SalesId", new { SalesId = sid });
+            foreach (var m in maintItems)
+            {
+                itemsList.Add(new InvoiceSubItem {
+                    ItemName = m.ItemName, Unit = "-",
+                    Qty = 1, Price = Convert.ToDouble(m.Price),
+                    DiscPer = 0, Total = Convert.ToDouble(m.Price)
+                });
+            }
+
             double d = Convert.ToDouble(s.Debit);
             runBal += d;
             DateTime txDate = Convert.ToDateTime((object)s.TxDate);
@@ -1264,11 +1280,7 @@ public partial class SalesReportsViewModel : ObservableObject
                 Debit = d, Credit = 0,
                 RunningDebit  = runBal > 0 ? runBal : 0,
                 RunningCredit = runBal < 0 ? Math.Abs(runBal) : 0,
-                Items = subItems.Select(x => new InvoiceSubItem {
-                    ItemName = x.ItemName, Unit = x.Unit ?? "",
-                    Qty = Convert.ToDouble(x.Qty), Price = Convert.ToDouble(x.Price),
-                    DiscPer = Convert.ToDouble(x.DiscPer), Total = Convert.ToDouble(x.Total)
-                }).ToList()
+                Items = itemsList
             });
 
             // مدفوعات مع الفاتورة

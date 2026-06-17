@@ -1139,9 +1139,10 @@ public partial class SalesViewModel : ObservableObject
 
     private void CalculatePayedTotal()
     {
-        // بنود الصيانة الكاش يُعدّ سعر بيعها مدفوعًا فورًا من الخزينة
-        double maintCashPaid = FormMaintenanceItems?.Where(m => m.IsCash).Sum(m => m.Price) ?? 0;
-        TotalPayed = FormPayments.Sum(p => p.PayMoney) + maintCashPaid;
+        // TotalPayed يعكس فقط ما دفعه العميل (من سجلات المدفوعات)
+        // بنود الصيانة المعلمة كاش تعني إن المورد اتحاسب نقداً من الخزينة،
+        // وليست مدفوعات من العميل، فلا تُحسب هنا
+        TotalPayed = FormPayments.Sum(p => p.PayMoney);
         UpdateRemaining();
     }
 
